@@ -1,0 +1,13 @@
+{
+"stations": [
+{ "id": "A", "name": "Spawn Central", "coords": { "x": 0, "y": 72, "z": 0 } },
+{ "id": "B", "name": "West Harbor", "coords": { "x": -600, "y": 65, "z": 120 } },
+{ "id": "C", "name": "Mesa Junction", "coords": { "x": -850, "y": 64, "z": 1300 } },
+{ "id": "D", "name": "Highlands", "coords": { "x": 400, "y": 78, "z": -350 } },
+{ "id": "E", "name": "Icefield", "coords": { "x": 2100, "y": 70, "z": -450 } }
+],
+"lines": [
+{ "id": "L1", "name": "West Line", "direction": "Spawn → Mesa", "stops": ["A","B","C"], "color": "#22d3ee" },
+{ "id": "L2", "name": "North Line", "direction": "Spawn → Icefield", "stops": ["A","D","E"], "color": "#a78bfa" }
+]
+}

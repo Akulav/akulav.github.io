@@ -1,0 +1,7 @@
+{
+"photos": [
+{ "src": "assets/images/hero.jpg", "alt": "Spawn at sunrise", "caption": "Spawn overlook at sunrise" },
+{ "src": "assets/images/base1.jpg", "alt": "Underground base", "caption": "Hex-core underground base" },
+{ "src": "assets/images/rail-bridge.jpg", "alt": "Rail bridge", "caption": "East line rail bridge" }
+]
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minecraft Server — Points of Interest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css" />
+<link rel="icon" href="assets/favicon.png">
+</head>
+<body>
+<header id="site-header"></header>
+
+
+<main class="container">
+<h1 class="page-title">Points of Interest</h1>
+
+
+<div class="toolbar">
+<input id="search" class="input" type="search" placeholder="Search by name, tag, or description…" />
+<select id="tagFilter" class="input">
+<option value="">All tags</option>
+</select>
+<button id="copyAll" class="btn" title="Copy all visible coordinates">Copy coords</button>
+</div>
+
+
+<div id="poiGrid" class="grid"></div>
+</main>
+
+
+<footer id="site-footer"></footer>
+
+
+<template id="poi-card">
+<article class="card poi">
+<img class="card-img" alt="" loading="lazy" />
+<div class="card-body">
+<h3 class="card-title"></h3>
+<p class="muted desc"></p>
+<div class="meta">
+<code class="coord"></code>
+<span class="tags"></span>
+</div>
+<div class="actions">
+<button class="btn tiny copy">Copy /tp</button>
+<a class="btn tiny secondary open" target="_blank" rel="noopener">Open image</a>
+</div>
+</div>
+</article>
+</template>
+
+
+<script type="module" src="js/site.js"></script>
+<script type="module" src="js/poi.js"></script>
+</body>
+</html>
