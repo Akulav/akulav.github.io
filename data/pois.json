@@ -1,0 +1,28 @@
+{
+"pois": [
+{
+"id": "spawn",
+"name": "Spawn Plaza",
+"description": "Central hub with nether portal, trading hall, and notice board.",
+"coords": { "x": 0, "y": 72, "z": 0 },
+"image": "assets/images/spawn.jpg",
+"tags": ["hub", "trading"]
+},
+{
+"id": "mesa-mine",
+"name": "Mesa Gold Mine",
+"description": "Abandoned shafts and ridiculous gold veins.",
+"coords": { "x": -842, "y": 64, "z": 1310 },
+"image": "assets/images/mesa-mine.jpg",
+"tags": ["mine", "gold"]
+},
+{
+"id": "ice-spikes",
+"name": "Ice Spikes Biome",
+"description": "Spectacular icy landscape — great for packed ice farming.",
+"coords": { "x": 2100, "y": 70, "z": -450 },
+"image": "assets/images/ice-spikes.jpg",
+"tags": ["biome", "farm"]
+}
+]
+}

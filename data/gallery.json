@@ -1,7 +1,7 @@
 {
 "photos": [
-{ "src": "assets/images/hero.jpg", "alt": "Spawn at sunrise", "caption": "Spawn overlook at sunrise" },
-{ "src": "assets/images/base1.jpg", "alt": "Underground base", "caption": "Hex-core underground base" },
-{ "src": "assets/images/rail-bridge.jpg", "alt": "Rail bridge", "caption": "East line rail bridge" }
+{ "src": "assets/images/industrial.png", "alt": "Zona Industriala Cuciurgan", "caption": "Zona Industriala Cuciurgan" },
+{ "src": "assets/images/boier.png", "alt": "Casa de Boier", "caption": "Casa de Boier" },
+{ "src": "assets/images/podulunirii.png", "alt": "Podul Unirii", "caption": "Podul Unirii" }
 ]
 }
