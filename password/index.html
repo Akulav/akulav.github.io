@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="A client-side password generator." />
+  <meta name="description" content="Client-side password generator (pure HTML/CSS/JS). No remote server required." />
   <meta name="theme-color" content="#111827" />
   <link rel="stylesheet" href="style.css">
-  <script src="cryptoPass.js" type="text/javascript"></script>
+
+  <script src="app.js" defer></script>
   <title>Password Generator</title>
 </head>
 <body>
@@ -16,13 +17,12 @@
       <header>
         <div>
           <h1>🔐 Password Generator</h1>
-          <div class="sub">No remote server contacted. Fully local.</div>
+          <div class="sub">Pure HTML/CSS/JS - All generation happens locally in your browser.</div>
         </div>
         <div class="inline muted">Entropy: <span id="entropy">0</span> bits <span id="entropyLabel" class="muted" style="margin-left:8px"></span></div>
       </header>
 
       <section class="content">
-        <!-- left: output -->
         <div class="panel">
           <div class="password-box">
             <div class="pw" id="output" aria-live="polite">—</div>
@@ -39,36 +39,32 @@
           </div>
         </div>
 
-        <!-- right: controls -->
         <form id="form" class="panel" autocomplete="off">
           <div class="controls">
             <div>
               <label for="length">Length</label>
               <div class="slider-wrap">
-                <input id="length" type="range" min="8" max="128" value="16" />
+                <input id="length" type="range" min="8" max="256" value="16" />
                 <input id="lengthNum" type="number" min="4" max="256" value="16" />
               </div>
-              <div class="muted">Tip: A minimum of 16 characters is recommended. Consider 24-32 for very sensitive accounts.</div>
+              <div class="muted">Tip: 16+ characters recommended. Consider 24–32 for very sensitive accounts.</div>
             </div>
 
-            <!-- right: checkboxes charsets #1-->
             <div>
               <label>Character sets</label>
               <div class="checks" role="group" aria-label="Character sets">
-                <label class="check"><input id="lower" type="checkbox" checked> <span>Lowercase <span class="muted">(a-z)</span></span></label>
-                <label class="check"><input id="upper" type="checkbox" checked> <span>Uppercase <span class="muted">(A-Z)</span></span></label>
-                <label class="check"><input id="digits" type="checkbox" checked> <span>Digits <span class="muted">(0-9)</span></span></label>
+                <label class="check"><input id="lower" type="checkbox" checked> <span>Lowercase <span class="muted">(a–z)</span></span></label>
+                <label class="check"><input id="upper" type="checkbox" checked> <span>Uppercase <span class="muted">(A–Z)</span></span></label>
+                <label class="check"><input id="digits" type="checkbox" checked> <span>Digits <span class="muted">(0–9)</span></span></label>
                 <label class="check"><input id="symbols" type="checkbox"> <span>Symbols <span class="muted">(!@#$…)</span></span></label>
               </div>
             </div>
 
-            <!-- right: checkboxes FALSE OR TRUE functions #2-->
             <div class="checks">
               <label class="check"><input id="noSimilar" type="checkbox"> <span>Exclude look-alikes <span class="muted">(O,0,l,1,I,|,o)</span></span></label>
               <label class="check"><input id="requireEach" type="checkbox" checked> <span>Require at least one from each selected set</span></label>
             </div>
 
-            <!-- right: checkboxes manual input #3-->
             <div class="grid-2">
               <div>
                 <label for="exclude">Exclude these characters</label>
@@ -80,15 +76,15 @@
               </div>
             </div>
 
-            <div class="help muted">All randomness is generated with <code>crypto.getRandomValues()</code>. Nothing leaves your device.</div>
+            <div class="help muted">All randomness is generated with <code>crypto.getRandomValues() std::library</code>. Nothing leaves your device.</div>
             <div id="warnings" class="muted" aria-live="polite"></div>
           </div>
         </form>
       </section>
 
       <div class="foot">
-        <div class="muted">Settings are stored locally.</div>
-        <a class="link-btn" href="#" id="downloadTxt" download>Download as a .txt</a>
+        <div class="muted">Save this page to your bookmarks.</div>
+        <a class="link-btn" href="#" id="downloadTxt" download>Download .txt</a>
       </div>
     </div>
   </div>

@@ -14,9 +14,6 @@ const nav = `
   </nav>
 `;
 
-const footer = `
-  <div>Made with ❤️ by our crew · <a href="https://github.com/" target="_blank" rel="noopener">GitHub Pages</a></div>
-`;
 
 const headerEl = document.getElementById('site-header');
 if (headerEl) headerEl.innerHTML = nav;
