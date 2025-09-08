@@ -27,7 +27,6 @@
   };
   const SIMILAR = new Set(['O','0','o','l','1','I','|']);
 
-  // Local storage restore
   const STORAGE_KEY = 'pwgen.settings.v1';
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
@@ -41,6 +40,8 @@
       });
     }
   } catch {}
+
+  let bulkText = null;
 
   function syncLen(from){
     return function(){
@@ -59,7 +60,6 @@
     const custom = [...els.custom.value].filter(ch => !excludeSet.has(ch));
     const poolBySet = {};
     let pool = [];
-
     const add = (key) => {
       const enabled = els[key].checked;
       let chars = enabled ? [...SETS[key]] : [];
@@ -78,7 +78,7 @@
 
   function entropyBits(length, alphabetSize){
     if (length <= 0 || alphabetSize <= 1) return 0;
-    return Math.round(length * (Math.log(alphabetSize) / Math.LN2)); // L * log2(N)
+    return Math.round(length * (Math.log(alphabetSize) / Math.LN2));
   }
 
   function strengthLabel(bits){
@@ -86,9 +86,9 @@
     if (bits >= 100 && bits < 250) return 'Okay';
     if (bits < 750 && bits >= 250) return 'Strong';
     if (bits <= 1750 && bits >= 750) return 'Excellent';
+    return 'Excellent';
   }
 
-  // Crypto-safe random int in [0, maxExclusive)
   function randInt(max){
     if (max <= 0) return 0;
     const maxUint32 = 0xFFFFFFFF;
@@ -110,7 +110,6 @@
   function generatePassword(){
     const L = clamp(parseInt(els.length.value,10) || 16, 4, 256);
     const {pool, poolBySet} = buildPool();
-
     if (pool.length === 0){
       throw new Error('Your character pool is empty. Add or enable at least one set.');
     }
@@ -122,7 +121,6 @@
     if (els.requireEach.checked && requiredSets.length > L){
       throw new Error('Length too small to include one from each selected set.');
     }
-
     const chars = [];
     if (els.requireEach.checked){
       for (const key of requiredSets){
@@ -137,7 +135,21 @@
     return chars.join('');
   }
 
-    function validate(){
+  function generateMany(count){
+    const seen = new Set();
+    const list = [];
+    let guard = count * 20;
+    while (list.length < count && guard-- > 0){
+      const pw = generatePassword();
+      if (!seen.has(pw)){
+        seen.add(pw);
+        list.push(pw);
+      }
+    }
+    return list;
+  }
+
+  function validate(){
     const {poolBySet} = buildPool();
     const warnings = [];
     const selected = Object.keys(poolBySet).filter(k => els[k]?.checked);
@@ -161,7 +173,7 @@
     $meter.style.width = pct + '%';
     $status.textContent = `Alphabet: ${pool.length} chars • Length: ${L} • ${label}`;
     els.generate.disabled = pool.length === 0;
-    els.regen.disabled = ($out.textContent || '') === '—' || pool.length === 0;
+    els.regen.disabled = pool.length === 0;
     els.copy.disabled = ($out.textContent || '') === '—';
     $download.style.pointerEvents = ($out.textContent || '') === '—' ? 'none' : 'auto';
     $download.style.opacity = ($out.textContent || '') === '—' ? .5 : 1;
@@ -210,22 +222,41 @@
     catch(err){ $status.textContent = err.message; $status.style.color = 'var(--danger)'; }
     updateEntropyUI();
   });
-  els.regen.addEventListener('click', (e)=>{ e.preventDefault(); els.generate.click(); });
+
+  els.regen.addEventListener('click', (e) => {
+    e.preventDefault();
+    try {
+      validate();
+      const list = generateMany(100);
+      if (list.length === 0){
+        throw new Error('No passwords could be generated with the current options.');
+      }
+      $out.textContent = list[0];
+      bulkText = list.join('\n');
+      $download.click();
+      toast('Generated 100 passwords and started download.');
+    } catch (err) {
+      $status.textContent = err.message;
+      $status.style.color = 'var(--danger)';
+    } finally {
+      updateEntropyUI();
+    }
+  });
+
+  $download.addEventListener('click', (e) => {
+    const txt = (bulkText != null ? bulkText : ($out.textContent || ''));
+    if (!txt || txt === '—'){ e.preventDefault(); return; }
+    const blob = new Blob([txt + "\n"], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    $download.href = url;
+    $download.download = (bulkText != null ? 'passwords.txt' : 'password.txt');
+    bulkText = null;
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  });
+
   els.copy.addEventListener('click', (e)=>{ e.preventDefault(); copyOut(); });
   els.clear.addEventListener('click', (e)=>{ e.preventDefault(); $out.textContent = '—'; updateEntropyUI(); });
 
-  $download.addEventListener('click', (e)=>{
-    const txt = $out.textContent || '';
-    if (!txt || txt === '—'){ e.preventDefault(); return; }
-    const blob = new Blob([txt+"\n"], {type:'text/plain'});
-    const url = URL.createObjectURL(blob);
-    $download.href = url;
-    $download.download = 'password.txt';
-    setTimeout(()=>URL.revokeObjectURL(url), 5000);
-  });
-
-  
-
-  validate(); //to prevent null errors #fffffffffff
+  validate();
   updateEntropyUI();
 })();
