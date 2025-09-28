@@ -248,3 +248,24 @@ body.no-scroll{overflow:hidden}
   .dz-title{ font-size: 15px; }
   .dz-sub{ font-size: 12px; }
 }
+
+
+/* Ambient glow based on dominant photo color */
+.card{ --glow: rgba(106,160,255,0.15); box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 18px 60px -30px var(--glow); transition: transform .12s ease, box-shadow .2s ease; }
+.card:hover{ transform: translateY(-2px); box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 24px 80px -32px var(--glow); }
+.thumb-wrap::after{ content:''; position:absolute; inset:-2px; border-radius:16px; pointer-events:none; box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 8px 40px -24px var(--glow); }
+
+/* Better tap targets on mobile */
+@media (max-width: 520px){
+  .fav-btn{ transform: scale(1.1); }
+  .chip{ padding:6px 10px; }
+  .count-badge{ transform: scale(1.05); }
+}
+
+
+.fp-hero{ position:relative; }
+.fp-hero::before{
+  content:''; position:absolute; inset:-8px -8px -8px -8px; z-index:-1; border-radius:20px;
+  background: radial-gradient(80% 60% at 50% 40%, var(--glow) 0%, transparent 70%);
+  filter: blur(10px);
+}

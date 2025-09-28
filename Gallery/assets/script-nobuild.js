@@ -270,7 +270,7 @@ async function handleZipFile(file){
 
     const all = [];
     const tagSet = new Set();
-    for (const [folder, g] of groups){
+    const __entries = Array.from(groups.entries()); const __tot = __entries.length||1; let __i=0; for (const [folder, g] of __entries){ if((__i++)%20===0){ libMsg.textContent = `Reading metadata… ${Math.min(99, Math.floor((__i/__tot)*100))}%`; await new Promise(r=>setTimeout(r,0)); }
       if(!g.tagsFile) continue;
       const meta = await g.tagsFile.async('string').then(s=>JSON.parse(s)).catch(()=>null);
       if(!meta) continue;
@@ -319,7 +319,7 @@ async function buildFromLooseFiles(files){
         const leaf = (parts.at(-1) || '').toLowerCase();
         if (leaf === 'prompt.txt') bucket.promptFile = f;
         else if (leaf === 'tags.json') bucket.tagsFile = f;
-        else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)) bucket.previews.push(f);
+        else if (/(\.jpg|\.jpeg|\.png|\.webp|\.avif)$/i.test(leaf)) bucket.previews.push(f);
         groups.set(folderKey, bucket);
       }
     }
@@ -332,9 +332,13 @@ async function buildFromLooseFiles(files){
 
   const all = [];
   const tagSet = new Set();
-  for (const [folder, g] of groups){
+  const groupArr = Array.from(groups.entries());
+  const metaTotal = groupArr.length || 1;
+  for (let gi=0; gi<groupArr.length; gi++){
+    const [folder, g] = groupArr[gi];
     if (!g.tagsFile) continue;
     const meta = await readJSONFile(g.tagsFile).catch(()=>null);
+    if (gi % 20 === 0){ libMsg.textContent = `Reading metadata… ${Math.min(99, Math.floor((gi/metaTotal)*100))}%`; await new Promise(r=>setTimeout(r,0)); }
     if (!meta) continue;
     const id = folder.replace(/\s+/g,'-').toLowerCase();
     const title = meta.title || folder.split('/').at(-1);
@@ -374,6 +378,7 @@ function finalizeLibrary(all, tagSet){
   const openBtn = $('#openRW'); if (openBtn) openBtn.remove();
 }
 async function preloadSnippets(list){
+  if (typeof isMobile !== 'undefined' && isMobile) { list = list.slice(0, 24); }
   const BATCH=20;
   for(let i=0;i<list.length;i+=BATCH){
     const slice=list.slice(i,i+BATCH);
@@ -443,7 +448,7 @@ function renderGrid(items){
 
     if(p.files.previews.length){
       loadObjectURL(p.files.previews[0]).then(url=>{
-        img.src=url; img.addEventListener('load', ()=> tw.classList.remove('skel'), { once:true });
+        img.src=url; img.addEventListener('load', ()=> { tw.classList.remove('skel'); try{ const [r,g,b]=extractDominantColorFromImage(img); card.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{} }, { once:true });
       });
     } else { img.alt='No preview'; tw.classList.remove('skel'); }
 
@@ -519,6 +524,43 @@ async function openModal(p){
   const resEl=$('#imgRes');
   const fmtEl=$('#imgFmt');
   const copyDimsBtn=$('#copyDims');
+  const downloadImgBtn=$('#downloadImg');
+  const downloadAllBtn=$('#downloadAll');
+  if(downloadImgBtn){
+    downloadImgBtn.onclick = async ()=>{
+      try{
+        const i=_modalState.index||0;
+        const handle=_modalState.previews[i];
+        const file = 'getFile' in handle ? await handle.getFile() : handle;
+        const url = URL.createObjectURL(file);
+        const a=document.createElement('a');
+        a.href=url; a.download=(file.name || `image-${i+1}`);
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      }catch(err){ console.error(err); }
+    };
+  }
+  if(downloadAllBtn){
+    downloadAllBtn.onclick = async ()=>{
+      if(!window.JSZip){ alert('JSZip not available'); return; }
+      const zip = new JSZip();
+      for(let i=0;i<_modalState.previews.length;i++){
+        try{
+          const h=_modalState.previews[i];
+          const f = 'getFile' in h ? await h.getFile() : h;
+          const buf = await f.arrayBuffer();
+          const name = (f.name || `image-${i+1}.png`);
+          zip.file(name, buf);
+          if(i%5===0) await new Promise(r=>setTimeout(r,0));
+        }catch(e){ console.error(e); }
+      }
+      const content = await zip.generateAsync({type:'blob'});
+      const url = URL.createObjectURL(content);
+      const a=document.createElement('a');
+      a.href=url; a.download = (document.getElementById('modalTitle')?.textContent?.trim() || 'collection') + '.zip';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1500);
+    };
+  }
+
 
   lockScroll();
 
@@ -550,6 +592,7 @@ async function openModal(p){
   } else { hero.removeAttribute('src'); hero.alt='No preview'; resEl.textContent='— × —'; fmtEl.textContent='—'; }
 
   function setHero(i){
+    try{ const [r,g,b]=extractDominantColorFromImage(hero); dlg.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{}
     _modalState.index=i; hero.src=_modalState.urls[i];
     $$('#modalThumbs img').forEach((n,idx)=> n.classList.toggle('active', idx===i));
     ensureThumbVisible(i);
@@ -800,3 +843,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const empty = $('#empty');
   empty && empty.addEventListener('click', () => showOverlay());
 });
+
+
+/* Dominant color extraction (fast average downscale) */
+function extractDominantColorFromImage(imgEl){
+  try{
+    const w=imgEl.naturalWidth||imgEl.width, h=imgEl.naturalHeight||imgEl.height;
+    const sz = 32;
+    const cw = Math.max(1, Math.min(sz, w)), ch = Math.max(1, Math.min(sz, h));
+    const c=document.createElement('canvas'); c.width=cw; c.height=ch;
+    const ctx=c.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(imgEl, 0, 0, cw, ch);
+    const data=ctx.getImageData(0,0,cw,ch).data;
+    let r=0,g=0,b=0,count=0;
+    for(let i=0;i<data.length;i+=4){
+      const a=data[i+3];
+      if(a<8) continue;
+      r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++;
+    }
+    if(!count) return [106,160,255];
+    r=Math.round(r/count); g=Math.round(g/count); b=Math.round(b/count);
+    return [r,g,b];
+  }catch{ return [106,160,255]; }
+}
