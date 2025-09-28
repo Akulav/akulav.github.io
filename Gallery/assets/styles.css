@@ -226,3 +226,25 @@ body.no-scroll{overflow:hidden}
 
 /* Buttons row under square */
 .lib-actions{ display:flex; gap:8px; justify-content:center; margin-top:8px; flex-wrap:wrap }
+
+
+/* Boot gate: hide chrome until a library is loaded */
+.boot-gate .actions,
+.boot-gate #filters,
+.boot-gate .page { display:none !important; }
+
+/* Hide legacy Load Library button */
+.actions #openRW { display:none !important; }
+
+/* Fluid grid for mobile */
+.grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+@media (max-width: 520px){
+  .actions input{ min-width: 0; width: 52vw; }
+  .card{ min-height: 520px; }
+  .thumb-wrap{ aspect-ratio: 2/3; }
+  .dropzone{ width: 92%; aspect-ratio: 4/5; }
+  .dz-icon{ font-size: 40px; }
+  .dz-title{ font-size: 15px; }
+  .dz-sub{ font-size: 12px; }
+}

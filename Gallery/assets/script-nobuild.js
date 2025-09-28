@@ -28,6 +28,22 @@ const dropZone = $('#dropZone');
 const dirInput = $('#dirInput');
 const zipInput = $('#zipInput');
 const libMsg = $('#libMsg');
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function configureOverlayForEnv(){
+  const rwBtn = $('#libRW');
+  const folderBtn = $('#libFolder');
+  const zipBtn = $('#libZip');
+  const hint = $('.dz-hint');
+  if(isIOS){
+    rwBtn?.setAttribute('disabled','');
+    folderBtn?.setAttribute('disabled','');
+    zipBtn?.removeAttribute('disabled');
+    if(hint) hint.textContent = 'On iPhone/iPad, pick a .zip of your /prompts folder.';
+  }
+}
+
 
 function showOverlay(){
   overlay.classList.remove('hidden');
@@ -217,122 +233,116 @@ async function handleZipFile(file){
   try{
     libMsg.textContent = 'Reading ZIP…';
     const zip = await JSZip.loadAsync(file);
-    const groups = new Map(); // key: 'prompts/<folder>'
+    const groups = new Map();
     const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
+    const totalZip = fileEntries.length || 1;
+    let processedZip = 0;
 
     for (const zf of fileEntries){
       const rel = zf.name.replace(/^[\/]+/, '');
       const parts = rel.split('/');
-      if (parts.length < 1) continue;
+      if (parts.length < 1) { processedZip++; continue; }
 
       let folderKey;
       const pIdx = parts.indexOf('prompts');
       if (pIdx >= 0){
-        if (parts.length < pIdx+2) continue;
-        folderKey = parts.slice(0, pIdx+2).join('/'); // prompts/<folder>
+        if (parts.length < pIdx+2){ processedZip++; continue; }
+        folderKey = parts.slice(0, pIdx+2).join('/');
       } else {
-        if (parts.length < 2) continue;
+        if (parts.length < 2){ processedZip++; continue; }
         folderKey = `prompts/${parts[0]}`;
       }
 
       const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
-      const leaf = (parts.at(-1)||'').toLowerCase();
-
-      if(leaf==='prompt.txt'){
-        const blob = await zf.async('blob');
-        bucket.promptFile = new File([blob], 'prompt.txt', { type:'text/plain' });
-      }else if(leaf==='tags.json'){
-        const blob = await zf.async('blob');
-        bucket.tagsFile = new File([blob], 'tags.json', { type:'application/json' });
-      }else if(/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)){
-        const blob = await zf.async('blob');
-        const mime = guessMimeFromName(leaf);
-        const name = parts.at(-1);
-        bucket.previews.push(new File([blob], name, { type:mime }));
-      }
+      const leaf = (parts.at(-1) || '').toLowerCase();
+      if (leaf === 'prompt.txt') bucket.promptFile = zf;
+      else if (leaf === 'tags.json') bucket.tagsFile = zf;
+      else if (/(\.jpg|\.jpeg|\.png|\.webp|\.avif)$/i.test(leaf)) bucket.previews.push(zf);
       groups.set(folderKey, bucket);
+
+      processedZip++;
+      if (processedZip % 200 === 0){
+        const pct = Math.min(99, Math.floor((processedZip/totalZip)*100));
+        libMsg.textContent = `Reading ZIP… ${pct}%`;
+        await new Promise(r => setTimeout(r, 0));
+      }
     }
 
     const all = [];
     const tagSet = new Set();
-
     for (const [folder, g] of groups){
       if(!g.tagsFile) continue;
-      const meta = await readJSONFile(g.tagsFile).catch(()=>null);
+      const meta = await g.tagsFile.async('string').then(s=>JSON.parse(s)).catch(()=>null);
       if(!meta) continue;
-
       const id = folder.replace(/\s+/g,'-').toLowerCase();
       const title = meta.title || folder.split('/').at(-1);
       const tags = Array.isArray(meta.tags) ? meta.tags : [];
       tags.forEach(t=> tagSet.add(t));
       g.previews.sort((a,b)=> a.name.localeCompare(b.name));
       const favorite = loadLocalFavorite(id);
-      all.push({ id, title, tags, folder, files:{ prompt:g.promptFile||null, tags:g.tagsFile, previews:g.previews }, favorite });
+      all.push({ id, title, tags, folder, files:{ prompt:g.promptFile || null, tags:g.tagsFile, previews:g.previews }, favorite });
     }
 
-    if(!all.length){ libMsg.textContent = 'No prompts found in ZIP. Ensure /prompts/<folder>/tags.json exists.'; return; }
+    libMsg.textContent = 'Finalizing…';
     finalizeLibrary(all, tagSet);
     hideOverlay();
   }catch(err){
-    console.error('ZIP load failed', err);
-    libMsg.textContent = 'Could not read ZIP. Make sure it contains /prompts with tags.json files.';
-  }finally{
-    // reset for re-pick of same file
-    if (zipInput) zipInput.value = '';
+    console.error(err);
+    libMsg.textContent = 'Failed to read ZIP.';
   }
 }
 
 async function buildFromLooseFiles(files){
-  libMsg.textContent = 'Indexing files…';
+  libMsg.textContent = 'Indexing files… 0%';
+  const groups = new Map();
+  const total = files.length || 1;
+  const TICK_EVERY = 250;
 
-  const groups = new Map(); // key: "prompts/<folder>"
-
-  for (const f of files){
+  for (let i=0; i<files.length; i++){
+    const f = files[i];
     const rel = (f.webkitRelativePath || f.name).replace(/^[\/]*/, '');
     const parts = rel.split('/');
-    if (parts.length < 1) continue;
-
-    let folderKey;
-    const pIdx = parts.indexOf('prompts');
-
-    if (pIdx >= 0) {
-      if (parts.length < pIdx + 2) continue;          // need prompts/<folder>/...
-      folderKey = parts.slice(0, pIdx + 2).join('/'); // prompts/<folder>
-    } else {
-      if (parts.length < 2) continue;                 // need <folder>/...
-      folderKey = `prompts/${parts[0]}`;              // prompts/<folder>
+    if (parts.length >= 1){
+      let folderKey;
+      const pIdx = parts.indexOf('prompts');
+      if (pIdx >= 0){
+        if (parts.length >= pIdx + 2){
+          folderKey = parts.slice(0, pIdx + 2).join('/');
+        }
+      } else {
+        if (parts.length >= 2){
+          folderKey = `prompts/${parts[0]}`;
+        }
+      }
+      if (folderKey){
+        const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
+        const leaf = (parts.at(-1) || '').toLowerCase();
+        if (leaf === 'prompt.txt') bucket.promptFile = f;
+        else if (leaf === 'tags.json') bucket.tagsFile = f;
+        else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)) bucket.previews.push(f);
+        groups.set(folderKey, bucket);
+      }
     }
-
-    const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
-    const leaf = (parts.at(-1) || '').toLowerCase();
-
-    if (leaf === 'prompt.txt') bucket.promptFile = f;
-    else if (leaf === 'tags.json') bucket.tagsFile = f;
-    else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)) bucket.previews.push(f);
-
-    groups.set(folderKey, bucket);
+    if (i % TICK_EVERY === 0){
+      const pct = Math.min(99, Math.floor((i/total)*100));
+      libMsg.textContent = `Indexing files… ${pct}%`;
+      await new Promise(r => setTimeout(r, 0));
+    }
   }
 
   const all = [];
   const tagSet = new Set();
-
   for (const [folder, g] of groups){
     if (!g.tagsFile) continue;
     const meta = await readJSONFile(g.tagsFile).catch(()=>null);
     if (!meta) continue;
-
     const id = folder.replace(/\s+/g,'-').toLowerCase();
     const title = meta.title || folder.split('/').at(-1);
     const tags = Array.isArray(meta.tags) ? meta.tags : [];
     tags.forEach(t=> tagSet.add(t));
     g.previews.sort((a,b)=> a.name.localeCompare(b.name));
-
     const favorite = loadLocalFavorite(id);
-    all.push({
-      id, title, tags, folder,
-      files: { prompt: g.promptFile || null, tags: g.tagsFile, previews: g.previews },
-      favorite
-    });
+    all.push({ id, title, tags, folder, files:{ prompt:g.promptFile || null, tags:g.tagsFile, previews:g.previews }, favorite });
   }
 
   if (!all.length){
@@ -340,12 +350,10 @@ async function buildFromLooseFiles(files){
     return;
   }
 
+  libMsg.textContent = 'Finalizing…';
   finalizeLibrary(all, tagSet);
   hideOverlay();
 }
-
-/* helpers for RO paths */
-async function readJSONFile(file){ const txt = await file.text(); return JSON.parse(txt); }
 function guessMimeFromName(name){
   const ext=(name.split('.').pop()||'').toLowerCase();
   if(ext==='jpg'||ext==='jpeg') return 'image/jpeg';
@@ -357,11 +365,13 @@ function guessMimeFromName(name){
 
 /* ========== library finalize ========== */
 function finalizeLibrary(all, tagSet){
-  state.rw=false; // RO unless RW path set it true
+  state.rw=false;
   state.all=all; state.tags=Array.from(tagSet).sort((a,b)=>a.localeCompare(b));
   renderTags(); ensureFavSwitch();
   preloadSnippets(all).then(()=> applyFilters());
   applyFilters();
+  document.body.classList.remove('boot-gate');
+  const openBtn = $('#openRW'); if (openBtn) openBtn.remove();
 }
 async function preloadSnippets(list){
   const BATCH=20;
@@ -783,3 +793,10 @@ async function exportZipOfCurrentFilter(){
 
 /* ===== utils ===== */
 function debounced(fn,ms=160){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  configureOverlayForEnv();
+  if (typeof showOverlay === 'function') showOverlay();
+  const empty = $('#empty');
+  empty && empty.addEventListener('click', () => showOverlay());
+});
