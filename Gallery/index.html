@@ -5,6 +5,7 @@
   <title>Prompt Vault — No Build</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/styles.css" />
+  <!-- JSZip for ZIP fallback -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
@@ -14,12 +15,13 @@
     <div class="actions">
       <input id="searchBox" type="search" placeholder="Search title, tags, prompt…" />
       <button id="clearFilters" title="Clear filters">Clear</button>
+      <!-- Unchanged label; clicking opens the new overlay -->
       <button id="openRW" title="Load your prompts with write access">Load Library</button>
       <button id="toggleFavs" title="Show only favorites">★ Favorites</button>
     </div>
   </header>
 
-  <!-- Inline filters row (replaces sidebar) -->
+  <!-- Inline filters (unchanged) -->
   <section id="filters" class="filters-inline">
     <div class="filters-row">
       <div class="chips-wrap">
@@ -45,7 +47,7 @@
     </section>
   </main>
 
-  <!-- Modal -->
+  <!-- Modal (unchanged) -->
   <dialog id="promptModal" class="fullpage-modal" role="dialog" aria-modal="true">
     <button id="closeModal" class="icon-close" aria-label="Close">✕</button>
     <div class="fp-shell">
@@ -85,7 +87,7 @@
     </div>
   </dialog>
 
-  <!-- Gallery -->
+  <!-- Gallery (unchanged) -->
   <dialog id="galleryModal">
     <button id="closeGallery" class="icon-close" aria-label="Close">✕</button>
     <div class="gallery-head">
@@ -105,6 +107,37 @@
       <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
     </div>
   </dialog>
+
+  <!-- NEW: Library overlay UI (opens when clicking Load Library) -->
+  <div id="libraryOverlay" class="lib-overlay hidden" aria-hidden="true">
+    <div class="lib-sheet" role="dialog" aria-modal="true" aria-label="Load Library">
+      <button id="libClose" class="icon-close" aria-label="Close">✕</button>
+
+      <h2 class="lib-title">Load your Library</h2>
+      <p class="lib-sub">Drop your <b>/prompts</b> folder here, or tap the square to browse.</p>
+
+      <div id="dropZone" class="dropzone" tabindex="0" role="button" aria-label="Drop your prompts folder here or click to browse">
+        <div class="dz-inner">
+          <div class="dz-icon">⬚</div>
+          <div class="dz-title">Drop /prompts here</div>
+          <div class="dz-sub">…or tap to open your filesystem</div>
+          <div class="dz-hint">Folders (read-only), ZIP, or full write access where supported</div>
+        </div>
+      </div>
+
+      <div class="lib-actions">
+        <button id="libRW" class="btn">Use Write Access (desktop)</button>
+        <button id="libFolder" class="btn">Pick Folder</button>
+        <button id="libZip" class="btn">Pick ZIP</button>
+      </div>
+
+      <div id="libMsg" class="lib-msg" aria-live="polite"></div>
+
+      <!-- Hidden actual inputs -->
+      <input id="dirInput" type="file" webkitdirectory directory multiple hidden />
+      <input id="zipInput" type="file" accept=".zip,application/zip" hidden />
+    </div>
+  </div>
 
   <script src="assets/script-nobuild.js" defer></script>
 </body>
