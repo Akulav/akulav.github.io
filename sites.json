@@ -1,0 +1,5 @@
+[
+  { "folder": "Minecraft", "title": "Minecraft", "desc": "Cool thing", "icon": "🚀" },
+  { "folder": "Password", "title": "Password", "desc": "Photos & stuff", "icon": "🖼️" },
+  { "folder": "Gallery", "title": "Gallery", "desc": "Notes & guides", "icon": "📚" }
+]

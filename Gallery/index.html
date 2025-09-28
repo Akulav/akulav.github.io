@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Prompt Vault — No Build</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="left-spacer"></div>
+    <h1>Prompt Vault</h1>
+    <div class="actions">
+      <input id="searchBox" type="search" placeholder="Search title, tags, prompt…" />
+      <button id="clearFilters" title="Clear filters">Clear</button>
+      <button id="openRW" title="Load your prompts with write access">Load Library</button>
+      <button id="toggleFavs" title="Show only favorites">★ Favorites</button>
+    </div>
+  </header>
+
+  <!-- Inline filters row (replaces sidebar) -->
+  <section id="filters" class="filters-inline">
+    <div class="filters-row">
+      <div class="chips-wrap">
+        <h2>Tags</h2>
+        <div id="tagChips" class="chips"></div>
+      </div>
+      <div class="filter-mode">
+        <label><input type="radio" name="mode" value="AND" checked /> AND</label>
+        <label><input type="radio" name="mode" value="OR" /> OR</label>
+      </div>
+    </div>
+  </section>
+
+  <main class="page">
+    <section class="results">
+      <div class="results-bar">
+        <div id="stats" class="stats">0 prompts</div>
+        <button id="openGallery" class="big-gallery-btn" title="View all images from current results">View Gallery</button>
+      </div>
+
+      <div id="grid" class="grid"></div>
+      <div id="empty" class="empty">Pick your <b>/prompts</b> folder to begin.</div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <dialog id="promptModal" class="fullpage-modal" role="dialog" aria-modal="true">
+    <button id="closeModal" class="icon-close" aria-label="Close">✕</button>
+    <div class="fp-shell">
+      <div class="fp-media">
+        <img id="modalImg" alt="" />
+        <div id="imgMeta" class="img-meta">
+          <span id="imgRes">— × —</span>
+          <span class="dot">•</span>
+          <span id="imgFmt">—</span>
+          <button id="copyDims" class="pill tiny" title="Copy resolution">Copy</button>
+        </div>
+        <div id="modalThumbs" class="thumbs-row"></div>
+        <input id="thumbScrub" class="thumb-scrub" type="range" min="0" max="100" value="0" />
+      </div>
+      <aside class="fp-info">
+        <h3 id="modalTitle"></h3>
+        <div id="modalTags" class="chips small"></div>
+        <pre id="modalPrompt" class="prompt-pre block"></pre>
+        <div class="fp-actions">
+          <button id="copyPrompt" class="btn btn-primary">Copy Prompt</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Compare overlay (slider-only) -->
+    <div id="compareOverlay" class="compare hidden" aria-hidden="true">
+      <div class="compare-bar">
+        <strong>Compare</strong>
+        <div class="spacer"></div>
+        <button id="compareClose" class="pill danger">Close</button>
+      </div>
+      <div class="compare-stage">
+        <img id="cmpA" alt="">
+        <img id="cmpB" alt="">
+        <input id="cmpRange" class="cmp-range" type="range" min="0" max="100" value="50" />
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Gallery -->
+  <dialog id="galleryModal">
+    <button id="closeGallery" class="icon-close" aria-label="Close">✕</button>
+    <div class="gallery-head">
+      <h3>Gallery</h3>
+      <div class="gallery-meta"><span id="galleryCount">0</span> images</div>
+      <div class="gallery-actions">
+        <button id="exportZip" class="pill">Export ZIP</button>
+      </div>
+    </div>
+
+    <div class="gallery-progress">
+      <progress id="galleryProgress" value="0" max="1"></progress>
+      <span id="galleryProgressText">0%</span>
+    </div>
+
+    <div id="galleryGrid" class="gallery-grid">
+      <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
+    </div>
+  </dialog>
+
+  <script src="assets/script-nobuild.js" defer></script>
+</body>
+</html>
