@@ -44,3 +44,51 @@ body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 ui-sans-s
 .hidden{ display:none !important; }
 
 .footer{ text-align:center; color:var(--muted); padding:10px 0 30px; font-size:13px; }
+
+/* === Professional polish add-ons === */
+:root{
+  --focus:#5c92ff;
+  --glass:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+}
+@media (prefers-color-scheme: light){
+  :root{ --glass:linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.01)); }
+}
+html, body { scroll-behavior: smooth; }
+a { color: inherit; }
+
+/* Compact header actions layout */
+.header-actions{ display:flex; align-items:center; gap:12px; }
+.btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px; border:1px solid rgba(126,142,185,.25); background:var(--glass); text-decoration:none; font-weight:600; box-shadow:var(--shadow); transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.btn:hover{ transform:translateY(-2px); border-color:rgba(92,146,255,.45); box-shadow:0 16px 32px rgba(92,146,255,.18), var(--shadow); }
+.btn svg{ width:18px; height:18px; }
+.btn.github{ white-space:nowrap; }
+
+/* Accessibility: clear focus outlines */
+:focus-visible{ outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 14px; }
+
+/* Grid polish */
+.grid{ grid-auto-rows: 1fr; }
+.card{ position:relative; isolation:isolate; }
+.card .title{ display:flex; align-items:center; gap:8px; }
+.card .title::after{ content:""; flex:1; min-width:12px; height:1px; background:rgba(126,142,185,.18); opacity:.6; margin-left:8px; }
+.card .meta{ margin-top:auto; }
+
+/* Hover halo */
+.card::before{
+  content:""; position:absolute; inset:-1px; border-radius:var(--radius);
+  background:radial-gradient(400px 200px at var(--mx,50%) var(--my,0%), rgba(92,146,255,.18), transparent 60%);
+  opacity:0; transition:opacity .2s ease;
+  z-index:-1;
+}
+.card:hover::before{ opacity:1; }
+
+/* Small screens: hide GitHub label  */
+@media (max-width: 560px){
+  .hide-sm{ display:none; }
+  .search{ width:min(56vw, 360px); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{ transition:none !important; animation:none !important; }
+}

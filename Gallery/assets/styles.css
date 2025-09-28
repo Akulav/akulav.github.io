@@ -237,7 +237,8 @@ body.no-scroll{overflow:hidden}
 .actions #openRW { display:none !important; }
 
 /* Fluid grid for mobile */
-.grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+/*.grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } */
+
 
 @media (max-width: 520px){
   .actions input{ min-width: 0; width: 52vw; }

@@ -228,38 +228,116 @@ async function handleDirPickReadOnly(e){
   if(!files.length) return;
   await buildFromLooseFiles(files);
 }
+
+// Robust favorites store with localStorage + safe fallback
+const FavStore = (() => {
+  const KEY = 'pv:favs:v1';
+  let mem = new Set();    // in-memory fallback (e.g., iOS Private mode)
+  let useLocal = true;
+
+  // test localStorage (iOS Safari Private can throw)
+  try {
+    const t = '__t';
+    localStorage.setItem(t, '1');
+    localStorage.removeItem(t);
+  } catch (e) { useLocal = false; }
+
+  const read = () => {
+    if (!useLocal) return mem;
+    try {
+      const raw = localStorage.getItem(KEY);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      useLocal = false;
+      return mem;
+    }
+  };
+
+  const write = (set) => {
+    if (!useLocal) { mem = set; return; }
+    try {
+      localStorage.setItem(KEY, JSON.stringify([...set]));
+    } catch {
+      useLocal = false;
+      mem = set;
+    }
+  };
+
+  let cache = read();
+
+  return {
+    has: (id) => cache.has(id),
+    add: (id) => { cache.add(id); write(cache); },
+    del: (id) => { cache.delete(id); write(cache); },
+    all: () => [...cache]
+  };
+})();
+
+// API used by handleZipFile (read-only)
+function loadLocalFavorite(id){ return FavStore.has(id); }
+
+// Optional toggle you can call from your UI
+function toggleFavorite(id){
+  if (FavStore.has(id)) FavStore.del(id); else FavStore.add(id);
+}
+
+function isZipEntry(x){
+  return x && typeof x.async === 'function' && typeof x.name === 'string';
+}
+
+// Replace the whole handleZipFile with this:
 async function handleZipFile(file){
-  if(!window.JSZip){ alert('JSZip not available'); return; }
-  try{
+  if (!file) { libMsg.textContent = 'No file picked.'; return; }
+  if (!/\.zip$/i.test(file.name)) { libMsg.textContent = 'Please choose a .zip file.'; return; }
+  if (!window.JSZip) { libMsg.textContent = 'ZIP support not loaded.'; return; }
+
+  try {
     libMsg.textContent = 'Reading ZIP…';
-    const zip = await JSZip.loadAsync(file);
-    const groups = new Map();
+    // Safari/iOS: use ArrayBuffer, not Blob directly
+    const ab = (file.arrayBuffer) ? await file.arrayBuffer() : file;
+    const zip = await JSZip.loadAsync(ab, { createFolders:false });
+
+    // Gather only files we care about
     const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
     const totalZip = fileEntries.length || 1;
     let processedZip = 0;
 
+    const groups = new Map();
     for (const zf of fileEntries){
-      const rel = zf.name.replace(/^[\/]+/, '');
-      const parts = rel.split('/');
-      if (parts.length < 1) { processedZip++; continue; }
+      try {
+        const rel = (zf.name || '').replace(/^[\/]+/, '');
+        const parts = rel.split('/').filter(Boolean);
+        if (!parts.length) { processedZip++; continue; }
 
-      let folderKey;
-      const pIdx = parts.indexOf('prompts');
-      if (pIdx >= 0){
-        if (parts.length < pIdx+2){ processedZip++; continue; }
-        folderKey = parts.slice(0, pIdx+2).join('/');
-      } else {
-        if (parts.length < 2){ processedZip++; continue; }
-        folderKey = `prompts/${parts[0]}`;
-      }
+        // Normalize to prompts/<collection>/<...>
+        let folderKey;
+        const pIdx = parts.indexOf('prompts');
+        if (pIdx >= 0) {
+          if (parts.length < pIdx + 2) { processedZip++; continue; }
+          folderKey = parts.slice(0, pIdx + 2).join('/');
+        } else {
+          if (parts.length < 2) { processedZip++; continue; }
+          folderKey = `prompts/${parts[0]}`;
+        }
 
-      const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
-      const leaf = (parts.at(-1) || '').toLowerCase();
-      if (leaf === 'prompt.txt') bucket.promptFile = zf;
-      else if (leaf === 'tags.json') bucket.tagsFile = zf;
-      else if (/(\.jpg|\.jpeg|\.png|\.webp|\.avif)$/i.test(leaf)) bucket.previews.push(zf);
-      groups.set(folderKey, bucket);
+        const leaf = (parts.at(-1) || '').toLowerCase();
+        // Only collect known files
+        if (
+          leaf !== 'prompt.txt' &&
+          leaf !== 'tags.json' &&
+          !/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)
+        ){
+          processedZip++;
+          continue;
+        }
 
+        const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
+        if (leaf === 'prompt.txt') bucket.promptFile = zf;
+        else if (leaf === 'tags.json') bucket.tagsFile = zf;
+        else bucket.previews.push(zf);
+        groups.set(folderKey, bucket);
+
+      } catch { /* skip bad entry */ }
       processedZip++;
       if (processedZip % 200 === 0){
         const pct = Math.min(99, Math.floor((processedZip/totalZip)*100));
@@ -268,29 +346,51 @@ async function handleZipFile(file){
       }
     }
 
+    // Build prompt list
     const all = [];
     const tagSet = new Set();
-    const __entries = Array.from(groups.entries()); const __tot = __entries.length||1; let __i=0; for (const [folder, g] of __entries){ if((__i++)%20===0){ libMsg.textContent = `Reading metadata… ${Math.min(99, Math.floor((__i/__tot)*100))}%`; await new Promise(r=>setTimeout(r,0)); }
-      if(!g.tagsFile) continue;
-      const meta = await g.tagsFile.async('string').then(s=>JSON.parse(s)).catch(()=>null);
-      if(!meta) continue;
+    const entries = Array.from(groups.values());
+
+    for (let i = 0; i < entries.length; i++){
+      const g = entries[i];
+      const folder = g.folder;
+      libMsg.textContent = `Indexing… ${Math.min(99, Math.floor(((i+1)/entries.length)*100))}%`;
+      await new Promise(r => setTimeout(r, 0));
+
+      if (!g.tagsFile) continue; // require metadata
+      let meta = null;
+      try {
+        const txt = await g.tagsFile.async('string');
+        meta = JSON.parse(txt);
+      } catch {
+        continue; // skip broken JSON
+      }
+
       const id = folder.replace(/\s+/g,'-').toLowerCase();
       const title = meta.title || folder.split('/').at(-1);
       const tags = Array.isArray(meta.tags) ? meta.tags : [];
-      tags.forEach(t=> tagSet.add(t));
+      tags.forEach(t => tagSet.add(t));
+
+      // keep previews predictable
       g.previews.sort((a,b)=> a.name.localeCompare(b.name));
-      const favorite = loadLocalFavorite(id);
-      all.push({ id, title, tags, folder, files:{ prompt:g.promptFile || null, tags:g.tagsFile, previews:g.previews }, favorite });
+
+      // we attach JSZip objects; downstream loaders read them lazily
+      all.push({
+        id, title, tags, folder,
+        files: { prompt: g.promptFile || null, tags: g.tagsFile, previews: g.previews },
+        favorite: loadLocalFavorite(id)
+      });
     }
 
     libMsg.textContent = 'Finalizing…';
     finalizeLibrary(all, tagSet);
     hideOverlay();
-  }catch(err){
-    console.error(err);
-    libMsg.textContent = 'Failed to read ZIP.';
+  } catch (err) {
+    console.error('ZIP parse failed:', err);
+    libMsg.textContent = 'Failed to read ZIP. Try re-zipping on desktop or reduce size.';
   }
 }
+
 
 async function buildFromLooseFiles(files){
   libMsg.textContent = 'Indexing files… 0%';
@@ -444,7 +544,7 @@ function renderGrid(items){
 
     const count = document.createElement('span');
     const n = p.files?.previews?.length || 0;
-    if (n > 0) { count.className='count-badge'; count.textContent=`🖼 ${n}`; count.title=`${n} image${n!==1?'s':''}`; }
+    if (n > 0) { count.className='count-badge'; count.textContent=`📸 ${n}`; count.title=`${n} image${n!==1?'s':''}`; }
 
     if(p.files.previews.length){
       loadObjectURL(p.files.previews[0]).then(url=>{
@@ -488,17 +588,44 @@ function equalizeCardHeights(){
 window.addEventListener('resize', ()=>{ if(state._lastRenderedItems.length) equalizeCardHeights(); });
 
 /* file/object urls */
+/* file/object urls */
 async function loadObjectURL(handleOrFile){
-  if('getFile' in handleOrFile){ const f=await handleOrFile.getFile(); return URL.createObjectURL(f); }
-  return URL.createObjectURL(handleOrFile);
+  let blob = null;
+
+  if (handleOrFile && typeof handleOrFile === 'object') {
+    if ('getFile' in handleOrFile) {
+      // File System Access handle
+      const f = await handleOrFile.getFile();
+      blob = f;
+    } else if (isZipEntry(handleOrFile)) {
+      // JSZip file entry
+      blob = await handleOrFile.async('blob');
+    } else if (handleOrFile instanceof Blob) {
+      blob = handleOrFile;
+    }
+  }
+  if (!blob) throw new TypeError('Unsupported object for createObjectURL');
+
+  return URL.createObjectURL(blob);
 }
+
 async function loadPromptText(p){
-  if(p.files.prompt){
-    if('getFile' in p.files.prompt){ const f=await p.files.prompt.getFile(); return f.text(); }
-    return p.files.prompt.text();
+  const h = p.files?.prompt;
+  if (!h) return '(No prompt.txt found)';
+
+  if ('getFile' in h) {
+    const f = await h.getFile();
+    return f.text();
+  }
+  if (isZipEntry(h)) {
+    return h.async('string'); // JSZip entry -> string
+  }
+  if (h && typeof h.text === 'function') {
+    return h.text(); // plain File/Blob
   }
   return '(No prompt.txt found)';
 }
+
 
 /* copy micro-toast */
 function toastCopied(btn){
@@ -527,17 +654,31 @@ async function openModal(p){
   const downloadImgBtn=$('#downloadImg');
   const downloadAllBtn=$('#downloadAll');
   if(downloadImgBtn){
-    downloadImgBtn.onclick = async ()=>{
-      try{
-        const i=_modalState.index||0;
-        const handle=_modalState.previews[i];
-        const file = 'getFile' in handle ? await handle.getFile() : handle;
-        const url = URL.createObjectURL(file);
-        const a=document.createElement('a');
-        a.href=url; a.download=(file.name || `image-${i+1}`);
-        document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1000);
-      }catch(err){ console.error(err); }
-    };
+   downloadImgBtn.onclick = async ()=>{
+  try{
+    const i = _modalState.index || 0;
+    const handle = _modalState.previews[i];
+
+    // Make an object URL from either FileSystemHandle or JSZip entry
+    const url = await loadObjectURL(handle);
+
+    // Best-effort filename
+    const name = (handle && handle.name) ? handle.name : `image-${i+1}.jpg`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // cleanup
+    setTimeout(()=> URL.revokeObjectURL(url), 1500);
+  } catch (err){
+    console.error('Download image failed:', err);
+  }
+};
+
   }
   if(downloadAllBtn){
     downloadAllBtn.onclick = async ()=>{

@@ -4,6 +4,38 @@
   const q = $('#q');
   const status = $('#status');
 
+// ---- Enhancements: sort, keyboard focus, persistence, hover halo ----
+const STORAGE_KEY = 'projecthub:q';
+
+function sortSites(arr){
+  try{
+    return [...arr].sort((a,b)=> (a.title||a.folder).localeCompare(b.title||b.folder, undefined, {sensitivity:'base'}));
+  }catch{ return arr; }
+}
+
+// focus search on "/" (except when typing in inputs)
+document.addEventListener('keydown', (e) => {
+  if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+    e.preventDefault(); q?.focus();
+  }
+});
+
+// persist query
+if (q) {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) { q.value = saved; }
+  q.addEventListener('input', () => localStorage.setItem(STORAGE_KEY, q.value || ''));
+}
+
+// card hover position for halo
+grid.addEventListener('mousemove', (e) => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  card.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width) * 100 + '%');
+  card.style.setProperty('--my', ((e.clientY - rect.top) / rect.height) * 100 + '%');
+});
+
   const titleCase = (s) => s.replace(/[-_]+/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
   const setStatus = (msg, show = true) => {
     status.textContent = msg;
@@ -60,7 +92,8 @@
   }
 
   (function init() {
-    const sites = readInlineJSON() || window.SITES || null;
+    let sites = readInlineJSON() || window.SITES || null;
+    if (Array.isArray(sites)) sites = sortSites(sites);
     if (!Array.isArray(sites) || sites.length === 0) {
       setStatus('No sites defined. Add entries to the inline JSON (id="sites-data") or define window.SITES.', true);
       return;

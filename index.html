@@ -6,42 +6,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light dark" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23325dff'/%3E%3Ctext x='50%25' y='58%25' text-anchor='middle' font-size='40' fill='white'%3E★%3C/text%3E%3C/svg%3E"/>
 </head>
 <body>
-  <header class="topbar container">
-    <div class="brand">
-      <div class="logo">★</div>
+  <header class="topbar container" role="banner">
+    <a class="brand" href="#" aria-label="Project Hub">
+      <div class="logo" aria-hidden="true">★</div>
       <h1>Project Hub</h1>
-    </div>
-    <div class="search">
-      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
-              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <input id="q" placeholder="Search projects…" autocomplete="off" />
+    </a>
+    <div class="header-actions">
+      <div class="search" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <input id="q" placeholder="Search projects…" autocomplete="off" aria-label="Search projects" />
+      </div>
+      <a class="btn github" href="https://github.com/akulav/" target="_blank" rel="noopener" aria-label="Open akulav on GitHub">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 .5a12 12 0 0 0-3.79 23.4c.6.1.82-.26.82-.58v-2.02c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.34-1.77-1.34-1.77-1.1-.76.08-.74.08-.74 1.22.09 1.86 1.25 1.86 1.25 1.08 1.85 2.83 1.32 3.53 1.01.11-.8.42-1.32.76-1.62-2.66-.3-5.47-1.34-5.47-5.96 0-1.32.47-2.39 1.25-3.24-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.24a11.5 11.5 0 0 1 6 0c2.28-1.56 3.3-1.24 3.3-1.24.66 1.65.25 2.87.12 3.17.78.85 1.25 1.92 1.25 3.24 0 4.63-2.81 5.65-5.49 5.95.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .5Z"/>
+        </svg>
+        <span class="hide-sm">GitHub</span>
+      </a>
     </div>
   </header>
 
-  <main class="container">
+  <main class="container" id="main">
     <section class="hero">
-      <h2>Your Projects</h2>
-      <p>Each button opens <code>&lt;folder&gt;/index.html</code>.</p>
+      <h2>Akulav's Projects</h2>
+      <p>One click to open each project's <code>index.html</code>. Type <kbd>/</kbd> to search.</p>
     </section>
 
-    <div id="status" class="empty hidden"></div>
-    <div id="grid" class="grid"></div>
+    <div id="status" class="empty hidden" aria-live="polite"></div>
+    <div id="grid" class="grid" role="list"></div>
   </main>
-
-  <footer class="footer container">
-    <small>No server, no CORS. Static config embedded below.</small>
-  </footer>
 
   <!-- Inline JSON that script.js will read -->
   <script id="sites-data" type="application/json">
   [
-    { "folder": "Password", "title": "Password", "desc": "Cool thing", "icon": "🚀" },
-    { "folder": "Gallery", "title": "Gallery", "desc": "Photos & stuff", "icon": "🖼️" },
-    { "folder": "Minecraft", "title": "Minecraft", "desc": "Notes & guides", "icon": "📚" }
+    { "folder": "PasswordGenerator", "title": "Password", "desc": "Local Password Generator", "icon": "🔒" },
+    { "folder": "Gallery", "title": "Gallery", "desc": "Gallery Viewer", "icon": "🖼️" },
+    { "folder": "Minecraft", "title": "Minecraft", "desc": "Minecraft Server", "icon": "🌍" }
   ]
   </script>
 
