@@ -1,97 +1,4 @@
-/* Prevent the detail gallery and prompt columns from expanding the page */
-.detail-view{ overflow:hidden; }                   /* no page-level horizontal scroll */
-.detail-gallery{ min-width:0; }                    /* allow the gallery column to shrink */
-.detail-prompt{  min-width:0; }                    /* ditto for the right column */
-
-/* Make the thumbnail rail truly self-contained & scrollable */
-.detail-thumbs{
-  display:flex;
-  flex-wrap:nowrap;                                /* never wrap to a second line */
-  overflow-x:auto; overflow-y:hidden;              /* horizontal scroll only */
-  -webkit-overflow-scrolling: touch;               /* smooth on iOS */
-  max-width:100%;                                  /* never exceed its column */
-}
-
-.detail-thumbs img{
-  flex:0 0 auto;                                   /* fixed-size items */
-}
-
-
-/* ===== Detail View Overlay (prevents page shifting/overflow) ===== */
-.detail-view[aria-hidden="true"] { display: none; }
-
-.detail-view{
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: var(--bg);
-  color: var(--fg);
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 12px;
-  padding: 14px 16px;
-  overflow: hidden;            /* no page-level scrollbars */
-}
-
-/* header */
-.detail-header{ display:flex; align-items:center; gap:12px; }
-.detail-title-area{ flex:1; min-width:0; }
-.detail-title-area h2{ margin:0; font-size:18px; }
-.detail-actions{ display:flex; gap:8px; }
-
-/* gallery: hero + prompt sidebar-like panel */
-.detail-gallery{
-  display:grid;
-  grid-template-columns: minmax(0,1fr) 420px;
-  gap:16px;
-  min-height:0;  /* allow children to size inside the grid */
-}
-
-/* hero image sticks and scales within its column */
-.detail-hero{ min-width:0; min-height:0; display:flex; }
-#detailImg{
-  width:100%; height:100%;
-  max-height: calc(100vh - 180px);
-  object-fit: contain;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:#0b0e13;
-}
-
-/* right column holds prompt text */
-.detail-prompt{
-  min-width:0;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:#0b0e13;
-  padding:12px;
-  overflow:auto;
-}
-#detailPromptText{ white-space:pre-wrap; font-size:12.5px; line-height:1.45; }
-
-/* thumbs row stays inside the overlay and scrolls horizontally only */
-.detail-thumbs{
-  grid-column: 1 / -1;
-  display:flex; gap:10px;
-  padding:8px 4px 2px;
-  overflow-x:auto; overflow-y:hidden;
-  scrollbar-color:#2a3250 #0b0e13;
-}
-.detail-thumbs img{
-  flex:0 0 auto;
-  width:110px; height:110px; object-fit:cover;
-  border:1px solid var(--line); border-radius:10px; cursor:pointer;
-}
-.detail-thumbs img.active{ outline:2px solid var(--accent); outline-offset:1px; }
-
-/* responsive */
-@media (max-width: 980px){
-  .detail-gallery{ grid-template-columns: 1fr; }
-  #detailImg{ max-height: calc(100vh - 240px); }
-}
-
-
-
+/* ================== TOKENS & GLOBAL ================== */
 :root{
   --bg:#0f1115; --fg:#e6e8ef; --muted:#9aa3b2; --chip:#1b2030; --chipOn:#2e3a57;
   --card:#151925; --accent:#6aa0ff; --line:#1d2230;
@@ -100,7 +7,7 @@
 body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--fg)}
 body.no-scroll{overflow:hidden}
 
-/* Topbar */
+/* ================== TOPBAR ================== */
 .topbar{
   display:grid; grid-template-columns:1fr auto 1fr;
   align-items:center; gap:12px;
@@ -112,7 +19,7 @@ body.no-scroll{overflow:hidden}
 .actions input{padding:8px 10px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);border-radius:8px;min-width:260px}
 .actions button{padding:8px 10px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);border-radius:8px;cursor:pointer}
 
-/* Filters */
+/* ================== FILTERS ================== */
 .filters-inline{max-width:1900px;margin:12px auto 0;padding:0 16px}
 .filters-row{
   display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
@@ -121,21 +28,20 @@ body.no-scroll{overflow:hidden}
 .chips-wrap{display:flex; flex-direction:column; gap:8px; min-width:0; flex:1}
 .chips-wrap h2{margin:0; font-size:14px; color:var(--muted)}
 .filter-mode{color:var(--muted);font-size:13px; display:flex; gap:12px; align-items:center; white-space:nowrap}
-
 .chips{display:flex;flex-wrap:wrap;gap:6px;align-content:start}
 .chips .chip{padding:6px 10px;border-radius:999px;background:var(--chip);color:var(--fg);font-size:12px;border:1px solid var(--line);cursor:pointer;user-select:none}
 .chips .chip.active{background:var(--chipOn);border-color:var(--accent)}
 .chips.small .chip{font-size:11px;padding:4px 8px}
 
-/* Page */
+/* ================== PAGE WRAP ================== */
 .page{max-width:1900px;margin:16px auto;padding:0 16px}
 
-/* Results */
+/* ================== RESULTS BAR ================== */
 .results .results-bar{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px 0}
 .results .stats{color:var(--muted);font-size:13px}
 .big-gallery-btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);cursor:pointer;font-weight:600}
 
-/* Grid: 5 columns centered */
+/* ================== GRID ================== */
 .grid{
   display:grid;
   grid-template-columns:repeat(5, 360px);
@@ -145,7 +51,7 @@ body.no-scroll{overflow:hidden}
   margin:0 auto;
 }
 
-/* Card */
+/* ================== CARD ================== */
 .card{
   border:1px solid var(--line);border-radius:12px;background:var(--card);
   overflow:hidden;display:flex;flex-direction:column;
@@ -178,7 +84,7 @@ body.no-scroll{overflow:hidden}
 .empty.hidden{display:none}
 .empty{padding:24px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);background:#0b0e13}
 
-/* Modal (90% viewport) */
+/* ================== FULLPAGE MODAL (legacy) ================== */
 .fullpage-modal{width:90vw;height:90vh;max-width:none;max-height:none;padding:0;margin:auto;border:none;border-radius:16px;background:var(--bg);color:var(--fg);overflow:hidden}
 .fullpage-modal::backdrop{background:#000b}
 .icon-close{position:absolute;top:12px;right:14px;height:36px;width:36px;border-radius:999px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);font-size:18px;line-height:34px;text-align:center;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.35);transition:transform .12s, border-color .12s;z-index:3}
@@ -187,93 +93,32 @@ body.no-scroll{overflow:hidden}
 .fp-media{display:flex;flex-direction:column;gap:10px;min-width:0}
 .fp-media img{width:100%;flex:1 1 auto;max-height:calc(90vh - 18px - 22px - 200px);object-fit:contain;background:#0b0e13;border:1px solid var(--line);border-radius:12px}
 
-/* Mobile-first modal layout */
-/* --- FIX 1: ensure true full screen on phones (svh/dvh last) --- */
+/* ====== MOBILE-FIRST MODAL ADJUSTMENTS ====== */
 @media (max-width: 700px){
   dialog#promptModal[open]{
-    /* put the weakest fallbacks first, strongest last */
     width: 100vw;   height: 100vh;
     width: 100dvw;  height: 100dvh;
-    width: 100svw;  height: 100svh; /* <- final winner */
-
-    position: fixed; inset: 0;      /* make it stick to edges */
-    margin: 0 !important; padding: 0;
-    max-width: none; max-height: none;
-    border: 0; border-radius: 0;
-    display: flex; flex-direction: column;
-    background: var(--modal-bg, #0b0f1a);
-    /* iOS notches */
+    width: 100svw;  height: 100svh;
+    position: fixed; inset: 0; margin: 0 !important; padding: 0;
+    max-width: none; max-height: none; border: 0; border-radius: 0;
+    display: flex; flex-direction: column; background: var(--bg);
     padding-top: env(safe-area-inset-top);
     padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
   }
-
-  dialog#promptModal::backdrop{
-    background: rgba(0,0,0,.55);
-    -webkit-backdrop-filter: blur(2px);
-            backdrop-filter: blur(2px);
-  }
-
-  /* --- FIX 2: collapse right column; make it single column on phones --- */
-  .fp-shell{
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px;
-    height: 100%;
-  }
-
-  /* override the desktop image sizing fully */
-  .fp-media img, #modalImg{
-    width: 100%;
-    height: auto;
-    max-height: 55svh;  /* room for thumbs + text */
-    max-height: 55dvh;
-    max-height: 55vh;
-    object-fit: contain;
-  }
-
-  /* comfy thumbs / scroll */
-  #modalThumbs, .thumbs-row{
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 8px 12px;
-  }
-  #modalThumbs img, .thumbs-row img{
-    width: 96px; height: 96px; flex: 0 0 auto;
-    border-radius: 8px; object-fit: cover;
-  }
-
-  /* prompt area grows */
-  #modalPrompt{
-    padding: 8px 12px;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    flex: 1 1 auto;
-    line-height: 1.35;
-    white-space: pre-wrap;
-  }
-
-  /* easy close hitbox */
-  #closeModal, .icon-close{
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 10px);
-    right: 10px;
-    z-index: 10;
-    width: 40px; height: 40px; line-height: 40px; text-align: center;
-    border-radius: 999px;
-  }
+  dialog#promptModal::backdrop{background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);}
+  .fp-shell{display:flex;flex-direction:column;gap:12px;padding:12px;height:100%}
+  .fp-media img, #modalImg{width:100%;height:auto;max-height:55svh;max-height:55dvh;max-height:55vh;object-fit:contain}
+  #modalThumbs, .thumbs-row{display:flex;gap:8px;overflow-x:auto;padding:8px 12px}
+  #modalThumbs img, .thumbs-row img{width:96px;height:96px;flex:0 0 auto;border-radius:8px;object-fit:cover}
+  #modalPrompt{padding:8px 12px;overflow:auto;-webkit-overflow-scrolling:touch;flex:1 1 auto;line-height:1.35;white-space:pre-wrap}
+  #closeModal, .icon-close{position:fixed;top:calc(env(safe-area-inset-top)+10px);right:10px;z-index:10;width:40px;height:40px;line-height:40px;border-radius:999px}
 }
 
-
-
-
-/* EXIF row */
+/* ================== IMAGE META / THUMBS (shared) ================== */
 .img-meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;padding:4px 2px 2px}
 .img-meta .dot{opacity:.65}
 .pill.tiny{padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);cursor:pointer;font-size:12px}
 
-/* Thumbs row */
 .thumbs-row{
   display:flex; flex-wrap:nowrap; align-items:center; gap:12px;
   padding:6px 2px 10px 2px;
@@ -291,21 +136,13 @@ body.no-scroll{overflow:hidden}
 .thumbs-row img:hover{transform:translateY(-1px)}
 .thumbs-row img.active{outline:2px solid var(--accent);outline-offset:1px;opacity:1}
 
-/* Thumb scrubber */
-.thumb-scrub{ -webkit-appearance:none; appearance:none; width:100%; height:28px; background:transparent; margin:4px 0 0; }
-.thumb-scrub:focus{outline:none}
-.thumb-scrub::-webkit-slider-runnable-track{height:6px;background:#1b2640;border-radius:999px}
-.thumb-scrub::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-8px;height:22px;width:22px;border-radius:50%;background:#6aa0ff;border:2px solid #2b3857}
-.thumb-scrub::-moz-range-track{height:6px;background:#1b2640;border-radius:999px}
-.thumb-scrub::-moz-range-thumb{height:22px;width:22px;border-radius:50%;background:#6aa0ff;border:2px solid #2b3857}
-
-/* Right column */
+/* Right column (legacy) */
 .fp-info{display:flex;flex-direction:column;gap:12px;min-width:0}
 .fp-info h3{margin:0;font-size:18px}
 .prompt-pre.block{white-space:pre-wrap;padding:12px;background:#0b0e13;border:1px solid var(--line);border-radius:12px;font-size:12.5px;line-height:1.45;max-height:none;overflow:visible}
 .fp-actions{display:flex;gap:10px;justify-content:flex-end}
 
-/* Buttons */
+/* ================== BUTTONS ================== */
 .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#0b0e13;color:var(--fg);cursor:pointer;font-weight:600;transition:transform .12s, box-shadow .12s, border-color .12s, background .12s, color .12s}
 .btn:hover{transform:translateY(-1px);border-color:#2b3857}
 .btn:active{transform:translateY(0)}
@@ -313,7 +150,7 @@ body.no-scroll{overflow:hidden}
 .btn-primary:hover{border-color:#3a4a7a}
 .btn-primary.is-ok{background:linear-gradient(180deg,#1d3b21,#112416);border-color:#2b6f3b;color:#b8ffcc;box-shadow:0 0 0 3px rgba(60,200,120,.18) inset}
 
-/* Compare overlay */
+/* ================== COMPARE OVERLAY ================== */
 .compare{position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); display:flex; flex-direction:column; gap:8px; padding:14px; z-index:4}
 .compare.hidden{display:none; pointer-events:none}
 .compare-bar{display:flex; align-items:center; gap:10px}
@@ -330,7 +167,7 @@ body.no-scroll{overflow:hidden}
 .cmp-range::-moz-range-track{height:6px;background:#1b2640;border-radius:999px}
 .cmp-range::-moz-range-thumb{height:22px;width:22px;border-radius:50%;background:#6aa0ff;border:2px solid #2b3857}
 
-/* Gallery */
+/* ================== GALLERY MODAL ================== */
 #galleryModal{position:relative;width:min(1600px,98vw);padding:16px 18px 18px;border:none;background:var(--card);color:var(--fg)}
 #galleryModal::backdrop{background:#000b}
 #galleryModal .icon-close{top:12px;right:14px;z-index:3}
@@ -343,7 +180,6 @@ body.no-scroll{overflow:hidden}
 .gallery-progress progress::-webkit-progress-bar{background:#0b0e13;border:1px solid var(--line);border-radius:999px}
 .gallery-progress progress::-webkit-progress-value{background:linear-gradient(90deg,#3a6cff,#7aa6ff)}
 #galleryProgressText{color:var(--muted);min-width:3ch;text-align:right}
-
 .gallery-grid{display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:12px;max-height:74vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:12px;background:#0b0e13;position:relative;scrollbar-color:#2a3250 #0b0e13}
 .gallery-grid::-webkit-scrollbar{width:12px}
 .gallery-grid::-webkit-scrollbar-track{background:#0b0e13}
@@ -351,39 +187,39 @@ body.no-scroll{overflow:hidden}
 .gallery-grid .gimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .gallery-sentinel{grid-column:1 / -1;padding:10px;text-align:center;color:var(--muted)}
 
-/* Breakpoints */
+/* ================== BREAKPOINTS ================== */
 @media (max-width: 1840px){ .grid{ grid-template-columns:repeat(4, 360px); } }
 @media (max-width: 1460px){ .grid{ grid-template-columns:repeat(3, 360px); } }
 @media (max-width: 1080px){ .grid{ grid-template-columns:repeat(2, 360px); } }
 @media (max-width: 740px){  .grid{ grid-template-columns:repeat(1, 360px); } }
+@media (max-width: 520px){
+  .actions input{ min-width: 0; width: 52vw; }
+  .card{ min-height: 520px; }
+  .thumb-wrap{ aspect-ratio: 2/3; }
+  .dropzone{ width: 92%; aspect-ratio: 4/5; }
+  .dz-icon{ font-size: 40px; }
+  .dz-title{ font-size: 15px; }
+  .dz-sub{ font-size: 12px; }
+}
 
-/* Favorites */
+/* ================== FAVORITES ================== */
 #toggleFavs.active{outline:2px solid var(--accent)}
 .fav-btn{position:absolute;top:10px;right:10px;height:32px;min-width:32px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.50);color:var(--muted);font-size:14px;line-height:30px;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:transform .12s, background .12s, color .12s, border-color .12s}
 .fav-btn:hover{transform:translateY(-1px)}
 .fav-btn.active{background:#2a2417;color:#ffd76a;border-color:#3a2e1a}
 .fav-btn:focus{outline:2px solid var(--accent);outline-offset:2px}
 
-/* Skeleton */
+/* ================== SKELETON ================== */
 .skel{position:relative;background:linear-gradient(90deg,#0f1320 0%,#141a2a 50%,#0f1320 100%);background-size:200% 100%;animation:sk 1.1s linear infinite}
 @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-/* ====== NEW: Library overlay (UI replacement for Load Library) ====== */
-.lib-overlay{
-  position:fixed; inset:0; background:rgba(0,0,0,.65);
-  display:flex; align-items:center; justify-content:center; z-index:50;
-}
+/* ================== LIBRARY OVERLAY ================== */
+.lib-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; z-index:50; }
 .lib-overlay.hidden{ display:none }
-.lib-sheet{
-  width:min(980px, 96vw); max-height:90vh; overflow:auto;
-  background:var(--card); border:1px solid var(--line); border-radius:16px;
-  padding:18px 18px 20px; position:relative;
-}
+.lib-sheet{ width:min(980px, 96vw); max-height:90vh; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px 18px 20px; position:relative; }
 .lib-title{ margin:0 0 6px 0; text-align:center }
 .lib-sub{ margin:0 0 16px 0; text-align:center; color:var(--muted) }
 .lib-msg{ margin-top:12px; color:#90a3c6; text-align:center; font-size:13px }
-
-/* Big square drop zone */
 .dropzone{
   margin:0 auto 14px; width:min(560px,92%); aspect-ratio:1/1;
   border:2px dashed #2a2f41; border-radius:16px; background:#0b0e13;
@@ -398,147 +234,70 @@ body.no-scroll{overflow:hidden}
 .dz-title{ font-size:16px }
 .dz-sub{ font-size:13px; color:var(--muted); margin-top:2px }
 .dz-hint{ font-size:12px; color:#7f8aa5; margin-top:8px }
-
-/* Buttons row under square */
 .lib-actions{ display:flex; gap:8px; justify-content:center; margin-top:8px; flex-wrap:wrap }
 
-
-/* Boot gate: hide chrome until a library is loaded */
-.boot-gate .actions,
-.boot-gate #filters,
-.boot-gate .page { display:none !important; }
-
-/* Hide legacy Load Library button */
+/* Boot gate & legacy toggle */
+.boot-gate .actions, .boot-gate #filters, .boot-gate .page { display:none !important; }
 .actions #openRW { display:none !important; }
 
-/* Fluid grid for mobile */
-/*.grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } */
-
-
-@media (max-width: 520px){
-  .actions input{ min-width: 0; width: 52vw; }
-  .card{ min-height: 520px; }
-  .thumb-wrap{ aspect-ratio: 2/3; }
-  .dropzone{ width: 92%; aspect-ratio: 4/5; }
-  .dz-icon{ font-size: 40px; }
-  .dz-title{ font-size: 15px; }
-  .dz-sub{ font-size: 12px; }
-}
-
-
-/* Ambient glow based on dominant photo color */
+/* ================== NICE TOUCHES ================== */
 .card{ --glow: rgba(106,160,255,0.15); box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 18px 60px -30px var(--glow); transition: transform .12s ease, box-shadow .2s ease; }
 .card:hover{ transform: translateY(-2px); box-shadow: 0 1px 0 rgba(255,255,255,0.02), 0 24px 80px -32px var(--glow); }
 .thumb-wrap::after{ content:''; position:absolute; inset:-2px; border-radius:16px; pointer-events:none; box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 8px 40px -24px var(--glow); }
 
-/* Better tap targets on mobile */
 @media (max-width: 520px){
   .fav-btn{ transform: scale(1.1); }
   .chip{ padding:6px 10px; }
   .count-badge{ transform: scale(1.05); }
 }
 
-
 .fp-hero{ position:relative; }
 .fp-hero::before{
-  content:''; position:absolute; inset:-8px -8px -8px -8px; z-index:-1; border-radius:20px;
+  content:''; position:absolute; inset:-8px; z-index:-1; border-radius:20px;
   background: radial-gradient(80% 60% at 50% 40%, var(--glow) 0%, transparent 70%);
   filter: blur(10px);
 }
 
-/* ===== MOBILE FULLSCREEN VIEWER ===== */
-/* ================== MOBILE LAYOUT (measured) ================== */
+/* ================== MOBILE FULLSCREEN VIEWER (measured) ================== */
 @media (max-width: 700px){
-  :root{
-    /* You can tweak these without touching JS */
-    --thumbH: 108px;           /* total thumb bar height incl. padding */
-    --sheetPeek: 54px;         /* how much of the sheet shows when collapsed */
-  }
-
+  :root{ --thumbH:108px; --sheetPeek:54px; }
   dialog#promptModal[open].is-mobile{
     position: fixed; inset: 0; margin: 0 !important; padding: 0;
     width: 100svw; height: 100svh; max-width:none; max-height:none;
     border: 0 !important; border-radius: 0 !important;
-    background: var(--bg);
-    overflow: visible;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--bg); overflow: visible;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
   }
-
-  /* Ditch desktop two-column layout */
   .fp-shell{ display:block; padding:0; height:100%; }
   .fp-info, .img-meta, .thumb-scrub{ display:none !important; }
-
-  /* HERO occupies everything above thumbs + peek */
-  .fp-media{ 
-    position: fixed;
-    top: env(safe-area-inset-top);
-    left: 0; right: 0;
-    bottom: calc(env(safe-area-inset-bottom) + var(--thumbH) + var(--sheetPeek));
-  }
-  /* kill the desktop frame on the hero */
-  .fp-media img, #modalImg{
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    object-fit: contain;
-    border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
-    background:#0b0e13;
-  }
-
-  /* THUMB BAR sits above the sheet peek; never clipped */
-  #modalThumbs{
-    position: fixed;
-    left: 0; right: 0;
-    bottom: calc(env(safe-area-inset-bottom) + var(--sheetPeek));
-    height: var(--thumbH);
-    display: flex; gap: 10px;
-    padding: 12px;
-    overflow-x: auto; -webkit-overflow-scrolling: touch;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.28));
-    border-top: 1px solid #1d2230;
-    z-index: 9; /* above collapsed sheet */
-  }
-  #modalThumbs img{
-    flex: 0 0 auto; width: 88px; height: 88px; border-radius: 10px;
-    border: 1px solid var(--line); object-fit: cover;
-  }
-
-  /* BOTTOM SHEET — collapsed shows only a small handle */
-  .mobile-sheet{
-    position: fixed; left:0; right:0; bottom:0;
-    height: min(78svh, 640px);
-    background: var(--card); color: var(--fg);
-    border-top-left-radius: 16px; border-top-right-radius: 16px;
-    border: 1px solid var(--line); border-bottom: 0;
-    transform: translateY(calc(100% - var(--sheetPeek))); /* px peek, not % */
-    transition: transform .22s ease;
-    will-change: transform;
-    z-index: 8; /* under thumbs when collapsed */
-    overflow: hidden;
-  }
-  .mobile-sheet.expanded{ transform: translateY(0); z-index: 12; } /* over thumbs */
-
+  .fp-media{ position: fixed; top: env(safe-area-inset-top); left:0; right:0; bottom: calc(env(safe-area-inset-bottom) + var(--thumbH) + var(--sheetPeek)); }
+  .fp-media img, #modalImg{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; border:0 !important; border-radius:0 !important; box-shadow:none !important; background:#0b0e13; }
+  #modalThumbs{ position:fixed; left:0; right:0; bottom: calc(env(safe-area-inset-bottom) + var(--sheetPeek)); height: var(--thumbH); display:flex; gap:10px; padding:12px; overflow-x:auto; -webkit-overflow-scrolling:touch; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.28)); border-top:1px solid #1d2230; z-index:9; }
+  #modalThumbs img{ flex:0 0 auto; width:88px; height:88px; border-radius:10px; border:1px solid var(--line); object-fit:cover; }
+  .mobile-sheet{ position:fixed; left:0; right:0; bottom:0; height:min(78svh,640px); background:var(--card); color:var(--fg); border-top-left-radius:16px; border-top-right-radius:16px; border:1px solid var(--line); border-bottom:0; transform: translateY(calc(100% - var(--sheetPeek))); transition: transform .22s ease; will-change: transform; z-index:8; overflow:hidden; }
+  .mobile-sheet.expanded{ transform: translateY(0); z-index:12; }
   .ms-handle{ display:flex; justify-content:center; align-items:center; height: var(--sheetPeek); cursor:grab; }
   .ms-handle::before{ content:''; width:44px; height:5px; border-radius:999px; background:#2a3250; opacity:.9; }
   .ms-body{ padding: 8px 12px 14px; overflow:auto; max-height: calc(78svh - var(--sheetPeek)); -webkit-overflow-scrolling: touch; }
-
-  /* Big close target */
-  #closeModal, .icon-close{
-    position: fixed; top: calc(env(safe-area-inset-top) + 8px); right: 10px;
-    width: 40px; height: 40px; line-height: 40px; z-index: 13;
-    border-radius: 999px;
-  }
+  #closeModal, .icon-close{ position:fixed; top:calc(env(safe-area-inset-top) + 8px); right:10px; width:40px; height:40px; line-height:40px; z-index:13; border-radius:999px; }
 }
-/* ================== END MOBILE LAYOUT ================== */
 
-/* ====== NEW: Fullscreen Detail View ====== */
+/* =========================================================
+   FULLSCREEN DETAIL VIEW (new, single source of truth)
+   ========================================================= */
+
+/* Guard against horizontal creep from children */
+.detail-view{ overflow:hidden; }
+.detail-gallery{ min-width:0; }
+.detail-prompt{  min-width:0; }
+
+/* Container (hidden by default, toggled by body.detail-view-active) */
 .detail-view {
   position: fixed;
   inset: 0;
   background: var(--bg);
   z-index: 40;
-  display: none; /* Hidden by default */
+  display: none;
   grid-template-columns: 1fr 440px;
   grid-template-rows: auto 1fr;
   grid-template-areas:
@@ -550,107 +309,63 @@ body.no-scroll{overflow:hidden}
   transform: scale(0.98);
   transition: opacity .15s ease, transform .15s ease;
 }
+body.detail-view-active .detail-view { display:grid; opacity:1; transform:scale(1); }
 
-/* Toggled by JS to show the view */
-body.detail-view-active .detail-view {
-  display: grid;
-  opacity: 1;
-  transform: scale(1);
-}
-
-/* Hide main content when detail view is active */
+/* Hide main content when detail is open */
 body.detail-view-active .topbar,
 body.detail-view-active #filters,
-body.detail-view-active .page {
-  display: none;
-}
+body.detail-view-active .page { display:none; }
 
+/* Header */
 .detail-header {
   grid-area: header;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--line);
 }
 .detail-title-area { flex: 1; text-align: center; }
 .detail-title-area h2 { margin: 0 0 8px; font-size: 20px; }
 .detail-title-area .chips { justify-content: center; }
 .detail-actions { margin-left: auto; display: flex; gap: 8px; }
 
+/* Gallery column */
 .detail-gallery {
   grid-area: gallery;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 0;
+  display: flex; flex-direction: column; gap: 12px; min-height: 0;
 }
 .detail-hero {
-  flex: 1;
-  background: #0b0e13;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
+  flex: 1; background:#0b0e13; border-radius:12px; border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
 }
-.detail-hero img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
+.detail-hero img { width:100%; height:100%; object-fit:contain; }
+
+/* Thumbs rail (scrolls only inside) */
 .detail-thumbs {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 4px;
-  scrollbar-color: #2a3250 #0b0e13;
+  display:flex; gap:10px; overflow-x:auto; padding:4px;
+  scrollbar-color:#2a3250 #0b0e13;
 }
-.detail-thumbs::-webkit-scrollbar{ height: 8px; }
-.detail-thumbs::-webkit-scrollbar-track{ background: #0b0e13; border-radius: 999px; }
-.detail-thumbs::-webkit-scrollbar-thumb{ background: #2a3250; border-radius: 999px; }
-
+.detail-thumbs::-webkit-scrollbar{ height:8px; }
+.detail-thumbs::-webkit-scrollbar-track{ background:#0b0e13; border-radius:999px; }
+.detail-thumbs::-webkit-scrollbar-thumb{ background:#2a3250; border-radius:999px; }
 .detail-thumbs img {
-  width: 110px;
-  height: 110px;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity .12s, transform .12s, box-shadow .12s;
+  width:110px; height:110px; flex-shrink:0; object-fit:cover; border-radius:8px;
+  border:1px solid var(--line); cursor:pointer; opacity:.7; transition: opacity .12s, transform .12s, box-shadow .12s;
 }
-.detail-thumbs img:hover { transform: translateY(-2px); opacity: 1; }
-.detail-thumbs img.active {
-  opacity: 1;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
-}
+.detail-thumbs img:hover { transform: translateY(-2px); opacity:1; }
+.detail-thumbs img.active { opacity:1; box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
 
+/* Prompt column */
 .detail-prompt {
   grid-area: prompt;
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  overflow: hidden;
+  display:flex; flex-direction:column; background:var(--card);
+  border-radius:12px; border:1px solid var(--line); overflow:hidden;
 }
 .detail-prompt pre {
-  padding: 14px;
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  flex: 1;
-  overflow: auto;
-  scrollbar-color: #2a3250 #0b0e13;
+  padding:14px; margin:0; font-size:13px; line-height:1.5;
+  white-space:pre-wrap; word-break:break-word; flex:1; overflow:auto;
+  scrollbar-color:#2a3250 #0b0e13;
 }
 
-/* ====== MOBILE responsive design for Detail View ====== */
+/* Responsive (detail view) */
 @media (max-width: 900px) {
   .detail-view {
     grid-template-columns: 1fr;
@@ -659,16 +374,13 @@ body.detail-view-active .page {
       "header"
       "gallery"
       "prompt";
-    padding: 10px;
-    gap: 10px;
-    height: 100svh;
+    padding:10px; gap:10px; height:100svh;
   }
   .detail-header { flex-wrap: wrap; }
   .detail-title-area { flex-basis: 100%; order: -1; text-align: left; padding: 4px 0 10px; }
   .detail-actions { margin-left: 0; }
   .detail-prompt { min-height: 150px; max-height: 35vh; }
 }
-
 @media (max-width: 500px) {
   .detail-header { gap: 8px; }
   .detail-actions .btn { font-size: 12px; padding: 8px 10px; }
@@ -676,22 +388,8 @@ body.detail-view-active .page {
   .detail-thumbs img { width: 80px; height: 80px; }
 }
 
-/* Mobile: hide prompt panel and maximize the hero image */
+/* Phone tweak: hide prompt & make thumbs larger */
 @media (max-width: 700px){
-  /* remove the right prompt column entirely */
-  .detail-prompt{ display:none !important; }
-
-  /* single-column layout */
-  .detail-gallery{ grid-template-columns: 1fr !important; }
-
-  /* let the main image grow taller on small screens */
-  #detailImg{
-    /* header (~72–96px) + thumbs (~110–130px) = buffer 180–220px */
-    max-height: calc(100vh - 180px) !important;
-  }
-
-  /* make thumbs a bit larger for touch */
-  .detail-thumbs img{
-    width: 128px; height: 128px;
-  }
+  .detail-prompt{ display:none !important; }           /* hide the prompt on mobile */
+  .detail-thumbs img{ width:128px; height:128px; }     /* larger tap targets */
 }
