@@ -519,7 +519,7 @@ function renderGrid(items){
     const copyBtn=document.createElement('button'); copyBtn.className='copyBtn btn btn-primary'; copyBtn.textContent='Copy Prompt';
     actions.append(viewBtn,copyBtn);
 
-    viewBtn.onclick = ()=> openModal(p);
+viewBtn.onclick = () => openDetailView(p);
     copyBtn.onclick = async ()=>{ const txt=await loadPromptText(p); await navigator.clipboard.writeText((await txt).trim()); toastCopied(copyBtn); };
 
     card.append(tw,meta,actions);
@@ -571,240 +571,173 @@ function toastCopied(btn){
 }
 
 /* ===== Modal / Compare / Scrubber ===== */
-let _modalState = { previews:[], index:0, urls:[] };
 
-async function openModal(p){
-  const dlg=$('#promptModal');
-  const title=$('#modalTitle');
-  const tagWrap=$('#modalTags');
-  const pre=$('#modalPrompt');
-  const hero=$('#modalImg');
-  const thumbsRow=$('#modalThumbs');
-  const thumbScrub=$('#thumbScrub');
-  const copyBtn=$('#copyPrompt');
-  const resEl=$('#imgRes');
-  const fmtEl=$('#imgFmt');
-  const copyDimsBtn=$('#copyDims');
-  const downloadImgBtn=$('#downloadImg');
-  const downloadAllBtn=$('#downloadAll');
 
-  if(downloadImgBtn){
-    downloadImgBtn.onclick = async ()=>{
-      try{
-        const i = _modalState.index || 0;
-        const handle = _modalState.previews[i];
-        const url = await loadObjectURL(handle);
-        const name = (handle && handle.name) ? handle.name : `image-${i+1}.jpg`;
-        const a = document.createElement('a');
-        a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=> URL.revokeObjectURL(url), 1500);
-      } catch (err){ console.error('Download image failed:', err); }
-    };
-  }
-  if(downloadAllBtn){
-    downloadAllBtn.onclick = async ()=>{
-      if(!window.JSZip){ alert('JSZip not available'); return; }
-      const zip = new JSZip();
-      for(let i=0;i<_modalState.previews.length;i++){
-        try{
-          const h=_modalState.previews[i];
-          const f = 'getFile' in h ? await h.getFile() : h;
-          const buf = await f.arrayBuffer();
-          const name = (f.name || `image-${i+1}.png`);
-          zip.file(name, buf);
-          if(i%5===0) await new Promise(r=>setTimeout(r,0));
-        }catch(e){ console.error(e); }
-      }
-      const content = await zip.generateAsync({type:'blob'});
-      const url = URL.createObjectURL(content);
-      const a=document.createElement('a');
-      a.href=url; a.download = (document.getElementById('modalTitle')?.textContent?.trim() || 'collection') + '.zip';
-      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 1500);
-    };
-  }
+/* ===== Search for this line in your script: ===== */
+/* ===== Modal / Compare / Scrubber ===== */
 
-  lockScroll();
+// REPLACE the entire section from `let _modalState...` down to (but not including) `/* compare overlay */`
+// with the following new code.
 
-  state._compareSel.clear(); renderCompareSelection();
+let _detailState = { p: null, previews: [], index: 0, urls: [] };
 
-  title.textContent=p.title;
-  tagWrap.innerHTML='';
-  (p.tags||[]).forEach(t=>{
-    const b=document.createElement('span'); b.className='chip'; b.textContent=t; b.title='Filter by tag';
-    b.onclick=()=>{ if(!state.sel.has(t)){ state.sel.add(t); $$('#tagChips .chip').forEach(c=>{ if(c.textContent===t) c.classList.add('active'); }); applyFilters(); } };
+function openDetailView(p) {
+  _detailState.p = p; // Store the current prompt object
+
+  const view = $('#detailView');
+  if (!view) return;
+
+  // --- Populate Header ---
+  $('#detailTitle').textContent = p.title;
+  const tagWrap = $('#detailTags');
+  tagWrap.innerHTML = '';
+  (p.tags || []).forEach(t => {
+    const b = document.createElement('span');
+    b.className = 'chip';
+    b.textContent = t;
     tagWrap.appendChild(b);
   });
 
-  const txt=await loadPromptText(p); pre.textContent=(await txt).trim();
-
-  // --- DETERMINISTIC thumbs + URLs
-  thumbsRow.innerHTML='';
-  _modalState = { previews:p.files.previews, index:0, urls: new Array(p.files.previews.length) };
-
-  if(p.files.previews.length){
-    const firstURL = await loadObjectURL(p.files.previews[0]);
-    _modalState.urls[0] = firstURL;
-    hero.src = firstURL;
-    await updateImgMeta(0);
-
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < p.files.previews.length; i++) {
-      const u = (i === 0) ? firstURL : await loadObjectURL(p.files.previews[i]);
-      _modalState.urls[i] = u;
-
-      const im = document.createElement('img');
-      im.src = u;
-      if (i === 0) im.classList.add('active');
-      im.dataset.idx = String(i);
-
-      im.onclick = (ev) => {
-        const idx = Number(im.dataset.idx);
-        if (ev.shiftKey) { toggleCompareSelect(idx, im); }
-        else { setHero(idx); }
-      };
-      im.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        toggleCompareSelect(Number(im.dataset.idx), im);
-      });
-
-      frag.appendChild(im);
-    }
-    thumbsRow.appendChild(frag);
-  } else {
-    hero.removeAttribute('src'); hero.alt='No preview';
-    resEl.textContent='— × —'; fmtEl.textContent='—';
-  }
-
-  function setHero(i){
-    if (!_modalState.urls.length) return;
-    i = Math.max(0, Math.min(i, _modalState.urls.length - 1));
-    try{ const [r,g,b]=extractDominantColorFromImage(hero); dlg.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{}
-    _modalState.index=i; hero.src=_modalState.urls[i];
-    $$('#modalThumbs img').forEach((n,idx)=> n.classList.toggle('active', idx===i));
-    ensureThumbVisible(i);
-    updateImgMeta(i);
-  }
-
-  async function updateImgMeta(i){
-    const handle = _modalState.previews[i];
-    let format = '—';
-    try{
-      if(handle){
-        const file = 'getFile' in handle ? await handle.getFile() : handle;
-        if(file && file.type) format = file.type.split('/').pop().toUpperCase();
-        else {
-          const nm = (file?.name || handle?.name || '').toLowerCase();
-          const m = nm.match(/\.(\w+)$/); if(m) format = m[1].toUpperCase();
-        }
-      }
-    }catch{}
-    fmtEl.textContent = format;
-
-    if(!hero.complete){
-      await new Promise(r=> hero.addEventListener('load', r, { once:true }));
-    }
-    const w = hero.naturalWidth || 0, h = hero.naturalHeight || 0;
-    resEl.textContent = `${w} × ${h}`;
-
-    copyDimsBtn.onclick = async ()=>{ try{ await navigator.clipboard.writeText(`${w}x${h}`); copyDimsBtn.textContent='✓'; setTimeout(()=> copyDimsBtn.textContent='Copy', 700); }catch{} };
-  }
-
-  function ensureThumbVisible(i){
-    const el = thumbsRow?.children?.[i];
-    if(!el) return;
-    const pad = 24;
-    const left = el.offsetLeft - pad;
-    const right = el.offsetLeft + el.offsetWidth + pad;
-    const curLeft = thumbsRow.scrollLeft;
-    const curRight = curLeft + thumbsRow.clientWidth;
-    if(left < curLeft) thumbsRow.scrollTo({ left, behavior:'smooth' });
-    else if(right > curRight) thumbsRow.scrollTo({ left: right - thumbsRow.clientWidth, behavior:'smooth' });
-  }
-
-  function updateThumbScrubMax(){
-    const maxScroll = Math.max(0, thumbsRow.scrollWidth - thumbsRow.clientWidth);
-    thumbScrub.dataset.maxScroll = String(maxScroll);
-    const pct = maxScroll ? (thumbsRow.scrollLeft / maxScroll) * 100 : 0;
-    thumbScrub.value = String(pct);
-    thumbScrub.style.display = maxScroll > 0 ? '' : 'none';
-  }
-  if (thumbScrub){
-    thumbScrub.oninput = ()=>{
-      const maxScroll = Number(thumbScrub.dataset.maxScroll || 0);
-      const pct = Number(thumbScrub.value) / 100;
-      thumbsRow.scrollLeft = Math.round(maxScroll * pct);
-    };
-    let _scrubSync = null;
-    thumbsRow.addEventListener('scroll', ()=>{
-      if(_scrubSync) cancelAnimationFrame(_scrubSync);
-      _scrubSync = requestAnimationFrame(()=>{
-        const maxScroll = Number(thumbScrub.dataset.maxScroll || 0);
-        const pct = maxScroll ? (thumbsRow.scrollLeft / maxScroll) * 100 : 0;
-        thumbScrub.value = String(pct);
-      });
-    });
-    new ResizeObserver(updateThumbScrubMax).observe(thumbsRow);
-    setTimeout(updateThumbScrubMax, 0);
-  }
-
-  $('#closeModal').onclick = ()=>{ dlg.close(); };
-  copyBtn.onclick = async ()=>{ await navigator.clipboard.writeText(pre.textContent); toastCopied(copyBtn); };
-
-  dlg.addEventListener('cancel', (e)=>{ e.preventDefault(); dlg.close(); }, { once:true });
-  dlg.addEventListener('close', ()=>{ unlockScroll(); _modalState.urls.forEach(u=> URL.revokeObjectURL(u)); _modalState={previews:[],index:0,urls:[]}; closeCompare(true); }, { once:true });
-
-  dlg.onkeydown=(e)=>{ if(_modalState.urls.length<=1) return;
-    if(e.key==='ArrowRight'){ e.preventDefault(); setHero((_modalState.index+1)%_modalState.urls.length); }
-    if(e.key==='ArrowLeft'){ e.preventDefault(); setHero((_modalState.index-1+_modalState.urls.length)%_modalState.urls.length); }
-    if(e.key.toLowerCase()==='c' && state._compareSel.size===2){ e.preventDefault(); openCompare(); }
-    if(e.key==='Escape' && !$('#compareOverlay').classList.contains('hidden')){ e.preventDefault(); closeCompare(); }
+  // --- Wire up Actions ---
+  $('#detailBack').onclick = closeDetailView;
+  $('#detailCopyPrompt').onclick = async () => {
+    const text = await loadPromptText(p);
+    await navigator.clipboard.writeText(text.trim());
+    toastCopied($('#detailCopyPrompt'));
+  };
+  $('#detailDownloadImg').onclick = async () => {
+    try {
+      const i = _detailState.index || 0;
+      const handle = _detailState.previews[i];
+      const url = await loadObjectURL(handle);
+      const name = (handle && handle.name) ? handle.name : `image-${i + 1}.jpg`;
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (err) { console.error('Download image failed:', err); }
   };
 
-  dlg.showModal();
+  // --- Populate Prompt ---
+  loadPromptText(p).then(text => {
+    $('#detailPromptText').textContent = text.trim();
+  });
 
-  // Mobile layout activation
-  setupMobileModal(dlg, p, { titleEl:title, tagWrap, promptEl:pre, copyBtn, copyDimsBtn, downloadImgBtn, setHero });
+  // --- Populate Gallery ---
+  const thumbsRow = $('#detailThumbs');
+  thumbsRow.innerHTML = '';
+  _detailState.previews = p.files.previews;
+  _detailState.index = 0;
+  _detailState.urls = new Array(p.files.previews.length).fill(null);
 
-  function toggleCompareSelect(i, imgEl){
-    if(state._compareSel.has(i)) state._compareSel.delete(i);
-    else {
-      if(state._compareSel.size>=2){ const last=[...state._compareSel].pop(); state._compareSel=new Set([last]); }
-      state._compareSel.add(i);
-    }
-    renderCompareSelection();
-    if(state._compareSel.size===2) openCompare();
-  }
-  function renderCompareSelection(){
-    $$('#modalThumbs img').forEach((n,idx)=>{
-      const selected = state._compareSel.has(idx);
-      n.style.outline = selected ? '2px solid #6aa0ff' : '';
-      n.style.outlineOffset = selected ? '1px' : '';
+  if (p.files.previews.length > 0) {
+    p.files.previews.forEach((handle, i) => {
+      const imgThumb = document.createElement('img');
+      imgThumb.dataset.idx = i;
+      if (i === 0) imgThumb.classList.add('active');
+      
+      // Lazy load thumbnail images
+      loadObjectURL(handle).then(url => {
+        _detailState.urls[i] = url;
+        imgThumb.src = url;
+        // Load the first image into the hero immediately
+        if (i === 0) {
+          $('#detailImg').src = url;
+        }
+      });
+
+      imgThumb.onclick = () => setDetailHero(i);
+      thumbsRow.appendChild(imgThumb);
     });
+  } else {
+    $('#detailImg').removeAttribute('src');
+    $('#detailImg').alt = 'No preview available';
+  }
+
+  // --- Show the View ---
+  document.body.classList.add('detail-view-active');
+  view.setAttribute('aria-hidden', 'false');
+  lockScroll();
+
+  // --- Keyboard Nav ---
+  window.addEventListener('keydown', handleDetailKeys);
+}
+
+function setDetailHero(i) {
+  if (!_detailState.urls[i]) return; // Don't switch if URL not loaded yet
+  
+  _detailState.index = i;
+  $('#detailImg').src = _detailState.urls[i];
+
+  $$('#detailThumbs img').forEach((thumb, idx) => {
+    thumb.classList.toggle('active', idx === i);
+  });
+  
+  // Ensure the active thumbnail is visible
+  const activeThumb = $(`#detailThumbs img[data-idx="${i}"]`);
+  activeThumb?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function closeDetailView() {
+  document.body.classList.remove('detail-view-active');
+  $('#detailView')?.setAttribute('aria-hidden', 'true');
+  unlockScroll();
+
+  // Cleanup: revoke URLs to free memory and remove key listener
+  _detailState.urls.forEach(url => { if(url) URL.revokeObjectURL(url); });
+  _detailState = { p: null, previews: [], index: 0, urls: [] };
+  window.removeEventListener('keydown', handleDetailKeys);
+}
+
+function handleDetailKeys(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeDetailView();
+  }
+  if (e.key === 'ArrowRight' && _detailState.previews.length > 1) {
+    e.preventDefault();
+    const next = (_detailState.index + 1) % _detailState.previews.length;
+    setDetailHero(next);
+  }
+  if (e.key === 'ArrowLeft' && _detailState.previews.length > 1) {
+    e.preventDefault();
+    const prev = (_detailState.index - 1 + _detailState.previews.length) % _detailState.previews.length;
+    setDetailHero(prev);
   }
 }
 
-/* compare overlay */
-function openCompare(){
-  const ov=$('#compareOverlay'); if(!ov) return;
-  const [a,b]=[...state._compareSel].sort((x,y)=>x-y);
-  const imgA=$('#cmpA'), imgB=$('#cmpB'), range=$('#cmpRange');
-  imgA.src=_modalState.urls[a]; imgB.src=_modalState.urls[b];
-  range.value=50; ov.style.setProperty('--split','50%');
-  range.oninput=()=> ov.style.setProperty('--split', `${range.value}%`);
-  $('#compareClose').onclick=()=> closeCompare();
-  ov.setAttribute('tabindex','-1'); ov.classList.remove('hidden'); ov.setAttribute('aria-hidden','false'); ov.focus({ preventScroll:true });
-}
-function closeCompare(skipFocus){
-  const ov=$('#compareOverlay'); if(!ov) return;
-  $('#cmpRange').oninput=null; $('#compareClose').onclick=null;
-  ov.classList.add('hidden'); ov.setAttribute('aria-hidden','true');
-  if(document.activeElement===ov) ov.blur();
-  if(!skipFocus) $('#promptModal')?.focus({ preventScroll:true });
-}
+// DELETE the functions: openCompare, closeCompare, renderCompareSelection as they are no longer used.
+// You can re-implement them within the new detail view later if needed.
+
+/* ===== Now, find where the card buttons are wired up: ===== */
+// Inside the `renderGrid` function...
+
+// Finally, DELETE the entire <dialog id="promptModal"> from your index.html. It's no longer needed.
+
 
 /* scroll lock */
-function lockScroll(){ document.body.classList.add('no-scroll'); document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; }
-function unlockScroll(){ document.body.classList.remove('no-scroll'); document.documentElement.style.overflow=''; document.body.style.overflow=''; }
+/* scroll lock (with scrollbar compensation) */
+let __pv_padRight = '';
+function lockScroll(){
+  const doc = document.documentElement;
+  const body = document.body;
+  const sw = window.innerWidth - doc.clientWidth; // scrollbar width
+  __pv_padRight = body.style.paddingRight || '';
+  if (sw > 0) body.style.paddingRight = sw + 'px';
+
+  body.classList.add('no-scroll');
+  doc.style.overflow = 'hidden';
+  body.style.overflow = 'hidden';
+}
+function unlockScroll(){
+  const doc = document.documentElement;
+  const body = document.body;
+  body.classList.remove('no-scroll');
+  doc.style.overflow = '';
+  body.style.overflow = '';
+  body.style.paddingRight = __pv_padRight;
+  __pv_padRight = '';
+}
+
 
 /* favorites (RW write helpers retained for desktop RW mode) */
 function favKey(id){ return `pv:fav:${id}`; }

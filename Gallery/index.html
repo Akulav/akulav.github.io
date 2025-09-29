@@ -48,45 +48,33 @@
     </section>
   </main>
 
-  <!-- Modal (unchanged) -->
-  <dialog id="promptModal" class="fullpage-modal" role="dialog" aria-modal="true">
-    <button id="closeModal" class="icon-close" aria-label="Close">✕</button>
-    <div class="fp-shell">
-      <div class="fp-media">
-        <img id="modalImg" alt="" />
-        <div id="imgMeta" class="img-meta">
-          <span id="imgRes">— × —</span>
-          <span class="dot">•</span>
-          <span id="imgFmt">—</span>
-          <button id="copyDims" class="pill tiny" title="Copy resolution">Copy</button>
+<section id="detailView" class="detail-view" aria-hidden="true">
+    <header class="detail-header">
+      <button id="detailBack" class="btn" title="Back to grid (Esc)">← Back</button>
+      <div class="detail-title-area">
+        <h2 id="detailTitle"></h2>
+        <div id="detailTags" class="chips small"></div>
+      </div>
+      <div class="detail-actions">
+        <button id="detailCopyPrompt" class="btn btn-primary">Copy Prompt</button>
+        <button id="detailDownloadImg" class="btn">Download Image</button>
+      </div>
+    </header>
+    <div class="detail-gallery">
+      <div class="detail-hero">
+        <img id="detailImg" alt="Main preview image" />
+      </div>
+      <div id="detailThumbs" class="detail-thumbs">
         </div>
-        <div id="modalThumbs" class="thumbs-row"></div>
-        <input id="thumbScrub" class="thumb-scrub" type="range" min="0" max="100" value="0" />
-      </div>
-      <aside class="fp-info">
-        <h3 id="modalTitle"></h3>
-        <div id="modalTags" class="chips small"></div>
-        <pre id="modalPrompt" class="prompt-pre block"></pre>
-        <div class="fp-actions">
-          <button id="copyPrompt" class="btn btn-primary">Copy Prompt</button>
-        <button id="downloadImg" class="btn">Download image</button> <button id="downloadAll" class="btn">Download set (.zip)</button></div>
-      </aside>
     </div>
+    <div class="detail-prompt">
+      <pre id="detailPromptText"></pre>
+    </div>
+  </section>
 
-    <!-- Compare overlay (slider-only) -->
-    <div id="compareOverlay" class="compare hidden" aria-hidden="true">
-      <div class="compare-bar">
-        <strong>Compare</strong>
-        <div class="spacer"></div>
-        <button id="compareClose" class="pill danger">Close</button>
-      </div>
-      <div class="compare-stage">
-        <img id="cmpA" alt="">
-        <img id="cmpB" alt="">
-        <input id="cmpRange" class="cmp-range" type="range" min="0" max="100" value="50" />
-      </div>
-    </div>
-  </dialog>
+
+  <!-- Modal (unchanged) -->
+  
 
   <!-- Gallery (unchanged) -->
   <dialog id="galleryModal">
