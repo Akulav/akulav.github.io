@@ -7,7 +7,31 @@
   :root{ --bg:#f5f7ff; --bgSoft:#eef2ff; --card:#fff; --text:#0d1424; --muted:#4a5680; --ring:#325dff; --accent:#3b82f6; --shadow:0 10px 25px rgba(0,0,0,.08); }
 }
 *{ box-sizing:border-box; }
-body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  /* -- Add these lines -- */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main.container {
+  flex-grow: 1; /* Allows the main content to push the footer down */
+}
 .container{ width:min(1150px,96%); margin:0 auto; }
 
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 0; position:sticky; top:0; z-index:5; backdrop-filter:blur(6px); }
@@ -32,6 +56,7 @@ body{ margin:0; background:var(--bg); color:var(--text); font:16px/1.5 ui-sans-s
   border:1px solid rgba(126,142,185,.18); border-radius:var(--radius);
   padding:16px; box-shadow:var(--shadow);
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  
 }
 .card:hover{ transform:translateY(-4px); border-color:rgba(92,146,255,.45); box-shadow:0 20px 40px rgba(92,146,255,.18), var(--shadow); }
 .icon{ width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:linear-gradient(135deg, rgba(92,146,255,.9), rgba(59,130,246,.9)); color:white; font-weight:800; font-size:18px; }

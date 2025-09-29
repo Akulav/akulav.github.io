@@ -675,3 +675,23 @@ body.detail-view-active .page {
   .detail-title-area h2 { font-size: 18px; }
   .detail-thumbs img { width: 80px; height: 80px; }
 }
+
+/* Mobile: hide prompt panel and maximize the hero image */
+@media (max-width: 700px){
+  /* remove the right prompt column entirely */
+  .detail-prompt{ display:none !important; }
+
+  /* single-column layout */
+  .detail-gallery{ grid-template-columns: 1fr !important; }
+
+  /* let the main image grow taller on small screens */
+  #detailImg{
+    /* header (~72–96px) + thumbs (~110–130px) = buffer 180–220px */
+    max-height: calc(100vh - 180px) !important;
+  }
+
+  /* make thumbs a bit larger for touch */
+  .detail-thumbs img{
+    width: 128px; height: 128px;
+  }
+}
