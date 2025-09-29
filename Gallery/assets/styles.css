@@ -94,79 +94,77 @@ body.no-scroll{overflow:hidden}
 .fp-media img{width:100%;flex:1 1 auto;max-height:calc(90vh - 18px - 22px - 200px);object-fit:contain;background:#0b0e13;border:1px solid var(--line);border-radius:12px}
 
 /* Mobile-first modal layout */
-/* ==== Mobile full-screen modal (phones) ==== */
+/* --- FIX 1: ensure true full screen on phones (svh/dvh last) --- */
 @media (max-width: 700px){
-  /* Fill the entire viewport; handle iOS safe areas and “vh” bugs */
   dialog#promptModal[open]{
-    /* use the modern dynamic viewport units when available */
-    width: 100svw; height: 100svh;
-    /* fallbacks */
-    width: 100dvw; height: 100dvh;
-    width: 100vw;  height: 100vh;
+    /* put the weakest fallbacks first, strongest last */
+    width: 100vw;   height: 100vh;
+    width: 100dvw;  height: 100dvh;
+    width: 100svw;  height: 100svh; /* <- final winner */
 
+    position: fixed; inset: 0;      /* make it stick to edges */
+    margin: 0 !important; padding: 0;
     max-width: none; max-height: none;
-    inset: 0; margin: 0 !important; padding: 0;
     border: 0; border-radius: 0;
     display: flex; flex-direction: column;
-    /* keep background if you style it; otherwise white */
     background: var(--modal-bg, #0b0f1a);
-    /* respect iOS notches */
+    /* iOS notches */
     padding-top: env(safe-area-inset-top);
     padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
   }
 
-  /* Backdrop slightly dimmer for mobile */
   dialog#promptModal::backdrop{
     background: rgba(0,0,0,.55);
     -webkit-backdrop-filter: blur(2px);
             backdrop-filter: blur(2px);
   }
 
-  /* Layout inside the modal */
-  #modalTitle, #modalTags { padding: 8px 12px; }
+  /* --- FIX 2: collapse right column; make it single column on phones --- */
+  .fp-shell{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    height: 100%;
+  }
 
-  /* Main image gets the top half-ish; keeps aspect ratio */
-  #modalImg{
+  /* override the desktop image sizing fully */
+  .fp-media img, #modalImg{
     width: 100%;
-    max-height: 55svh; /* ~top half, good tap room below */
+    height: auto;
+    max-height: 55svh;  /* room for thumbs + text */
     max-height: 55dvh;
     max-height: 55vh;
     object-fit: contain;
-    display: block;
-    margin: 0 auto;
   }
 
-  /* Thumbnails row: bigger tap targets and horizontal scroll */
-  #modalThumbs{
+  /* comfy thumbs / scroll */
+  #modalThumbs, .thumbs-row{
     display: flex;
     gap: 8px;
     overflow-x: auto;
     padding: 8px 12px;
   }
-  #modalThumbs img{
-    width: 96px; height: 96px; object-fit: cover;
-    flex: 0 0 auto; border-radius: 8px;
+  #modalThumbs img, .thumbs-row img{
+    width: 96px; height: 96px; flex: 0 0 auto;
+    border-radius: 8px; object-fit: cover;
   }
 
-  /* Prompt text / meta area fills the rest */
+  /* prompt area grows */
   #modalPrompt{
     padding: 8px 12px;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
-    flex: 1 1 auto; /* allow it to expand */
+    flex: 1 1 auto;
     line-height: 1.35;
     white-space: pre-wrap;
   }
 
-  /* Controls strip (scrubber, buttons) */
-  #thumbScrub{ display: block; width: 92%; margin: 6px auto 2px; }
-  #copyPrompt, #copyDims, #downloadImg, #downloadAll{
-    min-height: 40px; margin: 4px 6px;
-  }
-
-  /* Make the close button easy to hit */
+  /* easy close hitbox */
   #closeModal, .icon-close{
-    position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 10px;
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 10px);
+    right: 10px;
     z-index: 10;
     width: 40px; height: 40px; line-height: 40px; text-align: center;
     border-radius: 999px;
