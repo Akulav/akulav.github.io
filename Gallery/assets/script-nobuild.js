@@ -1,5 +1,5 @@
 /* ========== tiny helpers ========== */
-const $ = s => document.querySelector(s);
+const $  = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const savePref = (k,v)=>{ try{ localStorage.setItem(`pv:${k}`, JSON.stringify(v)); }catch{} };
 const loadPref = (k,f)=>{ try{ const v=localStorage.getItem(`pv:${k}`); return v?JSON.parse(v):f; }catch{ return f; } };
@@ -22,7 +22,7 @@ const state = {
   _compareSel: new Set(),
 };
 
-/* ======== NEW: library overlay wiring ======== */
+/* ======== Library overlay wiring ======== */
 const overlay = $('#libraryOverlay');
 const dropZone = $('#dropZone');
 const dirInput = $('#dirInput');
@@ -43,30 +43,22 @@ function configureOverlayForEnv(){
     if(hint) hint.textContent = 'On iPhone/iPad, pick a .zip of your /prompts folder.';
   }
 }
-
-
 function showOverlay(){
-  overlay.classList.remove('hidden');
-  overlay.setAttribute('aria-hidden','false');
+  overlay?.classList?.remove('hidden');
+  overlay?.setAttribute?.('aria-hidden','false');
 }
 function hideOverlay(){
-  overlay.classList.add('hidden');
-  overlay.setAttribute('aria-hidden','true');
-  libMsg.textContent='';
+  overlay?.classList?.add('hidden');
+  overlay?.setAttribute?.('aria-hidden','true');
+  if (libMsg) libMsg.textContent='';
 }
 
-$('#openRW')?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  showOverlay();
-});
-
+$('#openRW')?.addEventListener('click', (e)=>{ e.preventDefault(); showOverlay(); });
 $('#libClose')?.addEventListener('click', hideOverlay);
 
 /* Big square actions */
 dropZone?.addEventListener('click', openBestPicker);
-dropZone?.addEventListener('keydown', (e)=>{
-  if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openBestPicker(); }
-});
+dropZone?.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); openBestPicker(); } });
 dropZone?.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('dz-over'); });
 dropZone?.addEventListener('dragleave', ()=> dropZone.classList.remove('dz-over'));
 dropZone?.addEventListener('drop', async e=>{
@@ -151,16 +143,16 @@ async function walkEntry(entry, out){
 
 /* ========== existing wires ========== */
 const triggerSearch = debounced(()=> applyFilters(), 80);
-$('#searchBox').addEventListener('input', e=>{ state.q = e.target.value; triggerSearch(); });
+$('#searchBox')?.addEventListener('input', e=>{ state.q = e.target.value; triggerSearch(); });
 $$('input[name="mode"]').forEach(r=> r.addEventListener('change', e=>{ state.mode = e.target.value; applyFilters(); }));
-$('#clearFilters').onclick = ()=>{ state.sel.clear(); state.q=''; $('#searchBox').value=''; setOnlyFavs(false); $$('#tagChips .chip').forEach(c=>c.classList.remove('active')); applyFilters(); };
+$('#clearFilters')?.addEventListener('click', ()=>{ state.sel.clear(); state.q=''; $('#searchBox').value=''; setOnlyFavs(false); $$('#tagChips .chip').forEach(c=>c.classList.remove('active')); applyFilters(); });
 const topFavBtn = $('#toggleFavs'); topFavBtn?.addEventListener('click', ()=> setOnlyFavs(!state.onlyFavs));
-$('#openGallery').addEventListener('click', openGallery);
+$('#openGallery')?.addEventListener('click', openGallery);
 
 /* quick keys */
 window.addEventListener('keydown', (e)=>{
-  if(e.key === '/' && document.activeElement.tagName !== 'INPUT' && !document.querySelector('dialog[open]')){ e.preventDefault(); $('#searchBox').focus(); }
-  if(e.key === 'Escape' && document.activeElement.id === 'searchBox'){ $('#searchBox').blur(); }
+  if(e.key === '/' && document.activeElement.tagName !== 'INPUT' && !document.querySelector('dialog[open]')){ e.preventDefault(); $('#searchBox')?.focus(); }
+  if(e.key === 'Escape' && document.activeElement?.id === 'searchBox'){ $('#searchBox')?.blur(); }
 });
 
 /* ========== favorites-only ========== */
@@ -181,7 +173,7 @@ function ensureFavSwitch(){
   topFavBtn?.classList.toggle('active', state.onlyFavs);
 }
 
-/* ========== RW loader (unchanged) ========== */
+/* ========== RW loader (unchanged core) ========== */
 async function handleOpenRW(){
   const root=await showDirectoryPicker({ mode:'readwrite' });
   let promptsDir=await tryGetSubdir(root,'prompts'); let rootForManifest=root;
@@ -222,49 +214,30 @@ async function scanPromptsRW(promptsDir){
 }
 async function readJSONHandle(h){ const f=await h.getFile(); return JSON.parse(await f.text()); }
 
-/* ======= NEW: Read-only folder & ZIP fallbacks (mobile-friendly) ======= */
+/* ======= Read-only folder & ZIP fallbacks (mobile-friendly) ======= */
 async function handleDirPickReadOnly(e){
   const files = Array.from(e.target.files || []);
   if(!files.length) return;
   await buildFromLooseFiles(files);
 }
 
-// Robust favorites store with localStorage + safe fallback
+/* Robust favorites store with localStorage + safe fallback */
 const FavStore = (() => {
   const KEY = 'pv:favs:v1';
-  let mem = new Set();    // in-memory fallback (e.g., iOS Private mode)
+  let mem = new Set();
   let useLocal = true;
-
-  // test localStorage (iOS Safari Private can throw)
-  try {
-    const t = '__t';
-    localStorage.setItem(t, '1');
-    localStorage.removeItem(t);
-  } catch (e) { useLocal = false; }
-
+  try { const t='__t'; localStorage.setItem(t,'1'); localStorage.removeItem(t); } catch { useLocal = false; }
   const read = () => {
     if (!useLocal) return mem;
-    try {
-      const raw = localStorage.getItem(KEY);
-      return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch {
-      useLocal = false;
-      return mem;
-    }
+    try { const raw = localStorage.getItem(KEY); return raw ? new Set(JSON.parse(raw)) : new Set(); }
+    catch { useLocal = false; return mem; }
   };
-
   const write = (set) => {
     if (!useLocal) { mem = set; return; }
-    try {
-      localStorage.setItem(KEY, JSON.stringify([...set]));
-    } catch {
-      useLocal = false;
-      mem = set;
-    }
+    try { localStorage.setItem(KEY, JSON.stringify([...set])); }
+    catch { useLocal = false; mem = set; }
   };
-
   let cache = read();
-
   return {
     has: (id) => cache.has(id),
     add: (id) => { cache.add(id); write(cache); },
@@ -272,32 +245,26 @@ const FavStore = (() => {
     all: () => [...cache]
   };
 })();
-
-// API used by handleZipFile (read-only)
 function loadLocalFavorite(id){ return FavStore.has(id); }
-
-// Optional toggle you can call from your UI
-function toggleFavorite(id){
-  if (FavStore.has(id)) FavStore.del(id); else FavStore.add(id);
+function toggleFavorite(idOrPrompt, starBtn){
+  // supports toggleFavorite(p, btn) from cards OR toggleFavorite(id)
+  let id = typeof idOrPrompt === 'string' ? idOrPrompt : idOrPrompt?.id;
+  if (!id) return;
+  if (FavStore.has(id)) { FavStore.del(id); if(starBtn){ starBtn.classList.remove('active'); starBtn.textContent='☆'; } }
+  else { FavStore.add(id); if(starBtn){ starBtn.classList.add('active'); starBtn.textContent='★'; } }
+  if (typeof idOrPrompt === 'object'){ idOrPrompt.favorite = FavStore.has(id); applyFilters(); }
 }
 
-function isZipEntry(x){
-  return x && typeof x.async === 'function' && typeof x.name === 'string';
-}
+function isZipEntry(x){ return x && typeof x.async === 'function' && typeof x.name === 'string'; }
 
-// Replace the whole handleZipFile with this:
 async function handleZipFile(file){
   if (!file) { libMsg.textContent = 'No file picked.'; return; }
   if (!/\.zip$/i.test(file.name)) { libMsg.textContent = 'Please choose a .zip file.'; return; }
   if (!window.JSZip) { libMsg.textContent = 'ZIP support not loaded.'; return; }
-
   try {
     libMsg.textContent = 'Reading ZIP…';
-    // Safari/iOS: use ArrayBuffer, not Blob directly
     const ab = (file.arrayBuffer) ? await file.arrayBuffer() : file;
     const zip = await JSZip.loadAsync(ab, { createFolders:false });
-
-    // Gather only files we care about
     const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
     const totalZip = fileEntries.length || 1;
     let processedZip = 0;
@@ -308,8 +275,6 @@ async function handleZipFile(file){
         const rel = (zf.name || '').replace(/^[\/]+/, '');
         const parts = rel.split('/').filter(Boolean);
         if (!parts.length) { processedZip++; continue; }
-
-        // Normalize to prompts/<collection>/<...>
         let folderKey;
         const pIdx = parts.indexOf('prompts');
         if (pIdx >= 0) {
@@ -319,25 +284,18 @@ async function handleZipFile(file){
           if (parts.length < 2) { processedZip++; continue; }
           folderKey = `prompts/${parts[0]}`;
         }
-
         const leaf = (parts.at(-1) || '').toLowerCase();
-        // Only collect known files
-        if (
-          leaf !== 'prompt.txt' &&
-          leaf !== 'tags.json' &&
-          !/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)
-        ){
-          processedZip++;
-          continue;
+        if (leaf !== 'prompt.txt' &&
+            leaf !== 'tags.json' &&
+            !/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)){
+          processedZip++; continue;
         }
-
         const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
         if (leaf === 'prompt.txt') bucket.promptFile = zf;
         else if (leaf === 'tags.json') bucket.tagsFile = zf;
         else bucket.previews.push(zf);
         groups.set(folderKey, bucket);
-
-      } catch { /* skip bad entry */ }
+      } catch {/* skip entry */}
       processedZip++;
       if (processedZip % 200 === 0){
         const pct = Math.min(99, Math.floor((processedZip/totalZip)*100));
@@ -346,37 +304,23 @@ async function handleZipFile(file){
       }
     }
 
-    // Build prompt list
     const all = [];
     const tagSet = new Set();
     const entries = Array.from(groups.values());
 
     for (let i = 0; i < entries.length; i++){
       const g = entries[i];
-      const folder = g.folder;
       libMsg.textContent = `Indexing… ${Math.min(99, Math.floor(((i+1)/entries.length)*100))}%`;
       await new Promise(r => setTimeout(r, 0));
-
-      if (!g.tagsFile) continue; // require metadata
-      let meta = null;
-      try {
-        const txt = await g.tagsFile.async('string');
-        meta = JSON.parse(txt);
-      } catch {
-        continue; // skip broken JSON
-      }
-
-      const id = folder.replace(/\s+/g,'-').toLowerCase();
-      const title = meta.title || folder.split('/').at(-1);
+      if (!g.tagsFile) continue;
+      let meta=null; try { meta = JSON.parse(await g.tagsFile.async('string')); } catch { continue; }
+      const id = g.folder.replace(/\s+/g,'-').toLowerCase();
+      const title = meta.title || g.folder.split('/').at(-1);
       const tags = Array.isArray(meta.tags) ? meta.tags : [];
       tags.forEach(t => tagSet.add(t));
-
-      // keep previews predictable
       g.previews.sort((a,b)=> a.name.localeCompare(b.name));
-
-      // we attach JSZip objects; downstream loaders read them lazily
       all.push({
-        id, title, tags, folder,
+        id, title, tags, folder: g.folder,
         files: { prompt: g.promptFile || null, tags: g.tagsFile, previews: g.previews },
         favorite: loadLocalFavorite(id)
       });
@@ -385,12 +329,11 @@ async function handleZipFile(file){
     libMsg.textContent = 'Finalizing…';
     finalizeLibrary(all, tagSet);
     hideOverlay();
-  } catch (err) {
+  } catch (err){
     console.error('ZIP parse failed:', err);
     libMsg.textContent = 'Failed to read ZIP. Try re-zipping on desktop or reduce size.';
   }
 }
-
 
 async function buildFromLooseFiles(files){
   libMsg.textContent = 'Indexing files… 0%';
@@ -458,6 +401,7 @@ async function buildFromLooseFiles(files){
   finalizeLibrary(all, tagSet);
   hideOverlay();
 }
+async function readJSONFile(f){ return JSON.parse(await f.text()); }
 function guessMimeFromName(name){
   const ext=(name.split('.').pop()||'').toLowerCase();
   if(ext==='jpg'||ext==='jpeg') return 'image/jpeg';
@@ -492,7 +436,8 @@ async function preloadSnippets(list){
   }
 }
 function renderTags(){
-  const wrap=$('#tagChips'); wrap.innerHTML='';
+  const wrap=$('#tagChips'); if(!wrap) return;
+  wrap.innerHTML='';
   state.tags.forEach(t=>{
     const b=document.createElement('button'); b.className='chip'; b.textContent=t; b.dataset.tag=t;
     b.onclick=()=>{ if(state.sel.has(t)) state.sel.delete(t); else state.sel.add(t); b.classList.toggle('active'); applyFilters(); };
@@ -520,7 +465,7 @@ function applyFilters(){
         : [...state.sel].some(t=>has.includes(t));
     });
   }
-  if(state.onlyFavs){ list=list.filter(p=> p.favorite); }
+  if(state.onlyFavs){ list=list.filter(p=> p.favorite || FavStore.has(p.id)); }
 
   state._lastRenderedItems=list;
   renderGrid(list); equalizeCardHeights();
@@ -528,6 +473,7 @@ function applyFilters(){
 
 function renderGrid(items){
   const grid=$('#grid'), stats=$('#stats'), empty=$('#empty');
+  if(!grid||!stats||!empty) return;
   grid.innerHTML=''; stats.textContent=`${items.length} prompt${items.length!==1?'s':''}`;
   empty.style.display = items.length ? 'none' : 'block';
 
@@ -538,9 +484,10 @@ function renderGrid(items){
     const img=document.createElement('img'); img.className='thumb'; img.loading='lazy'; img.decoding='async';
     const badge=document.createElement('span'); badge.className='badge'; badge.textContent=(p.tags||[]).includes('nsfw')?'NSFW':'SFW';
 
-    const fav=document.createElement('button'); fav.className='fav-btn'; fav.textContent=p.favorite?'★':'☆'; if(p.favorite) fav.classList.add('active');
-    fav.title=p.favorite?'Unfavorite':'Favorite';
-    fav.onclick=(ev)=>{ ev.stopPropagation(); toggleFavorite(p,fav).catch(console.error); };
+    const fav=document.createElement('button'); fav.className='fav-btn'; fav.textContent=(p.favorite||FavStore.has(p.id))?'★':'☆';
+    if(p.favorite||FavStore.has(p.id)) fav.classList.add('active');
+    fav.title=(p.favorite||FavStore.has(p.id))?'Unfavorite':'Favorite';
+    fav.onclick=(ev)=>{ ev.stopPropagation(); toggleFavorite(p, fav); };
 
     const count = document.createElement('span');
     const n = p.files?.previews?.length || 0;
@@ -548,7 +495,8 @@ function renderGrid(items){
 
     if(p.files.previews.length){
       loadObjectURL(p.files.previews[0]).then(url=>{
-        img.src=url; img.addEventListener('load', ()=> { tw.classList.remove('skel'); try{ const [r,g,b]=extractDominantColorFromImage(img); card.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{} }, { once:true });
+        img.src=url;
+        img.addEventListener('load', ()=> { tw.classList.remove('skel'); try{ const [r,g,b]=extractDominantColorFromImage(img); card.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{} }, { once:true });
       });
     } else { img.alt='No preview'; tw.classList.remove('skel'); }
 
@@ -588,44 +536,30 @@ function equalizeCardHeights(){
 window.addEventListener('resize', ()=>{ if(state._lastRenderedItems.length) equalizeCardHeights(); });
 
 /* file/object urls */
-/* file/object urls */
 async function loadObjectURL(handleOrFile){
   let blob = null;
-
   if (handleOrFile && typeof handleOrFile === 'object') {
     if ('getFile' in handleOrFile) {
-      // File System Access handle
       const f = await handleOrFile.getFile();
       blob = f;
     } else if (isZipEntry(handleOrFile)) {
-      // JSZip file entry
       blob = await handleOrFile.async('blob');
     } else if (handleOrFile instanceof Blob) {
       blob = handleOrFile;
     }
   }
   if (!blob) throw new TypeError('Unsupported object for createObjectURL');
-
   return URL.createObjectURL(blob);
 }
 
 async function loadPromptText(p){
   const h = p.files?.prompt;
   if (!h) return '(No prompt.txt found)';
-
-  if ('getFile' in h) {
-    const f = await h.getFile();
-    return f.text();
-  }
-  if (isZipEntry(h)) {
-    return h.async('string'); // JSZip entry -> string
-  }
-  if (h && typeof h.text === 'function') {
-    return h.text(); // plain File/Blob
-  }
+  if ('getFile' in h) { const f = await h.getFile(); return f.text(); }
+  if (isZipEntry(h)) { return h.async('string'); }
+  if (h && typeof h.text === 'function') { return h.text(); }
   return '(No prompt.txt found)';
 }
-
 
 /* copy micro-toast */
 function toastCopied(btn){
@@ -636,7 +570,7 @@ function toastCopied(btn){
   setTimeout(()=>{ btn.classList.remove('is-ok'); btn.textContent=prev; btn.disabled=false; },900);
 }
 
-/* ===== Modal / Compare / Scrubber (unchanged) ===== */
+/* ===== Modal / Compare / Scrubber ===== */
 let _modalState = { previews:[], index:0, urls:[] };
 
 async function openModal(p){
@@ -653,33 +587,19 @@ async function openModal(p){
   const copyDimsBtn=$('#copyDims');
   const downloadImgBtn=$('#downloadImg');
   const downloadAllBtn=$('#downloadAll');
+
   if(downloadImgBtn){
-   downloadImgBtn.onclick = async ()=>{
-  try{
-    const i = _modalState.index || 0;
-    const handle = _modalState.previews[i];
-
-    // Make an object URL from either FileSystemHandle or JSZip entry
-    const url = await loadObjectURL(handle);
-
-    // Best-effort filename
-    const name = (handle && handle.name) ? handle.name : `image-${i+1}.jpg`;
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    // cleanup
-    setTimeout(()=> URL.revokeObjectURL(url), 1500);
-  } catch (err){
-    console.error('Download image failed:', err);
-  }
-  
-};
-
+    downloadImgBtn.onclick = async ()=>{
+      try{
+        const i = _modalState.index || 0;
+        const handle = _modalState.previews[i];
+        const url = await loadObjectURL(handle);
+        const name = (handle && handle.name) ? handle.name : `image-${i+1}.jpg`;
+        const a = document.createElement('a');
+        a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 1500);
+      } catch (err){ console.error('Download image failed:', err); }
+    };
   }
   if(downloadAllBtn){
     downloadAllBtn.onclick = async ()=>{
@@ -703,7 +623,6 @@ async function openModal(p){
     };
   }
 
-
   lockScroll();
 
   state._compareSel.clear(); renderCompareSelection();
@@ -718,48 +637,47 @@ async function openModal(p){
 
   const txt=await loadPromptText(p); pre.textContent=(await txt).trim();
 
-  // deterministic URLs + thumbs so indices stay aligned
-thumbsRow.innerHTML = '';
-_modalState = { previews: p.files.previews, index: 0, urls: new Array(p.files.previews.length) };
+  // --- DETERMINISTIC thumbs + URLs
+  thumbsRow.innerHTML='';
+  _modalState = { previews:p.files.previews, index:0, urls: new Array(p.files.previews.length) };
 
-if (p.files.previews.length) {
-  const firstURL = await loadObjectURL(p.files.previews[0]);
-  _modalState.urls[0] = firstURL;
-  hero.src = firstURL;
-  await updateImgMeta(0);
+  if(p.files.previews.length){
+    const firstURL = await loadObjectURL(p.files.previews[0]);
+    _modalState.urls[0] = firstURL;
+    hero.src = firstURL;
+    await updateImgMeta(0);
 
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < p.files.previews.length; i++) {
-    const u = (i === 0) ? firstURL : await loadObjectURL(p.files.previews[i]);
-    _modalState.urls[i] = u;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < p.files.previews.length; i++) {
+      const u = (i === 0) ? firstURL : await loadObjectURL(p.files.previews[i]);
+      _modalState.urls[i] = u;
 
-    const im = document.createElement('img');
-    im.src = u;
-    if (i === 0) im.classList.add('active');
-    im.dataset.idx = String(i);
+      const im = document.createElement('img');
+      im.src = u;
+      if (i === 0) im.classList.add('active');
+      im.dataset.idx = String(i);
 
-    im.onclick = (ev) => {
-      const idx = Number(im.dataset.idx);
-      if (ev.shiftKey) { toggleCompareSelect(idx, im); }
-      else { setHero(idx); }
-    };
-    im.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      toggleCompareSelect(Number(im.dataset.idx), im);
-    });
+      im.onclick = (ev) => {
+        const idx = Number(im.dataset.idx);
+        if (ev.shiftKey) { toggleCompareSelect(idx, im); }
+        else { setHero(idx); }
+      };
+      im.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        toggleCompareSelect(Number(im.dataset.idx), im);
+      });
 
-    frag.appendChild(im);
+      frag.appendChild(im);
+    }
+    thumbsRow.appendChild(frag);
+  } else {
+    hero.removeAttribute('src'); hero.alt='No preview';
+    resEl.textContent='— × —'; fmtEl.textContent='—';
   }
-  thumbsRow.appendChild(frag);
-} else {
-  hero.removeAttribute('src');
-  hero.alt = 'No preview';
-  resEl.textContent = '— × —';
-  fmtEl.textContent = '—';
-}
-
 
   function setHero(i){
+    if (!_modalState.urls.length) return;
+    i = Math.max(0, Math.min(i, _modalState.urls.length - 1));
     try{ const [r,g,b]=extractDominantColorFromImage(hero); dlg.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{}
     _modalState.index=i; hero.src=_modalState.urls[i];
     $$('#modalThumbs img').forEach((n,idx)=> n.classList.toggle('active', idx===i));
@@ -810,22 +728,24 @@ if (p.files.previews.length) {
     thumbScrub.value = String(pct);
     thumbScrub.style.display = maxScroll > 0 ? '' : 'none';
   }
-  thumbScrub.oninput = ()=>{
-    const maxScroll = Number(thumbScrub.dataset.maxScroll || 0);
-    const pct = Number(thumbScrub.value) / 100;
-    thumbsRow.scrollLeft = Math.round(maxScroll * pct);
-  };
-  let _scrubSync = null;
-  thumbsRow.addEventListener('scroll', ()=>{
-    if(_scrubSync) cancelAnimationFrame(_scrubSync);
-    _scrubSync = requestAnimationFrame(()=>{
+  if (thumbScrub){
+    thumbScrub.oninput = ()=>{
       const maxScroll = Number(thumbScrub.dataset.maxScroll || 0);
-      const pct = maxScroll ? (thumbsRow.scrollLeft / maxScroll) * 100 : 0;
-      thumbScrub.value = String(pct);
+      const pct = Number(thumbScrub.value) / 100;
+      thumbsRow.scrollLeft = Math.round(maxScroll * pct);
+    };
+    let _scrubSync = null;
+    thumbsRow.addEventListener('scroll', ()=>{
+      if(_scrubSync) cancelAnimationFrame(_scrubSync);
+      _scrubSync = requestAnimationFrame(()=>{
+        const maxScroll = Number(thumbScrub.dataset.maxScroll || 0);
+        const pct = maxScroll ? (thumbsRow.scrollLeft / maxScroll) * 100 : 0;
+        thumbScrub.value = String(pct);
+      });
     });
-  });
-  new ResizeObserver(updateThumbScrubMax).observe(thumbsRow);
-  setTimeout(updateThumbScrubMax, 0);
+    new ResizeObserver(updateThumbScrubMax).observe(thumbsRow);
+    setTimeout(updateThumbScrubMax, 0);
+  }
 
   $('#closeModal').onclick = ()=>{ dlg.close(); };
   copyBtn.onclick = async ()=>{ await navigator.clipboard.writeText(pre.textContent); toastCopied(copyBtn); };
@@ -841,6 +761,9 @@ if (p.files.previews.length) {
   };
 
   dlg.showModal();
+
+  // Mobile layout activation
+  setupMobileModal(dlg, p, { titleEl:title, tagWrap, promptEl:pre, copyBtn, copyDimsBtn, downloadImgBtn, setHero });
 
   function toggleCompareSelect(i, imgEl){
     if(state._compareSel.has(i)) state._compareSel.delete(i);
@@ -883,10 +806,10 @@ function closeCompare(skipFocus){
 function lockScroll(){ document.body.classList.add('no-scroll'); document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden'; }
 function unlockScroll(){ document.body.classList.remove('no-scroll'); document.documentElement.style.overflow=''; document.body.style.overflow=''; }
 
-/* favorites */
+/* favorites (RW write helpers retained for desktop RW mode) */
 function favKey(id){ return `pv:fav:${id}`; }
 function saveLocalFavorite(id,val){ try{ if(val) localStorage.setItem(favKey(id),'1'); else localStorage.removeItem(favKey(id)); }catch{} }
-async function toggleFavorite(p, starBtn){
+async function toggleFavoriteRW(p, starBtn){
   p.favorite=!p.favorite; starBtn.textContent=p.favorite?'★':'☆'; starBtn.classList.toggle('active', p.favorite);
   if(!state.rw){ saveLocalFavorite(p.id, p.favorite); applyFilters(); return; }
   if(!p.dirHandle){ console.warn('No dirHandle on prompt; cannot write.'); applyFilters(); return; }
@@ -902,7 +825,7 @@ async function writePerFolderFavorite(dirHandle,isFav){
 async function readRootFavorites(rootHandle){ try{ const fh=await rootHandle.getFileHandle('_favorites.json',{create:false}); const f=await fh.getFile(); return JSON.parse(await f.text()); }catch{ return {ids:[]}; } }
 async function writeRootFavorites(rootHandle,all){ const ids=all.filter(p=>p.favorite).map(p=>p.id); const fh=await rootHandle.getFileHandle('_favorites.json',{create:true}); const w=await fh.createWritable(); await w.write(new Blob([JSON.stringify({updated:new Date().toISOString(),count:ids.length,ids},null,2)],{type:'application/json'})); await w.close(); }
 
-/* ===== Gallery + ZIP export (unchanged) ===== */
+/* ===== Gallery + ZIP export ===== */
 let _galleryObserver=null, _galleryURLs=[];
 const GALLERY_PAGE_SIZE = 120;
 
@@ -942,17 +865,6 @@ async function openGallery(){
   };
 
   dlg.showModal();
-
-  // after dlg.showModal();
-setupMobileModal(dlg, p, {
-  titleEl: title,
-  tagWrap: tagWrap,
-  promptEl: pre,
-  copyBtn,
-  copyDimsBtn,
-  downloadImgBtn,
-  setHero,
-});
 
   function updateGalleryProgress(){
     const total=Math.max(1,state._galleryTotal);
@@ -1023,7 +935,6 @@ document.addEventListener('DOMContentLoaded', () => {
   empty && empty.addEventListener('click', () => showOverlay());
 });
 
-
 /* Dominant color extraction (fast average downscale) */
 function extractDominantColorFromImage(imgEl){
   try{
@@ -1046,13 +957,11 @@ function extractDominantColorFromImage(imgEl){
   }catch{ return [106,160,255]; }
 }
 
-// ===== Mobile modal wiring =====
+/* ===== Mobile-first modal wiring ===== */
 function setupMobileModal(dlg, p, deps){
-  // bail if not mobile
   if (!window.matchMedia('(max-width: 700px)').matches) return;
- 
   dlg.classList.add('is-mobile');
- 
+
   // Build bottom sheet once
   let sheet = dlg.querySelector('.mobile-sheet');
   if (!sheet){
@@ -1072,15 +981,14 @@ function setupMobileModal(dlg, p, deps){
       </div>
     `;
     dlg.appendChild(sheet);
- 
-    // tap/drag to expand
+
     const handle = sheet.querySelector('.ms-handle');
     let startY=0, startT=0, dragging=false;
- 
+
     const setExpanded = (on) => sheet.classList.toggle('expanded', !!on);
     const onPointerDown = (e)=>{
       dragging=true; startY=e.clientY||e.touches?.[0]?.clientY||0;
-      startT = sheet.classList.contains('expanded') ? 0 : 1; // 0 expanded, 1 collapsed
+      startT = sheet.classList.contains('expanded') ? 0 : 1;
       handle.setPointerCapture?.(e.pointerId||0);
     };
     const onPointerMove = (e)=>{
@@ -1093,29 +1001,26 @@ function setupMobileModal(dlg, p, deps){
     };
     const onPointerUp = (e)=>{
       if(!dragging) return; dragging=false;
-      // decide final state by current transform
       const m = sheet.style.transform.match(/translateY\(([\d\.]+)%\)/);
       const pct = m ? parseFloat(m[1]) : 68;
-      const expand = pct < 34; // halfway rule
+      const expand = pct < 34;
       sheet.style.transform = ''; setExpanded(expand);
     };
- 
-    // Events: pointer + touch
+
     handle.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     handle.addEventListener('touchstart', onPointerDown, {passive:true});
     window.addEventListener('touchmove', onPointerMove, {passive:false});
     window.addEventListener('touchend', onPointerUp);
- 
-    // tap handle to toggle
+
     handle.addEventListener('click', ()=> setExpanded(!sheet.classList.contains('expanded')));
   }
- 
+
   // Fill data
-  const { titleEl, tagWrap, promptEl, copyBtn, copyDimsBtn, downloadImgBtn } = deps;
+  const { titleEl, promptEl, copyBtn, copyDimsBtn, downloadImgBtn } = deps;
   sheet.querySelector('#msTitle').textContent = titleEl?.textContent || (p.title||'');
-  // clone tags into sheet
+
   const msTags = sheet.querySelector('#msTags');
   msTags.innerHTML = '';
   (p.tags||[]).forEach(t=>{
@@ -1123,17 +1028,13 @@ function setupMobileModal(dlg, p, deps){
     b.onclick=()=>{ if(!state.sel.has(t)){ state.sel.add(t); $$('#tagChips .chip').forEach(c=>{ if(c.textContent===t) c.classList.add('active'); }); applyFilters(); } };
     msTags.appendChild(b);
   });
-  // prompt
+
   sheet.querySelector('#msPrompt').textContent = promptEl?.textContent || '';
- 
-  // actions (reuse existing logic)
-  sheet.querySelector('#msCopy').onclick = ()=> copyBtn?.click();
-  sheet.querySelector('#msCopyDims').onclick = ()=> copyDimsBtn?.click();
-  sheet.querySelector('#msDownload').onclick = ()=> downloadImgBtn?.click();
- 
-  // Make thumbs bar float (already styled via CSS)
-  // We only need to ensure it sits above safe area; CSS handles it.
- 
+
+  sheet.querySelector('#msCopy').onclick      = ()=> copyBtn?.click();
+  sheet.querySelector('#msCopyDims').onclick  = ()=> copyDimsBtn?.click();
+  sheet.querySelector('#msDownload').onclick  = ()=> downloadImgBtn?.click();
+
   // Swipe to change image on hero
   const hero = dlg.querySelector('#modalImg');
   let sx=0, sy=0, swiping=false;
