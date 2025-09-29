@@ -353,94 +353,87 @@ body.no-scroll{overflow:hidden}
 }
 
 /* ===== MOBILE FULLSCREEN VIEWER ===== */
+/* ================== MOBILE LAYOUT (measured) ================== */
 @media (max-width: 700px){
-  /* Make the dialog truly full screen (stable viewport units last) */
+  :root{
+    /* You can tweak these without touching JS */
+    --thumbH: 108px;           /* total thumb bar height incl. padding */
+    --sheetPeek: 54px;         /* how much of the sheet shows when collapsed */
+  }
+
   dialog#promptModal[open].is-mobile{
     position: fixed; inset: 0; margin: 0 !important; padding: 0;
-    width: 100vw;  height: 100vh;
-    width: 100dvw; height: 100dvh;
-    width: 100svw; height: 100svh; /* final winner */
-    max-width: none; max-height: none; border: 0; border-radius: 0;
+    width: 100svw; height: 100svh; max-width:none; max-height:none;
+    border: 0 !important; border-radius: 0 !important;
     background: var(--bg);
+    overflow: visible;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    overflow: hidden;
   }
 
-  /* Hide desktop 2-col layout and scrubber */
+  /* Ditch desktop two-column layout */
   .fp-shell{ display:block; padding:0; height:100%; }
-  .fp-info{ display:block; }  /* will become a bottom sheet */
-  .thumb-scrub{ display:none !important; }
-  .img-meta{ display:none; }
+  .fp-info, .img-meta, .thumb-scrub{ display:none !important; }
 
-  /* HERO fills screen behind chrome */
-  .fp-media{ position:relative; height:100%; }
-  #modalImg{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:contain; background:#0b0e13;
+  /* HERO occupies everything above thumbs + peek */
+  .fp-media{ 
+    position: fixed;
+    top: env(safe-area-inset-top);
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom) + var(--thumbH) + var(--sheetPeek));
+  }
+  /* kill the desktop frame on the hero */
+  .fp-media img, #modalImg{
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+    background:#0b0e13;
   }
 
-  /* Fixed THUMB BAR */
+  /* THUMB BAR sits above the sheet peek; never clipped */
   #modalThumbs{
-    position: fixed; left: 0; right: 0;
-    bottom: calc(env(safe-area-inset-bottom) + 8px);
-    z-index: 6;
-    display: flex; gap: 10px; padding: 10px 12px;
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(env(safe-area-inset-bottom) + var(--sheetPeek));
+    height: var(--thumbH);
+    display: flex; gap: 10px;
+    padding: 12px;
     overflow-x: auto; -webkit-overflow-scrolling: touch;
     backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
     background: linear-gradient(0deg, rgba(0,0,0,.55), rgba(0,0,0,.28));
     border-top: 1px solid #1d2230;
+    z-index: 9; /* above collapsed sheet */
   }
   #modalThumbs img{
-    flex:0 0 auto; width:84px; height:84px;
-    border-radius:10px; border:1px solid var(--line); object-fit:cover;
+    flex: 0 0 auto; width: 88px; height: 88px; border-radius: 10px;
+    border: 1px solid var(--line); object-fit: cover;
   }
 
-  /* Bottom sheet for info/prompt */
-  .fp-info{
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 7;
+  /* BOTTOM SHEET — collapsed shows only a small handle */
+  .mobile-sheet{
+    position: fixed; left:0; right:0; bottom:0;
+    height: min(78svh, 640px);
     background: var(--card); color: var(--fg);
     border-top-left-radius: 16px; border-top-right-radius: 16px;
     border: 1px solid var(--line); border-bottom: 0;
-    transform: translateY(68%); transition: transform .22s ease;
-    max-height: 78svh; max-height: 78dvh; max-height: 78vh;
-    display: flex; flex-direction: column; gap: 10px;
-    padding: 8px 12px 12px;
-    box-shadow: 0 -10px 40px rgba(0,0,0,.35);
+    transform: translateY(calc(100% - var(--sheetPeek))); /* px peek, not % */
+    transition: transform .22s ease;
+    will-change: transform;
+    z-index: 8; /* under thumbs when collapsed */
+    overflow: hidden;
   }
-  .fp-info.expanded{ transform: translateY(0%); }
+  .mobile-sheet.expanded{ transform: translateY(0); z-index: 12; } /* over thumbs */
 
-  /* make contents scroll without moving the sheet container */
-  #modalPrompt{
-    margin: 0; padding: 10px;
-    background:#0b0e13; border:1px solid var(--line); border-radius:12px;
-    max-height: calc(78svh - 120px);
-    overflow:auto; -webkit-overflow-scrolling: touch;
-    white-space: pre-wrap; line-height:1.45;
-  }
-  #modalTitle{ margin: 4px 0 0; font-size: 16px; }
-  #modalTags{ gap: 6px; }
+  .ms-handle{ display:flex; justify-content:center; align-items:center; height: var(--sheetPeek); cursor:grab; }
+  .ms-handle::before{ content:''; width:44px; height:5px; border-radius:999px; background:#2a3250; opacity:.9; }
+  .ms-body{ padding: 8px 12px 14px; overflow:auto; max-height: calc(78svh - var(--sheetPeek)); -webkit-overflow-scrolling: touch; }
 
-  .fp-actions{ justify-content:flex-end; gap:8px; }
-
-  /* Toggle pill (we inject a button with this id) */
-  #msToggle{
-    position: fixed;
-    right: 12px;
-    bottom: calc(env(safe-area-inset-bottom) + 110px);
-    z-index: 8;
-    padding: 8px 12px;
-    border-radius: 999px;
-    border:1px solid var(--line);
-    background: rgba(0,0,0,.5);
-    color: var(--fg);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  }
-
-  /* bigger close */
+  /* Big close target */
   #closeModal, .icon-close{
     position: fixed; top: calc(env(safe-area-inset-top) + 8px); right: 10px;
-    width: 40px; height: 40px; line-height: 40px; z-index: 8;
+    width: 40px; height: 40px; line-height: 40px; z-index: 13;
+    border-radius: 999px;
   }
 }
+/* ================== END MOBILE LAYOUT ================== */

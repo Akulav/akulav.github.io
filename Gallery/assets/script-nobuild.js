@@ -959,14 +959,16 @@ function extractDominantColorFromImage(imgEl){
 
 /* ===== Mobile-first modal wiring ===== */
 function setupMobileModal(dlg, p, deps){
+  // Only activate on phones
   if (!window.matchMedia('(max-width: 700px)').matches) return;
+
   dlg.classList.add('is-mobile');
 
-  // Build bottom sheet once
+  // --- Build the bottom sheet once ---
   let sheet = dlg.querySelector('.mobile-sheet');
   if (!sheet){
     sheet = document.createElement('div');
-    sheet.className = 'mobile-sheet';
+    sheet.className = 'mobile-sheet'; // collapsed by default via CSS
     sheet.innerHTML = `
       <div class="ms-handle" aria-label="Drag to expand/collapse"></div>
       <div class="ms-body">
@@ -981,76 +983,158 @@ function setupMobileModal(dlg, p, deps){
       </div>
     `;
     dlg.appendChild(sheet);
-
-    const handle = sheet.querySelector('.ms-handle');
-    let startY=0, startT=0, dragging=false;
-
-    const setExpanded = (on) => sheet.classList.toggle('expanded', !!on);
-    const onPointerDown = (e)=>{
-      dragging=true; startY=e.clientY||e.touches?.[0]?.clientY||0;
-      startT = sheet.classList.contains('expanded') ? 0 : 1;
-      handle.setPointerCapture?.(e.pointerId||0);
-    };
-    const onPointerMove = (e)=>{
-      if(!dragging) return;
-      const y=(e.clientY||e.touches?.[0]?.clientY||startY)-startY;
-      const dy = Math.max(-300, Math.min(300, y));
-      const frac = dy>0 ? Math.min(1, dy/220) : Math.max(0, 1 + dy/220);
-      const t = startT ? (1-frac) : (0+frac);
-      sheet.style.transform = `translateY(${Math.max(0, Math.min(0.68, t*0.68))*100}%)`;
-    };
-    const onPointerUp = (e)=>{
-      if(!dragging) return; dragging=false;
-      const m = sheet.style.transform.match(/translateY\(([\d\.]+)%\)/);
-      const pct = m ? parseFloat(m[1]) : 68;
-      const expand = pct < 34;
-      sheet.style.transform = ''; setExpanded(expand);
-    };
-
-    handle.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    handle.addEventListener('touchstart', onPointerDown, {passive:true});
-    window.addEventListener('touchmove', onPointerMove, {passive:false});
-    window.addEventListener('touchend', onPointerUp);
-
-    handle.addEventListener('click', ()=> setExpanded(!sheet.classList.contains('expanded')));
   }
 
-  // Fill data
-  const { titleEl, promptEl, copyBtn, copyDimsBtn, downloadImgBtn } = deps;
-  sheet.querySelector('#msTitle').textContent = titleEl?.textContent || (p.title||'');
+  // --- Fill content (title, tags, prompt) ---
+  const { titleEl, promptEl, copyBtn, copyDimsBtn, downloadImgBtn, setHero } = deps;
 
-  const msTags = sheet.querySelector('#msTags');
+  const msTitle = sheet.querySelector('#msTitle');
+  const msTags  = sheet.querySelector('#msTags');
+  const msPrompt= sheet.querySelector('#msPrompt');
+
+  msTitle.textContent = titleEl?.textContent || (p.title || '');
   msTags.innerHTML = '';
-  (p.tags||[]).forEach(t=>{
-    const b=document.createElement('span'); b.className='chip'; b.textContent=t;
-    b.onclick=()=>{ if(!state.sel.has(t)){ state.sel.add(t); $$('#tagChips .chip').forEach(c=>{ if(c.textContent===t) c.classList.add('active'); }); applyFilters(); } };
-    msTags.appendChild(b);
+  (p.tags || []).forEach(t=>{
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = t;
+    chip.onclick = () => {
+      if(!state.sel.has(t)){
+        state.sel.add(t);
+        $$('#tagChips .chip').forEach(c=>{ if(c.textContent===t) c.classList.add('active'); });
+        applyFilters();
+      }
+    };
+    msTags.appendChild(chip);
+  });
+  msPrompt.textContent = promptEl?.textContent || '';
+
+  // Reuse existing actions
+  sheet.querySelector('#msCopy').onclick     = ()=> copyBtn?.click();
+  sheet.querySelector('#msCopyDims').onclick = ()=> copyDimsBtn?.click();
+  sheet.querySelector('#msDownload').onclick = ()=> downloadImgBtn?.click();
+
+  // --- Measure: reserve space for thumbs + sheet peek so hero fills the rest ---
+  const root   = document.documentElement;
+  const handle = sheet.querySelector('.ms-handle');
+  const thumbs = dlg.querySelector('#modalThumbs');
+
+  const setVars = () => {
+    const peek   = Math.max(44, (handle?.offsetHeight || 0)); // visible collapsed height
+    const thumbH = Math.max(96, (thumbs?.offsetHeight || 0)); // total thumbnail bar height
+    root.style.setProperty('--sheetPeek', `${peek}px`);
+    root.style.setProperty('--thumbH',    `${thumbH}px`);
+  };
+
+  // Let layout paint, then measure
+  requestAnimationFrame(setVars);
+  const _onResize = ()=> requestAnimationFrame(setVars);
+  window.addEventListener('resize', _onResize, { passive:true });
+
+  // --- Drag to expand/collapse (pixel-based, no percent drift) ---
+  const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+  const curY = () => {
+    const m = (sheet.style.transform || '').match(/translateY\(([-\d.]+)px\)/);
+    return m ? parseFloat(m[1]) : (sheet.classList.contains('expanded') ? 0 : collapsedY());
+  };
+  const collapsedY = () => {
+    const h = sheet.getBoundingClientRect().height;
+    const peekPx = parseFloat(getComputedStyle(root).getPropertyValue('--sheetPeek')) || 54;
+    return Math.max(0, h - peekPx);
+  };
+
+  let dragging=false, startY=0, baseY=0;
+
+  const pointerY = (e)=> (e.touches?.[0]?.clientY ?? e.clientY ?? 0);
+
+  const onDown = (e)=>{
+    dragging = true;
+    startY = pointerY(e);
+    baseY  = sheet.classList.contains('expanded') ? 0 : collapsedY();
+    sheet.style.willChange = 'transform';
+    sheet.style.transition  = 'none';
+    sheet.setPointerCapture?.(e.pointerId || 0);
+  };
+
+  const onMove = (e)=>{
+    if(!dragging) return;
+    const dy = pointerY(e) - startY;
+    const y  = clamp(baseY + dy, 0, collapsedY());
+    sheet.style.transform = `translateY(${Math.round(y)}px)`;
+    // prevent the page from scrolling while horizontal movement is small
+    if (e.cancelable) e.preventDefault();
+  };
+
+  const onUp = ()=>{
+    if(!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    const y = curY();
+    const expand = y < collapsedY()/2;
+    sheet.classList.toggle('expanded', expand);
+    // clear inline transform so CSS class controls it
+    sheet.style.transform = '';
+    sheet.style.willChange = '';
+  };
+
+  const handleEl = handle; // alias
+  handleEl.addEventListener('pointerdown', onDown);
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  // Touch fallbacks
+  handleEl.addEventListener('touchstart', onDown, {passive:true});
+  window.addEventListener('touchmove', onMove, {passive:false});
+  window.addEventListener('touchend', onUp);
+
+  // Tap to toggle
+  handleEl.addEventListener('click', ()=>{
+    const expand = !sheet.classList.contains('expanded');
+    sheet.classList.toggle('expanded', expand);
+    sheet.style.transform = '';
   });
 
-  sheet.querySelector('#msPrompt').textContent = promptEl?.textContent || '';
+  // Clean up listeners when the dialog closes
+  const cleanup = ()=>{
+    window.removeEventListener('resize', _onResize);
+    handleEl.removeEventListener('pointerdown', onDown);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    handleEl.removeEventListener('touchstart', onDown);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+    handleEl.removeEventListener('click', ()=>{});
+  };
+  dlg.addEventListener('close', cleanup, { once:true });
 
-  sheet.querySelector('#msCopy').onclick      = ()=> copyBtn?.click();
-  sheet.querySelector('#msCopyDims').onclick  = ()=> copyDimsBtn?.click();
-  sheet.querySelector('#msDownload').onclick  = ()=> downloadImgBtn?.click();
-
-  // Swipe to change image on hero
+  // --- Swipe left/right on hero to navigate images ---
   const hero = dlg.querySelector('#modalImg');
   let sx=0, sy=0, swiping=false;
-  const onStart = (e)=>{ const t=e.touches?.[0]; sx=t?.clientX||e.clientX; sy=t?.clientY||e.clientY; swiping=true; };
-  const onMove  = (e)=>{ if(!swiping) return; const t=e.touches?.[0]; const dx=(t?.clientX||e.clientX)-sx; const dy=(t?.clientY||e.clientY)-sy; if(Math.abs(dx)>Math.abs(dy)) e.preventDefault(); };
-  const onEnd   = (e)=>{
+
+  const onSwipeStart = (e)=>{
+    const t = e.touches?.[0] || e;
+    sx = t.clientX; sy = t.clientY;
+    swiping = true;
+  };
+  const onSwipeMove = (e)=>{
+    if(!swiping) return;
+    const t = e.touches?.[0] || e;
+    const dx = t.clientX - sx;
+    const dy = t.clientY - sy;
+    if (Math.abs(dx) > Math.abs(dy) && e.cancelable) e.preventDefault(); // horizontal intent
+  };
+  const onSwipeEnd = (e)=>{
     if(!swiping) return; swiping=false;
-    const t=e.changedTouches?.[0]||e;
-    const dx=(t.clientX - sx);
-    if(Math.abs(dx) > 60){
-      const next = dx<0 ? (_modalState.index+1)%_modalState.urls.length
-                        : (_modalState.index-1+_modalState.urls.length)%_modalState.urls.length;
-      deps.setHero(next);
+    const t = e.changedTouches?.[0] || e;
+    const dx = t.clientX - sx;
+    if(Math.abs(dx) > 60 && _modalState.urls.length > 1){
+      const next = dx < 0
+        ? (_modalState.index + 1) % _modalState.urls.length
+        : (_modalState.index - 1 + _modalState.urls.length) % _modalState.urls.length;
+      setHero(next);
     }
   };
-  hero.addEventListener('touchstart', onStart, {passive:true});
-  hero.addEventListener('touchmove',  onMove,  {passive:false});
-  hero.addEventListener('touchend',   onEnd);
+
+  hero.addEventListener('touchstart', onSwipeStart, {passive:true});
+  hero.addEventListener('touchmove',  onSwipeMove,  {passive:false});
+  hero.addEventListener('touchend',   onSwipeEnd);
 }
