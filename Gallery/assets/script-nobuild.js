@@ -20,6 +20,8 @@ const state = {
   _galleryLoaded: 0,
   _galleryTotal: 0,
   _compareSel: new Set(),
+  _lastRenderedItems: [],
+  _scrollPos: 0,
 };
 
 /* ======== Library overlay wiring ======== */
@@ -583,7 +585,8 @@ let _detailState = { p: null, previews: [], index: 0, urls: [] };
 
 function openDetailView(p) {
   _detailState.p = p; // Store the current prompt object
-
+  state._scrollPos = window.scrollY; // <-- ADD THIS
+  _detailState.p = p;  
   const view = $('#detailView');
   if (!view) return;
 
@@ -681,7 +684,7 @@ function closeDetailView() {
   document.body.classList.remove('detail-view-active');
   $('#detailView')?.setAttribute('aria-hidden', 'true');
   unlockScroll();
-
+  window.scrollTo({ top: state._scrollPos, behavior: 'instant' });
   // Cleanup: revoke URLs to free memory and remove key listener
   _detailState.urls.forEach(url => { if(url) URL.revokeObjectURL(url); });
   _detailState = { p: null, previews: [], index: 0, urls: [] };
@@ -758,104 +761,157 @@ async function writePerFolderFavorite(dirHandle,isFav){
 async function readRootFavorites(rootHandle){ try{ const fh=await rootHandle.getFileHandle('_favorites.json',{create:false}); const f=await fh.getFile(); return JSON.parse(await f.text()); }catch{ return {ids:[]}; } }
 async function writeRootFavorites(rootHandle,all){ const ids=all.filter(p=>p.favorite).map(p=>p.id); const fh=await rootHandle.getFileHandle('_favorites.json',{create:true}); const w=await fh.createWritable(); await w.write(new Blob([JSON.stringify({updated:new Date().toISOString(),count:ids.length,ids},null,2)],{type:'application/json'})); await w.close(); }
 
-/* ===== Gallery + ZIP export ===== */
-let _galleryObserver=null, _galleryURLs=[];
-const GALLERY_PAGE_SIZE = 120;
+/* ================== FULLSCREEN GALLERY ================== */
+let _galleryObserver = null;
+let _galleryURLs = [];
 
-function collectCurrentPreviewHandles(){
-  const list=[];
-  for(const p of state._lastRenderedItems){
-    if(p.files?.previews?.length){ for(const h of p.files.previews) list.push({handle:h,id:p.id}); }
+function openGallery() {
+  state._scrollPos = window.scrollY;
+  const view = $('#galleryView');
+  const grid = $('#galleryGrid');
+  const sentinel = $('#gallerySentinel');
+  const meta = $('#galleryMeta');
+  const prog = $('#galleryProgress'), progTxt = $('#galleryProgressText');
+
+  grid.innerHTML = '';
+  grid.appendChild(sentinel);
+  sentinel.textContent = 'Loading…';
+  _galleryURLs = [];
+
+  const list = collectCurrentPreviewHandles();
+  state._gallery = { list, idx: 0 };
+  state._galleryLoaded = 0;
+  state._galleryTotal = list.length;
+  meta.textContent = `${list.length} image${list.length !== 1 ? 's' : ''}`;
+  updateGalleryProgress();
+
+  galleryLoadNextPage();
+
+  if (_galleryObserver) _galleryObserver.disconnect();
+  _galleryObserver = new IntersectionObserver(async entries => {
+    if (entries.some(e => e.isIntersecting)) {
+      await galleryLoadNextPage();
+      if (state._gallery.idx >= state._gallery.list.length) {
+        sentinel.textContent = 'No more images';
+        _galleryObserver.disconnect();
+      }
+    }
+  }, { root: grid, rootMargin: '500px' });
+  _galleryObserver.observe(sentinel);
+
+  $('#exportZip').onclick = () => exportZipOfCurrentFilter();
+  $('#galleryBack').onclick = closeGallery;
+  window.addEventListener('keydown', handleGalleryKeys);
+
+  document.body.classList.add('gallery-view-active');
+  view.setAttribute('aria-hidden', 'false');
+  lockScroll();
+
+  function updateGalleryProgress() {
+    const total = Math.max(1, state._galleryTotal);
+    const frac = state._galleryLoaded / total;
+    prog.value = frac;
+    progTxt.textContent = `${Math.floor(frac * 100)}%`;
+  }
+
+  async function galleryLoadNextPage() {
+    if (state._gallery.idx >= state._gallery.list.length) return;
+    const end = Math.min(state._gallery.idx + 60, state._gallery.list.length);
+    const frag = document.createDocumentFragment();
+
+    for (let i = state._gallery.idx; i < end; i++) {
+      const { handle, id } = state._gallery.list[i];
+      const url = await loadObjectURL(handle);
+      _galleryURLs.push(url);
+      const im = document.createElement('img');
+      im.className = 'gimg';
+      im.src = url;
+      im.loading = 'lazy';
+      im.decoding = 'async';
+      im.onclick = () => {
+        const promptToOpen = state.all.find(p => p.id === id);
+        if (promptToOpen) {
+          closeGallery(); // Close gallery first
+          openDetailView(promptToOpen); // Then open the detail view
+        }
+      };
+      frag.appendChild(im);
+      im.addEventListener('load', () => { state._galleryLoaded++; updateGalleryProgress(); }, { once: true });
+    }
+    grid.insertBefore(frag, sentinel);
+    state._gallery.idx = end;
+  }
+}
+
+function closeGallery() {
+  document.body.classList.remove('gallery-view-active');
+  $('#galleryView')?.setAttribute('aria-hidden', 'true');
+  unlockScroll();
+  window.scrollTo({ top: state._scrollPos, behavior: 'instant' }); // <-- ADD THIS
+  window.removeEventListener('keydown', handleGalleryKeys);
+  if (_galleryObserver) _galleryObserver.disconnect();
+  _galleryURLs.forEach(u => URL.revokeObjectURL(u));
+  _galleryURLs = [];
+}
+
+function handleGalleryKeys(e) {
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    closeGallery();
+  }
+}
+
+function collectCurrentPreviewHandles() {
+  const list = [];
+  for (const p of state._lastRenderedItems) {
+    if (p.files?.previews?.length) {
+      for (const h of p.files.previews) {
+        list.push({ handle: h, id: p.id });
+      }
+    }
   }
   return list;
 }
 
-async function openGallery(){
-  const dlg=$('#galleryModal');
-  const grid=$('#galleryGrid'); const sentinel=$('#gallerySentinel');
-  const count=$('#galleryCount'); const prog=$('#galleryProgress'), progTxt=$('#galleryProgressText');
-
-  grid.innerHTML=''; grid.appendChild(sentinel); sentinel.textContent='Loading…';
-  _galleryURLs=[];
-  const list=collectCurrentPreviewHandles();
-  state._gallery={ list, idx:0 }; state._galleryLoaded=0; state._galleryTotal=list.length;
-  count.textContent=list.length; updateGalleryProgress();
-
-  await galleryLoadNextPage();
-
-  if(_galleryObserver) _galleryObserver.disconnect();
-  _galleryObserver=new IntersectionObserver(async entries=>{
-    if(entries.some(e=> e.isIntersecting)){ await galleryLoadNextPage(); if(state._gallery.idx>=state._gallery.list.length){ sentinel.textContent='No more images'; } }
-  }, { root:grid, threshold:0.15 });
-  _galleryObserver.observe(sentinel);
-
-  $('#exportZip').onclick = ()=> exportZipOfCurrentFilter();
-
-  $('#closeGallery').onclick=()=>{
-    dlg.close();
-    if(_galleryObserver) _galleryObserver.disconnect();
-    _galleryURLs.forEach(u=> URL.revokeObjectURL(u)); _galleryURLs=[];
-  };
-
-  dlg.showModal();
-
-  function updateGalleryProgress(){
-    const total=Math.max(1,state._galleryTotal);
-    const frac=state._galleryLoaded/total;
-    prog.value=frac; prog.max=1; progTxt.textContent=`${Math.floor(frac*100)}%`;
-  }
-
-  async function galleryLoadNextPage(){
-    if(state._gallery.idx >= state._gallery.list.length) return;
-    const end=Math.min(state._gallery.idx+GALLERY_PAGE_SIZE, state._gallery.list.length);
-    const frag=document.createDocumentFragment();
-    for(let i=state._gallery.idx;i<end;i++){
-      const { handle }=state._gallery.list[i];
-      const url=await loadObjectURL(handle); _galleryURLs.push(url);
-      const im=document.createElement('img'); im.className='gimg'; im.src=url; im.loading='lazy'; im.decoding='async';
-      frag.appendChild(im);
-      im.addEventListener('load', ()=>{ state._galleryLoaded++; updateGalleryProgress(); }, { once:true });
-    }
-    grid.insertBefore(frag, sentinel);
-    state._gallery.idx=end;
-  }
-}
-
-async function exportZipOfCurrentFilter(){
-  if(!window.JSZip){ alert('JSZip not available'); return; }
+async function exportZipOfCurrentFilter() {
+  if (!window.JSZip) { alert('JSZip library not available.'); return; }
   const btn = $('#exportZip');
-  const prog=$('#galleryProgress'), progTxt=$('#galleryProgressText');
-
+  const prog = $('#galleryProgress'), progTxt = $('#galleryProgressText');
   const list = collectCurrentPreviewHandles();
-  if(!list.length) return;
+  if (!list.length) return;
 
-  btn.disabled = true; btn.textContent = 'Zipping…';
-  prog.value = 0; progTxt.textContent = '0%';
+  btn.disabled = true;
+  btn.textContent = 'Zipping…';
+  prog.value = 0;
+  progTxt.textContent = '0%';
 
   const zip = new JSZip();
   let done = 0;
 
-  for(const item of list){
+  for (const item of list) {
     const { handle, id } = item;
     let file, name;
-    if('getFile' in handle){ file = await handle.getFile(); name = file.name; }
+    if ('getFile' in handle) { file = await handle.getFile(); name = file.name; }
     else { file = handle; name = handle.name; }
-    const folder = zip.folder(id) || zip;
+    const folder = zip.folder(id.replace('prompts/', '')) || zip;
     const arrayBuf = await file.arrayBuffer();
     folder.file(name, arrayBuf);
     done++;
     const frac = done / list.length;
-    prog.value = frac; progTxt.textContent = `${Math.floor(frac*100)}%`;
+    prog.value = frac;
+    progTxt.textContent = `${Math.floor(frac * 100)}%`;
   }
 
-  const blob = await zip.generateAsync({type:'blob', streamFiles:true});
+  const blob = await zip.generateAsync({ type: 'blob' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `prompt-vault-export-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.zip`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=> URL.revokeObjectURL(a.href), 2000);
-
-  btn.textContent = 'Export ZIP'; btn.disabled = false;
+  a.download = `prompt-vault-export-${new Date().toISOString().slice(0, 10)}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  btn.textContent = 'Export as ZIP';
+  btn.disabled = false;
 }
 
 /* ===== utils ===== */

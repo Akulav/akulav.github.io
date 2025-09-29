@@ -75,27 +75,27 @@
 
   <!-- Modal (unchanged) -->
   
-
   <!-- Gallery (unchanged) -->
-  <dialog id="galleryModal">
-    <button id="closeGallery" class="icon-close" aria-label="Close">✕</button>
-    <div class="gallery-head">
-      <h3>Gallery</h3>
-      <div class="gallery-meta"><span id="galleryCount">0</span> images</div>
-      <div class="gallery-actions">
-        <button id="exportZip" class="pill">Export ZIP</button>
+
+<section id="galleryView" class="gallery-view" aria-hidden="true">
+  <header class="gallery-header">
+    <button id="galleryBack" class="btn">← Back</button>
+    <div class="gallery-title-area">
+      <h2>Image Gallery</h2>
+      <div id="galleryMeta" class="gallery-meta">0 images</div>
+    </div>
+    <div class="gallery-actions">
+      <div id="galleryProgressContainer" class="gallery-progress">
+        <progress id="galleryProgress" value="0" max="1"></progress>
+        <span id="galleryProgressText">0%</span>
       </div>
+      <button id="exportZip" class="btn btn-primary">Export as ZIP</button>
     </div>
-
-    <div class="gallery-progress">
-      <progress id="galleryProgress" value="0" max="1"></progress>
-      <span id="galleryProgressText">0%</span>
-    </div>
-
-    <div id="galleryGrid" class="gallery-grid">
-      <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
-    </div>
-  </dialog>
+  </header>
+  <div id="galleryGrid" class="gallery-grid">
+    <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
+  </div>
+</section>
 
   <!-- NEW: Library overlay UI (opens when clicking Load Library) -->
   <div id="libraryOverlay" class="lib-overlay hidden" aria-hidden="true">

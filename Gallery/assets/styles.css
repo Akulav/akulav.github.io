@@ -167,25 +167,81 @@ body.no-scroll{overflow:hidden}
 .cmp-range::-moz-range-track{height:6px;background:#1b2640;border-radius:999px}
 .cmp-range::-moz-range-thumb{height:22px;width:22px;border-radius:50%;background:#6aa0ff;border:2px solid #2b3857}
 
-/* ================== GALLERY MODAL ================== */
-#galleryModal{position:relative;width:min(1600px,98vw);padding:16px 18px 18px;border:none;background:var(--card);color:var(--fg)}
-#galleryModal::backdrop{background:#000b}
-#galleryModal .icon-close{top:12px;right:14px;z-index:3}
-.gallery-head{display:flex;align-items:center;gap:10px;margin:0 12px 8px 12px;padding-right:56px}
-.gallery-head h3{margin:0}
-.gallery-meta{color:var(--muted);font-size:13px;margin-left:auto}
-.gallery-actions{display:flex;gap:8px}
-.gallery-progress{display:flex;align-items:center;gap:10px;margin:0 12px 12px 12px}
-.gallery-progress progress{width:100%;height:10px;border-radius:999px;overflow:hidden}
-.gallery-progress progress::-webkit-progress-bar{background:#0b0e13;border:1px solid var(--line);border-radius:999px}
-.gallery-progress progress::-webkit-progress-value{background:linear-gradient(90deg,#3a6cff,#7aa6ff)}
-#galleryProgressText{color:var(--muted);min-width:3ch;text-align:right}
-.gallery-grid{display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:12px;max-height:74vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:12px;background:#0b0e13;position:relative;scrollbar-color:#2a3250 #0b0e13}
-.gallery-grid::-webkit-scrollbar{width:12px}
-.gallery-grid::-webkit-scrollbar-track{background:#0b0e13}
-.gallery-grid::-webkit-scrollbar-thumb{background:#2a3250;border-radius:10px}
-.gallery-grid .gimg{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
-.gallery-sentinel{grid-column:1 / -1;padding:10px;text-align:center;color:var(--muted)}
+/* ================== NEW: FULLSCREEN GALLERY VIEW ================== */
+.gallery-view {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 45; /* Higher than detail view, lower than library overlay */
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity .15s ease, transform .15s ease;
+}
+body.gallery-view-active .gallery-view { display: flex; opacity: 1; transform: scale(1); }
+
+/* Hide other content when gallery is open */
+body.gallery-view-active .topbar,
+body.gallery-view-active #filters,
+body.gallery-view-active .page,
+body.gallery-view-active .detail-view { display: none; }
+
+/* Header */
+.gallery-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.gallery-title-area { flex: 1; text-align: center; }
+.gallery-title-area h2 { margin: 0 0 4px; font-size: 20px; }
+.gallery-meta { color: var(--muted); font-size: 13px; }
+.gallery-actions { display: flex; align-items: center; gap: 12px; }
+.gallery-progress { display: flex; align-items: center; gap: 8px; width: 150px; }
+.gallery-progress progress { width: 100%; height: 8px; }
+.gallery-progress progress::-webkit-progress-bar { background:#0b0e13; border:1px solid var(--line); border-radius:999px; }
+.gallery-progress progress::-webkit-progress-value { background:linear-gradient(90deg, #3a6cff, #7aa6ff); }
+.gallery-progress span { font-size: 12px; color: var(--muted); }
+
+/* Grid */
+.gallery-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* <--- UPDATED VALUE */
+  gap: 12px;
+  overflow-y: auto;
+  border-radius: 12px;
+  padding: 4px;
+  background: #0b0e13;
+  border: 1px solid var(--line);
+  scrollbar-color: #2a3250 #0b0e13;
+}
+.gallery-grid .gimg {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+.gallery-grid .gimg:hover { transform: scale(1.03); }
+.gallery-sentinel { grid-column: 1 / -1; padding: 10px; text-align: center; color: var(--muted); }
+
+/* Mobile adjustments */
+@media (max-width: 700px) {
+  .gallery-view { padding: 8px; gap: 8px; }
+  .gallery-header { flex-wrap: wrap; }
+  .gallery-title-area { order: -1; flex-basis: 100%; text-align: left; padding-bottom: 8px; }
+  .gallery-actions { margin-left: auto; }
+  .gallery-progress { display: none; } /* Hide progress bar on small screens for space */
+  .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+}
 
 /* ================== BREAKPOINTS ================== */
 @media (max-width: 1840px){ .grid{ grid-template-columns:repeat(4, 360px); } }
