@@ -943,6 +943,17 @@ async function openGallery(){
 
   dlg.showModal();
 
+  // after dlg.showModal();
+setupMobileModal(dlg, p, {
+  titleEl: title,
+  tagWrap: tagWrap,
+  promptEl: pre,
+  copyBtn,
+  copyDimsBtn,
+  downloadImgBtn,
+  setHero,
+});
+
   function updateGalleryProgress(){
     const total=Math.max(1,state._galleryTotal);
     const frac=state._galleryLoaded/total;
@@ -1033,4 +1044,112 @@ function extractDominantColorFromImage(imgEl){
     r=Math.round(r/count); g=Math.round(g/count); b=Math.round(b/count);
     return [r,g,b];
   }catch{ return [106,160,255]; }
+}
+
+// ===== Mobile modal wiring =====
+function setupMobileModal(dlg, p, deps){
+  // bail if not mobile
+  if (!window.matchMedia('(max-width: 700px)').matches) return;
+ 
+  dlg.classList.add('is-mobile');
+ 
+  // Build bottom sheet once
+  let sheet = dlg.querySelector('.mobile-sheet');
+  if (!sheet){
+    sheet = document.createElement('div');
+    sheet.className = 'mobile-sheet';
+    sheet.innerHTML = `
+      <div class="ms-handle" aria-label="Drag to expand/collapse"></div>
+      <div class="ms-body">
+        <h3 class="ms-title" id="msTitle"></h3>
+        <div class="ms-tags" id="msTags"></div>
+        <pre class="prompt-pre block" id="msPrompt"></pre>
+        <div class="ms-actions">
+          <button id="msCopy" class="btn btn-primary">Copy Prompt</button>
+          <button id="msCopyDims" class="btn">Copy Size</button>
+          <button id="msDownload" class="btn">Download image</button>
+        </div>
+      </div>
+    `;
+    dlg.appendChild(sheet);
+ 
+    // tap/drag to expand
+    const handle = sheet.querySelector('.ms-handle');
+    let startY=0, startT=0, dragging=false;
+ 
+    const setExpanded = (on) => sheet.classList.toggle('expanded', !!on);
+    const onPointerDown = (e)=>{
+      dragging=true; startY=e.clientY||e.touches?.[0]?.clientY||0;
+      startT = sheet.classList.contains('expanded') ? 0 : 1; // 0 expanded, 1 collapsed
+      handle.setPointerCapture?.(e.pointerId||0);
+    };
+    const onPointerMove = (e)=>{
+      if(!dragging) return;
+      const y=(e.clientY||e.touches?.[0]?.clientY||startY)-startY;
+      const dy = Math.max(-300, Math.min(300, y));
+      const frac = dy>0 ? Math.min(1, dy/220) : Math.max(0, 1 + dy/220);
+      const t = startT ? (1-frac) : (0+frac);
+      sheet.style.transform = `translateY(${Math.max(0, Math.min(0.68, t*0.68))*100}%)`;
+    };
+    const onPointerUp = (e)=>{
+      if(!dragging) return; dragging=false;
+      // decide final state by current transform
+      const m = sheet.style.transform.match(/translateY\(([\d\.]+)%\)/);
+      const pct = m ? parseFloat(m[1]) : 68;
+      const expand = pct < 34; // halfway rule
+      sheet.style.transform = ''; setExpanded(expand);
+    };
+ 
+    // Events: pointer + touch
+    handle.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    handle.addEventListener('touchstart', onPointerDown, {passive:true});
+    window.addEventListener('touchmove', onPointerMove, {passive:false});
+    window.addEventListener('touchend', onPointerUp);
+ 
+    // tap handle to toggle
+    handle.addEventListener('click', ()=> setExpanded(!sheet.classList.contains('expanded')));
+  }
+ 
+  // Fill data
+  const { titleEl, tagWrap, promptEl, copyBtn, copyDimsBtn, downloadImgBtn } = deps;
+  sheet.querySelector('#msTitle').textContent = titleEl?.textContent || (p.title||'');
+  // clone tags into sheet
+  const msTags = sheet.querySelector('#msTags');
+  msTags.innerHTML = '';
+  (p.tags||[]).forEach(t=>{
+    const b=document.createElement('span'); b.className='chip'; b.textContent=t;
+    b.onclick=()=>{ if(!state.sel.has(t)){ state.sel.add(t); $$('#tagChips .chip').forEach(c=>{ if(c.textContent===t) c.classList.add('active'); }); applyFilters(); } };
+    msTags.appendChild(b);
+  });
+  // prompt
+  sheet.querySelector('#msPrompt').textContent = promptEl?.textContent || '';
+ 
+  // actions (reuse existing logic)
+  sheet.querySelector('#msCopy').onclick = ()=> copyBtn?.click();
+  sheet.querySelector('#msCopyDims').onclick = ()=> copyDimsBtn?.click();
+  sheet.querySelector('#msDownload').onclick = ()=> downloadImgBtn?.click();
+ 
+  // Make thumbs bar float (already styled via CSS)
+  // We only need to ensure it sits above safe area; CSS handles it.
+ 
+  // Swipe to change image on hero
+  const hero = dlg.querySelector('#modalImg');
+  let sx=0, sy=0, swiping=false;
+  const onStart = (e)=>{ const t=e.touches?.[0]; sx=t?.clientX||e.clientX; sy=t?.clientY||e.clientY; swiping=true; };
+  const onMove  = (e)=>{ if(!swiping) return; const t=e.touches?.[0]; const dx=(t?.clientX||e.clientX)-sx; const dy=(t?.clientY||e.clientY)-sy; if(Math.abs(dx)>Math.abs(dy)) e.preventDefault(); };
+  const onEnd   = (e)=>{
+    if(!swiping) return; swiping=false;
+    const t=e.changedTouches?.[0]||e;
+    const dx=(t.clientX - sx);
+    if(Math.abs(dx) > 60){
+      const next = dx<0 ? (_modalState.index+1)%_modalState.urls.length
+                        : (_modalState.index-1+_modalState.urls.length)%_modalState.urls.length;
+      deps.setHero(next);
+    }
+  };
+  hero.addEventListener('touchstart', onStart, {passive:true});
+  hero.addEventListener('touchmove',  onMove,  {passive:false});
+  hero.addEventListener('touchend',   onEnd);
 }
