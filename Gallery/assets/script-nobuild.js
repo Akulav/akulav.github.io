@@ -677,6 +677,7 @@ async function openModal(p){
   } catch (err){
     console.error('Download image failed:', err);
   }
+  
 };
 
   }
@@ -717,20 +718,46 @@ async function openModal(p){
 
   const txt=await loadPromptText(p); pre.textContent=(await txt).trim();
 
-  thumbsRow.innerHTML='';
-  _modalState={ previews:p.files.previews, index:0, urls:[] };
+  // deterministic URLs + thumbs so indices stay aligned
+thumbsRow.innerHTML = '';
+_modalState = { previews: p.files.previews, index: 0, urls: new Array(p.files.previews.length) };
 
-  if(p.files.previews.length){
-    const firstURL=await loadObjectURL(p.files.previews[0]); hero.src=firstURL; _modalState.urls.push(firstURL);
-    await updateImgMeta(0);
-    p.files.previews.forEach(async (h,i)=>{
-      const u=i===0?firstURL:await loadObjectURL(h); if(i!==0) _modalState.urls.push(u);
-      const im=document.createElement('img'); im.src=u; if(i===0) im.classList.add('active');
-      im.onclick=(ev)=>{ if(ev.shiftKey){ toggleCompareSelect(i, im); } else { setHero(i); } };
-      im.addEventListener('contextmenu', e=>{ e.preventDefault(); toggleCompareSelect(i, im); });
-      thumbsRow.appendChild(im);
+if (p.files.previews.length) {
+  const firstURL = await loadObjectURL(p.files.previews[0]);
+  _modalState.urls[0] = firstURL;
+  hero.src = firstURL;
+  await updateImgMeta(0);
+
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < p.files.previews.length; i++) {
+    const u = (i === 0) ? firstURL : await loadObjectURL(p.files.previews[i]);
+    _modalState.urls[i] = u;
+
+    const im = document.createElement('img');
+    im.src = u;
+    if (i === 0) im.classList.add('active');
+    im.dataset.idx = String(i);
+
+    im.onclick = (ev) => {
+      const idx = Number(im.dataset.idx);
+      if (ev.shiftKey) { toggleCompareSelect(idx, im); }
+      else { setHero(idx); }
+    };
+    im.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      toggleCompareSelect(Number(im.dataset.idx), im);
     });
-  } else { hero.removeAttribute('src'); hero.alt='No preview'; resEl.textContent='— × —'; fmtEl.textContent='—'; }
+
+    frag.appendChild(im);
+  }
+  thumbsRow.appendChild(frag);
+} else {
+  hero.removeAttribute('src');
+  hero.alt = 'No preview';
+  resEl.textContent = '— × —';
+  fmtEl.textContent = '—';
+}
+
 
   function setHero(i){
     try{ const [r,g,b]=extractDominantColorFromImage(hero); dlg.style.setProperty('--glow', `rgba(${r},${g},${b},0.28)`);}catch{}

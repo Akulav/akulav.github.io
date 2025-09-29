@@ -93,6 +93,31 @@ body.no-scroll{overflow:hidden}
 .fp-media{display:flex;flex-direction:column;gap:10px;min-width:0}
 .fp-media img{width:100%;flex:1 1 auto;max-height:calc(90vh - 18px - 22px - 200px);object-fit:contain;background:#0b0e13;border:1px solid var(--line);border-radius:12px}
 
+/* Mobile-first modal layout */
+@media (max-width: 640px){
+  .fullpage-modal{
+    width:100vw; height:100vh; border-radius:0; padding:0;
+  }
+  .fp-shell{
+    display:flex; flex-direction:column; gap:12px; padding:12px; height:100%;
+  }
+  .fp-media img{
+    max-height:50vh; /* big enough to view; room for thumbs + info */
+  }
+  .fp-info{
+    padding-bottom:8px; /* avoid hitting bottom edge */
+  }
+  .thumbs-row img{
+    width:96px; height:96px; /* better tap targets */
+  }
+  .thumb-scrub{ height:32px; }
+  .icon-close{
+    top:10px; right:10px; height:40px; width:40px; line-height:38px; font-size:18px;
+  }
+}
+
+
+
 /* EXIF row */
 .img-meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px;padding:4px 2px 2px}
 .img-meta .dot{opacity:.65}
