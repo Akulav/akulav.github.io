@@ -4,25 +4,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta charset="utf-8" />
   <title>Prompt Vault — No Build</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/styles.css" />
-  <!-- JSZip for ZIP fallback -->
-  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="boot-gate">
+
   <header class="topbar">
     <div class="left-spacer"></div>
     <h1>Prompt Vault</h1>
     <div class="actions">
-      <input id="searchBox" type="search" placeholder="Search title, tags, prompt…" />
+      <button id="reloadLibraryBtn" class="btn" title="Reload Library" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+      </button>
+      <button id="newPromptBtn" class="btn" style="display: none;">New Prompt</button>
+      <input id="searchBox" type="search" placeholder="Search title, tags, prompt…"/>
       <button id="clearFilters" title="Clear filters">Clear</button>
-      <!-- Unchanged label; clicking opens the new overlay -->
       <button id="openRW" title="Load your prompts with write access">Load Library</button>
       <button id="toggleFavs" title="Show only favorites">★ Favorites</button>
     </div>
   </header>
 
-  <!-- Inline filters (unchanged) -->
   <section id="filters" class="filters-inline">
     <div class="filters-row">
       <div class="chips-wrap">
@@ -42,20 +43,21 @@
         <div id="stats" class="stats">0 prompts</div>
         <button id="openGallery" class="big-gallery-btn" title="View all images from current results">View Gallery</button>
       </div>
-
       <div id="grid" class="grid"></div>
       <div id="empty" class="empty">Pick your <b>/prompts</b> folder to begin.</div>
     </section>
   </main>
 
-<section id="detailView" class="detail-view" aria-hidden="true">
+  <section id="detailView" class="detail-view" aria-hidden="true">
+    <input type="file" id="imageUploader" multiple accept="image/jpeg,image/png,image/webp,image/avif" hidden />
     <header class="detail-header">
       <button id="detailBack" class="btn" title="Back to grid (Esc)">← Back</button>
       <div class="detail-title-area">
-        <h2 id="detailTitle"></h2>
+        <h2 id="detailTitle" contenteditable="false" spellcheck="false"></h2>
         <div id="detailTags" class="chips small"></div>
       </div>
       <div class="detail-actions">
+        <button id="detailAddImages" class="btn" style="display: none;">Add Images</button>
         <button id="detailCopyPrompt" class="btn btn-primary">Copy Prompt</button>
         <button id="detailDownloadImg" class="btn">Download Image</button>
       </div>
@@ -64,47 +66,65 @@
       <div class="detail-hero">
         <img id="detailImg" alt="Main preview image" />
       </div>
-      <div id="detailThumbs" class="detail-thumbs">
-        </div>
+      <div id="detailThumbs" class="detail-thumbs"></div>
     </div>
     <div class="detail-prompt">
-      <pre id="detailPromptText"></pre>
+      <div id="detailPromptText"></div>
     </div>
   </section>
 
-
-  <!-- Modal (unchanged) -->
-  
-  <!-- Gallery (unchanged) -->
-
-<section id="galleryView" class="gallery-view" aria-hidden="true">
-  <header class="gallery-header">
-    <button id="galleryBack" class="btn">← Back</button>
-    <div class="gallery-title-area">
-      <h2>Image Gallery</h2>
-      <div id="galleryMeta" class="gallery-meta">0 images</div>
-    </div>
-    <div class="gallery-actions">
-      <div id="galleryProgressContainer" class="gallery-progress">
-        <progress id="galleryProgress" value="0" max="1"></progress>
-        <span id="galleryProgressText">0%</span>
+  <section id="galleryView" class="gallery-view" aria-hidden="true">
+    <header class="gallery-header">
+      <button id="galleryBack" class="btn">← Back</button>
+      <div class="gallery-title-area">
+        <h2>Image Gallery</h2>
+        <div id="galleryMeta" class="gallery-meta">0 images</div>
       </div>
-      <button id="exportZip" class="btn btn-primary">Export as ZIP</button>
+      <div class="gallery-actions">
+        <div id="galleryProgressContainer" class="gallery-progress">
+          <progress id="galleryProgress" value="0" max="1"></progress>
+          <span id="galleryProgressText">0%</span>
+        </div>
+        <button id="exportZip" class="btn btn-primary">Export as ZIP</button>
+      </div>
+    </header>
+    <div id="galleryGrid" class="gallery-grid">
+      <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
     </div>
-  </header>
-  <div id="galleryGrid" class="gallery-grid">
-    <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
-  </div>
-</section>
+  </section>
 
-  <!-- NEW: Library overlay UI (opens when clicking Load Library) -->
+  <div id="newPromptModal" class="lib-overlay hidden" aria-hidden="true">
+    <form id="newPromptForm" class="lib-sheet" role="dialog">
+      <button id="newPromptClose" type="button" class="icon-close" aria-label="Close">✕</button>
+      <h2 class="lib-title">Create New Prompt</h2>
+      <div class="form-group">
+        <label for="newTitle">Title</label>
+        <input id="newTitle" type="text" required placeholder="e.g., Cyberpunk Cityscape">
+      </div>
+      <div class="form-group">
+        <label for="newTags">Tags (comma-separated)</label>
+        <input id="newTags" type="text" placeholder="e.g., cyberpunk, neon, night">
+      </div>
+      <div class="form-group">
+        <label for="newPromptText">Prompt Text</label>
+        <textarea id="newPromptText" rows="6" placeholder="The full prompt text..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="newImages">Images (optional)</label>
+        <input id="newImages" type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif">
+      </div>
+      <div class="form-actions">
+        <button id="newPromptSave" type="submit" class="btn btn-primary">Save Prompt</button>
+      </div>
+      <div id="newPromptMsg" class="lib-msg" aria-live="polite"></div>
+    </form>
+  </div>
+
   <div id="libraryOverlay" class="lib-overlay hidden" aria-hidden="true">
     <div class="lib-sheet" role="dialog" aria-modal="true" aria-label="Load Library">
       <button id="libClose" class="icon-close" aria-label="Close">✕</button>
-
       <h2 class="lib-title">Load your Library</h2>
       <p class="lib-sub">Drop your <b>/prompts</b> folder here, or tap the square to browse.</p>
-
       <div id="dropZone" class="dropzone" tabindex="0" role="button" aria-label="Drop your prompts folder here or click to browse">
         <div class="dz-inner">
           <div class="dz-icon">⬚</div>
@@ -113,16 +133,12 @@
           <div class="dz-hint">Folders (read-only), ZIP, or full write access where supported</div>
         </div>
       </div>
-
       <div class="lib-actions">
         <button id="libRW" class="btn">Use Write Access (desktop)</button>
         <button id="libFolder" class="btn">Pick Folder</button>
         <button id="libZip" class="btn">Pick ZIP</button>
       </div>
-
       <div id="libMsg" class="lib-msg" aria-live="polite"></div>
-
-      <!-- Hidden actual inputs -->
       <input id="dirInput" type="file" webkitdirectory directory multiple hidden />
       <input id="zipInput" type="file" accept=".zip,application/zip" hidden />
     </div>
@@ -131,3 +147,4 @@
   <script src="assets/script-nobuild.js" defer></script>
 </body>
 </html>
+
