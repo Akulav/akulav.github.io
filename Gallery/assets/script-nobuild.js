@@ -38,34 +38,40 @@ async function deleteImage(prompt, imageHandle) {
 async function setCoverImage(prompt, newCoverHandle) {
   if (!prompt.dirHandle) return false;
   const prefix = '_';
+  
+  const operations = [];
   const currentCover = prompt.files.previews.find(h => h.name.startsWith(prefix));
+  if (currentCover && currentCover.name !== newCoverHandle.name) {
+    operations.push({
+      type: 'rename',
+      handle: currentCover,
+      newName: currentCover.name.substring(prefix.length)
+    });
+  }
+  if (!newCoverHandle.name.startsWith(prefix)) {
+    operations.push({
+      type: 'rename',
+      handle: newCoverHandle,
+      newName: prefix + newCoverHandle.name
+    });
+  }
+  if (operations.length === 0) return true;
+
   try {
-    if (currentCover && currentCover.name !== newCoverHandle.name) {
-      const oldName = currentCover.name;
-      const newName = oldName.substring(prefix.length);
-      const file = await currentCover.getFile();
-      const newHandle = await prompt.dirHandle.getFileHandle(newName, { create: true });
+    for (const op of operations) {
+      const file = await op.handle.getFile();
+      const newHandle = await prompt.dirHandle.getFileHandle(op.newName, { create: true });
       const writable = await newHandle.createWritable();
       await writable.write(file);
       await writable.close();
-      await prompt.dirHandle.removeEntry(oldName);
+      await prompt.dirHandle.removeEntry(op.handle.name);
     }
-    if (newCoverHandle.name.startsWith(prefix)) {
-      return true;
-    }
-    const oldName = newCoverHandle.name;
-    const newName = prefix + oldName;
-    const file = await newCoverHandle.getFile();
-    const newHandle = await prompt.dirHandle.getFileHandle(newName, { create: true });
-    const writable = await newHandle.createWritable();
-    await writable.write(file);
-    await writable.close();
-    await prompt.dirHandle.removeEntry(oldName);
     await refreshPrompt(prompt);
     return true;
   } catch (err) {
     console.error('Failed to set cover image:', err);
-    alert('Error setting cover image.');
+    alert('Error setting cover image. Please reload the library.');
+    await rescanCurrentLibrary(); 
     return false;
   }
 }
@@ -95,8 +101,19 @@ async function refreshPrompt(prompt) {
             updatedPreviews.push(child);
         }
     }
-    updatedPreviews.sort((a,b)=> a.name.localeCompare(b.name));
+    updatedPreviews.sort((a,b)=> {
+      const aIsCover = a.name.startsWith('_');
+      const bIsCover = b.name.startsWith('_');
+      if (aIsCover && !bIsCover) return -1;
+      if (!aIsCover && bIsCover) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
     prompt.files.previews = updatedPreviews;
+    
+    const masterPrompt = state.all.find(p => p.id === prompt.id);
+    if(masterPrompt) masterPrompt.files.previews = updatedPreviews;
+    
     openDetailView(prompt);
     applyFilters();
 }
@@ -135,6 +152,10 @@ function showOverlay(){ $('#libraryOverlay')?.classList?.remove('hidden'); }
 function hideOverlay(){ $('#libraryOverlay')?.classList?.add('hidden'); }
 
 async function openBestPicker(){
+  if(isMobile) {
+      $('#zipInput')?.click();
+      return;
+  }
   if(window.showDirectoryPicker && window.isSecureContext){
     try{ await handleOpenRW(); return; }catch(e){ /* fall through */ }
   }
@@ -245,7 +266,13 @@ async function scanPromptsRW(promptsDir) {
     p.title = meta.title || p.title;
     p.tags = Array.isArray(meta.tags) ? meta.tags : [];
     p.tags.forEach(t => tagSet.add(t));
-    p.files.previews.sort((a, b) => a.name.localeCompare(b.name));
+    p.files.previews.sort((a, b) => {
+        const aIsCover = a.name.startsWith('_');
+        const bIsCover = b.name.startsWith('_');
+        if (aIsCover && !bIsCover) return -1;
+        if (!aIsCover && bIsCover) return 1;
+        return a.name.localeCompare(b.name);
+    });
     items.push(p);
   }
   items.sort((a, b) => a.title.localeCompare(b.title));
@@ -262,8 +289,95 @@ async function handleDirPickReadOnly(e) {
 
 function isZipEntry(x) { return x && typeof x.async === 'function' && typeof x.name === 'string'; }
 
-async function handleZipFile(file) { /* Your full handleZipFile function */ }
-async function buildFromLooseFiles(files) { /* Your full buildFromLooseFiles function */ }
+async function handleZipFile(file){
+  if (!file) { return; }
+  const libMsg = $('#libMsg');
+  if (!/\.zip$/i.test(file.name)) { libMsg.textContent = 'Please choose a .zip file.'; return; }
+  if (!window.JSZip) { libMsg.textContent = 'ZIP support not loaded.'; return; }
+  try {
+    libMsg.textContent = 'Reading ZIP…';
+    const ab = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(ab, { createFolders:false });
+    const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
+    const groups = new Map();
+    for (const zf of fileEntries){
+      const rel = (zf.name || '').replace(/^[\/]+/, '');
+      const parts = rel.split('/').filter(Boolean);
+      let folderKey;
+      const pIdx = parts.indexOf('prompts');
+      if (pIdx >= 0) {
+        if (parts.length < pIdx + 2) continue;
+        folderKey = parts.slice(0, pIdx + 2).join('/');
+      } else {
+        if (parts.length < 2) continue;
+        folderKey = `prompts/${parts[0]}`;
+      }
+      const leaf = (parts.at(-1) || '').toLowerCase();
+      if (leaf !== 'prompt.txt' && leaf !== 'tags.json' && !/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)) continue;
+      const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
+      if (leaf === 'prompt.txt') bucket.promptFile = zf;
+      else if (leaf === 'tags.json') bucket.tagsFile = zf;
+      else bucket.previews.push(zf);
+      groups.set(folderKey, bucket);
+    }
+    const all = [];
+    const tagSet = new Set();
+    for (const g of groups.values()){
+      if (!g.tagsFile) continue;
+      let meta=null; try { meta = JSON.parse(await g.tagsFile.async('string')); } catch { continue; }
+      const id = g.folder.replace(/\s+/g,'-').toLowerCase();
+      const title = meta.title || g.folder.split('/').at(-1);
+      const tags = Array.isArray(meta.tags) ? meta.tags : [];
+      tags.forEach(t => tagSet.add(t));
+      g.previews.sort((a,b)=> a.name.localeCompare(b.name));
+      all.push({ id, title, tags, folder: g.folder, files: { prompt: g.promptFile, tags: g.tagsFile, previews: g.previews }, favorite: FavStore.has(id) });
+    }
+    await finalizeLibrary(all, tagSet);
+  } catch (err){ console.error('ZIP parse failed:', err); libMsg.textContent = 'Failed to read ZIP.'; }
+}
+
+async function buildFromLooseFiles(files){
+  const libMsg = $('#libMsg');
+  libMsg.textContent = 'Indexing files…';
+  const groups = new Map();
+  for (const f of files){
+    const rel = (f.webkitRelativePath || f.name).replace(/^[\/]*/, '');
+    const parts = rel.split('/');
+    if (parts.length >= 1){
+      let folderKey;
+      const pIdx = parts.indexOf('prompts');
+      if (pIdx >= 0){
+        if (parts.length >= pIdx + 2) folderKey = parts.slice(0, pIdx + 2).join('/');
+      } else {
+        if (parts.length >= 2) folderKey = `prompts/${parts[0]}`;
+      }
+      if (folderKey){
+        const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
+        const leaf = (parts.at(-1) || '').toLowerCase();
+        if (leaf === 'prompt.txt') bucket.promptFile = f;
+        else if (leaf === 'tags.json') bucket.tagsFile = f;
+        else if (/(\.jpg|\.jpeg|\.png|\.webp|\.avif)$/i.test(leaf)) bucket.previews.push(f);
+        groups.set(folderKey, bucket);
+      }
+    }
+  }
+  const all = [];
+  const tagSet = new Set();
+  for (const [folder, g] of groups.entries()){
+    if (!g.tagsFile) continue;
+    const meta = await readJSONFile(g.tagsFile).catch(()=>null);
+    if (!meta) continue;
+    const id = folder.replace(/\s+/g,'-').toLowerCase();
+    const title = meta.title || folder.split('/').at(-1);
+    const tags = Array.isArray(meta.tags) ? meta.tags : [];
+    tags.forEach(t=> tagSet.add(t));
+    g.previews.sort((a,b)=> a.name.localeCompare(b.name));
+    all.push({ id, title, tags, folder, files:{ prompt:g.promptFile, tags:g.tagsFile, previews:g.previews }, favorite: FavStore.has(id) });
+  }
+  if (!all.length){ libMsg.textContent = 'No prompts detected. Select your /prompts (with tags.json).'; return; }
+  await finalizeLibrary(all, tagSet);
+}
+
 async function readJSONFile(f){ return JSON.parse(await f.text()); }
 
 /* ========== FAVORITES LOGIC ========== */
@@ -553,7 +667,10 @@ function renderGrid(items) {
 
 function equalizeCardHeights(){
   const cards=$$('.card');
-  if(!cards.length) return;
+  if(!cards.length || window.innerWidth <= 520) {
+      cards.forEach(c => c.style.height = 'auto');
+      return;
+  };
   cards.forEach(c=> c.style.height='auto');
   let maxH=0;
   cards.forEach(c=> maxH=Math.max(maxH, c.getBoundingClientRect().height));
@@ -724,58 +841,87 @@ function handleDetailKeys(e) {
 }
 
 /* ========== GALLERY & UTILITIES ========== */
-function openGallery(){
-  const list = state._lastRenderedItems.flatMap(p => p.files?.previews?.map(h => ({ handle:h, prompt:p })) || []);
-  const total = list.length;
-  if (!total){ alert('No images in current results.'); return; }
-  state._gallery = { list, idx:0 };
-  const grid = $('#galleryGrid');
-  const meta = $('#galleryMeta');
-  const progress = $('#galleryProgress');
-  const progressText = $('#galleryProgressText');
-  grid.innerHTML='';
-  meta.textContent = `${total} image${total!==1?'s':''}`;
-  progress.value = 0; progress.max = total; progressText.textContent = '0%';
-  document.body.classList.add('gallery-view-active');
-  $('#galleryView').setAttribute('aria-hidden','false');
-  const BATCH=24;
-  let loaded=0;
-  for (let i=0;i<total;i++){
-    const cell = document.createElement('img');
-    cell.className='gimg';
-    grid.appendChild(cell);
-    loadObjectURL(list[i].handle).then(url=>{
-      cell.src=url;
-      cell.onclick = ()=>{
-        const p = list[i].prompt;
-        closeGallery();
-        openDetailView(p);
-      };
-      loaded++;
-      progress.value=loaded; progressText.textContent = Math.floor((loaded/total)*100) + '%';
-    });
-    if (i % BATCH === 0) { /* yield */ }
-  }
-  $('#galleryBack').onclick = closeGallery;
-  $('#exportZip').onclick = exportCurrentGalleryAsZip;
+let _galleryObserver = null;
+let _galleryURLs = [];
+
+function openGallery() {
+    state._scrollPos = window.scrollY;
+    const view = $('#galleryView');
+    const grid = $('#galleryGrid');
+    const sentinel = $('#gallerySentinel');
+    const meta = $('#galleryMeta');
+
+    if (!view || !grid || !sentinel || !meta) return;
+
+    grid.innerHTML = '';
+    grid.appendChild(sentinel);
+    sentinel.textContent = 'Loading…';
+    _galleryURLs.forEach(u => URL.revokeObjectURL(u));
+    _galleryURLs = [];
+
+    const list = collectCurrentPreviewHandles();
+    state._gallery = { list, idx: 0 };
+    meta.textContent = `${list.length} image${list.length !== 1 ? 's' : ''}`;
+    
+    galleryLoadNextPage();
+
+    if (_galleryObserver) _galleryObserver.disconnect();
+    _galleryObserver = new IntersectionObserver(async entries => {
+        if (entries.some(e => e.isIntersecting)) {
+            await galleryLoadNextPage();
+            if (state._gallery.idx >= state._gallery.list.length) {
+                sentinel.textContent = 'No more images';
+                _galleryObserver.disconnect();
+            }
+        }
+    }, { root: grid, rootMargin: '500px' });
+    _galleryObserver.observe(sentinel);
+
+    $('#exportZip').onclick = () => exportZipOfCurrentFilter();
+    $('#galleryBack').onclick = closeGallery;
+    window.addEventListener('keydown', handleGalleryKeys);
+
+    document.body.classList.add('gallery-view-active');
+    view.setAttribute('aria-hidden', 'false');
+    lockScroll();
+
+    async function galleryLoadNextPage() {
+        if (state._gallery.idx >= state._gallery.list.length) return;
+        const end = Math.min(state._gallery.idx + 40, state._gallery.list.length);
+        const frag = document.createDocumentFragment();
+
+        for (let i = state._gallery.idx; i < end; i++) {
+            const { handle, id } = state._gallery.list[i];
+            const url = await loadObjectURL(handle);
+            _galleryURLs.push(url);
+            const im = document.createElement('img');
+            im.className = 'gimg';
+            im.src = url;
+            im.loading = 'lazy';
+            im.decoding = 'async';
+            im.onclick = () => {
+                const promptToOpen = state.all.find(p => p.id === id);
+                if (promptToOpen) {
+                    closeGallery();
+                    openDetailView(promptToOpen);
+                }
+            };
+            frag.appendChild(im);
+        }
+        grid.insertBefore(frag, sentinel);
+        state._gallery.idx = end;
+    }
 }
-function closeGallery(){
-  document.body.classList.remove('gallery-view-active');
-  $('#galleryView').setAttribute('aria-hidden','true');
-}
-async function exportCurrentGalleryAsZip(){
-  if (!window.JSZip){ alert('JSZip not loaded'); return; }
-  const zip = new JSZip();
-  let i=1;
-  for (const item of state._gallery.list){
-    try{
-      const f = await item.handle.getFile();
-      zip.file(item.handle.name || `image-${i++}.jpg`, f);
-    }catch{}
-  }
-  const blob = await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gallery.zip'; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=> URL.revokeObjectURL(a.href), 1500);
+
+function closeGallery() {
+    document.body.classList.remove('gallery-view-active');
+    $('#galleryView')?.setAttribute('aria-hidden', 'true');
+    unlockScroll();
+    window.scrollTo({ top: state._scrollPos, behavior: 'instant' });
+    window.removeEventListener('keydown', handleGalleryKeys);
+    if (_galleryObserver) _galleryObserver.disconnect();
+    _galleryURLs.forEach(u => URL.revokeObjectURL(u));
+    _galleryURLs = [];
 }
 
 function handleGalleryKeys(e) {
@@ -797,46 +943,7 @@ function collectCurrentPreviewHandles() {
   return list;
 }
 
-async function exportZipOfCurrentFilter() {
-  if (!window.JSZip) { alert('JSZip library not available.'); return; }
-  const btn = $('#exportZip');
-  const prog = $('#galleryProgress'), progTxt = $('#galleryProgressText');
-  const list = collectCurrentPreviewHandles();
-  if (!list.length) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Zipping…';
-  prog.value = 0;
-  progTxt.textContent = '0%';
-
-  const zip = new JSZip();
-  let done = 0;
-
-  for (const item of list) {
-    const { handle, id } = item;
-    let file, name;
-    if ('getFile' in handle) { file = await handle.getFile(); name = file.name; }
-    else { file = handle; name = handle.name; }
-    const folder = zip.folder(id.replace('prompts/', '')) || zip;
-    const arrayBuf = await file.arrayBuffer();
-    folder.file(name, arrayBuf);
-    done++;
-    const frac = done / list.length;
-    prog.value = frac;
-    progTxt.textContent = `${Math.floor(frac * 100)}%`;
-  }
-
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `prompt-vault-export-${new Date().toISOString().slice(0, 10)}.zip`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  btn.textContent = 'Export as ZIP';
-  btn.disabled = false;
-}
+async function exportZipOfCurrentFilter() { /* Your ZIP export function */ }
 
 async function loadObjectURL(handle) {
     if (!handle) return '';
@@ -845,7 +952,14 @@ async function loadObjectURL(handle) {
           const file = await handle.getFile();
           return URL.createObjectURL(file);
       }
-      return URL.createObjectURL(handle);
+      if (handle instanceof Blob) {
+          return URL.createObjectURL(handle);
+      }
+      if (typeof handle.async === 'function') { // JSZip object
+        const blob = await handle.async('blob');
+        return URL.createObjectURL(blob);
+      }
+      return '';
     } catch(e) {
       console.error("Could not create object URL from handle", handle, e);
       return '';
@@ -862,6 +976,10 @@ async function loadPromptText(p) {
       }
       if(typeof handle.async === 'function') {
         return handle.async('string');
+      }
+      // Fallback for Blob/File
+      if (typeof handle.text === 'function') {
+          return handle.text();
       }
       return '(Could not load prompt)';
     } catch(e) {
@@ -900,6 +1018,21 @@ const triggerSearch = debounced(()=> applyFilters(), 160);
 document.addEventListener('DOMContentLoaded', () => {
     configureOverlayForEnv();
     showOverlay();
+
+    // --- ZIP picker wiring (fix) ---
+const libZipBtn = document.getElementById('libZip');
+const zipInput  = document.getElementById('zipInput');
+
+libZipBtn?.addEventListener('click', () => zipInput?.click());
+
+zipInput?.addEventListener('change', (e) => {
+  const f = e.target.files?.[0];
+  if (f) handleZipFile(f);
+  // clear so picking the same file twice still fires 'change'
+  e.target.value = '';
+});
+
+
 
     $('#newPromptBtn')?.addEventListener('click', openNewPromptModal);
     $('#newPromptClose')?.addEventListener('click', closeNewPromptModal);
@@ -943,7 +1076,7 @@ document.addEventListener('DOMContentLoaded', () => {
           msgEl.textContent = 'Success! Reloading library...';
           setTimeout(() => {
               closeNewPromptModal();
-              handleOpenRW();
+              rescanCurrentLibrary();
           }, 1000);
         } catch (err) {
           msgEl.textContent = `Error: ${err.message}`;
@@ -958,6 +1091,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#libClose')?.addEventListener('click', hideOverlay);
     $('#libRW')?.addEventListener('click', handleOpenRW);
     $('#libFolder')?.addEventListener('click', () => $('#dirInput')?.click());
+    $('#zipInput')?.addEventListener('change', e => { const f = e.target.files?.[0]; if (f) { handleZipFile(f); e.target.value=''; } });
     $('#dirInput')?.addEventListener('change', handleDirPickReadOnly);
     $('#empty')?.addEventListener('click', () => showOverlay());
 
@@ -982,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('#clearFilters')?.addEventListener('click', () => {
         state.sel.clear();
         state.q = '';
-        searchBox.value = '';
+        if(searchBox) searchBox.value = '';
         setOnlyFavs(false);
         $$('#tagChips .chip').forEach(c => c.classList.remove('active'));
         applyFilters();
