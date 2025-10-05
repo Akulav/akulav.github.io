@@ -1,66 +1,66 @@
-/* ======== Mobile-first UI layer (TikTok-like collections feed) ======== */
+/* ======== Mobile-first UI (collections feed + gallery) ======== */
 @media (max-width: 768px){
-  /* base */
-  html, body { height: 100%; overflow-x: hidden; }
+  html, body { height: 100%; overflow-x: hidden; background:#000; color:#e6e6e6; }
 
-  /* ===== Mobile overlay (sits above desktop UI) ===== */
+  /* Overlay above desktop UI */
   .mobile-feed{
     position: fixed;
     inset: 0;
-    z-index: 2147483000;             /* above everything */
-    display: grid !important;        /* force visible when present */
-    grid-template-rows: 1fr auto;    /* feed + bottom nav */
-    background: var(--bg, #0f1115);
-    color: var(--fg, #e6e8ef);
+    z-index: 2147483000;
+    display: grid !important;
+    grid-template-rows: 1fr auto;     /* content + bottom nav */
+    background: #000;
+    color: #e6e6e6;
   }
 
   /* Hide desktop while mobile is active (but allow overlays) */
-  body.mobile-active { overflow: hidden; }
+  body.mobile-active { overflow: hidden; background:#000; }
   body.mobile-active .topbar,
   body.mobile-active #filters,
   body.mobile-active .page,
   body.mobile-active #detailView,
-  body.mobile-active .footer{
-    display: none !important;
-  }
+  body.mobile-active .footer{ display: none !important; }
   body.overlay-open .mobile-feed{ display: none !important; }
 
-  /* ===== Feed scaffold ===== */
+  /* ===== Content scaffold ===== */
   .m-feed-scroll{
-    height: calc(100vh - 56px);      /* a bit tighter than 64px */
+    height: calc(100vh - 56px);
     overflow-y: auto;
     scroll-snap-type: y proximity;
+    background:#000;
   }
 
+  /* ===== Card (each collection) ===== */
   .m-card{
     position: relative;
     height: calc(100vh - 56px);
     scroll-snap-align: start;
     display: grid;
-    grid-template-rows: 1fr auto;    /* media + title row */
-    padding: 6px 0 2px 0;            /* minimal padding to reduce wasted space */
+    grid-template-rows: 1fr auto;    /* carousel + title row */
     border-bottom: 1px solid rgba(255,255,255,.06);
+    background:#000;
   }
 
-  /* ===== Horizontal carousel inside each card ===== */
+  /* ===== Horizontal carousel ===== */
   .m-carousel{
     position: relative;
+    width: 100vw;                     /* ensure full viewport width */
     height: 100%;
     overflow: hidden;
-    --pad: 8px;
+    background:#000;
   }
-
   .m-track{
+    width: 100vw;
     height: 100%;
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: 100%;
-    gap: 0;
+    grid-auto-columns: 100vw;         /* <— key: one slide = viewport */
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    background:#000;
   }
   .m-track::-webkit-scrollbar{ display: none; }
 
@@ -69,103 +69,91 @@
     height: 100%;
     display: grid;
     place-items: center;
-    background: rgba(255,255,255,.02);
+    background:#000;
   }
-
   .m-item img{
     width: 100%;
     height: 100%;
     object-fit: contain;
     -webkit-user-drag: none;
     user-select: none;
-    background: rgba(255,255,255,.02);
+    background:#000;
   }
 
-  /* subtle edge gradients so boundaries feel soft */
-  .m-carousel::before,
-  .m-carousel::after{
-    content: "";
-    position: absolute;
-    top: 0; bottom: 0; width: 18px;
-    pointer-events: none;
+  /* invisible left/right tap zones to advance slides */
+  .m-tap-left, .m-tap-right{
+    position:absolute; top:0; bottom:0; width:33%;
+    z-index:2;
   }
-  .m-carousel::before{ left: 0; background: linear-gradient(90deg, rgba(15,17,21,1), rgba(15,17,21,0)); }
-  .m-carousel::after { right:0; background: linear-gradient(-90deg, rgba(15,17,21,1), rgba(15,17,21,0)); }
+  .m-tap-left{ left:0; }
+  .m-tap-right{ right:0; }
 
-  /* ===== Title row ===== */
+  /* Title / dots row */
   .m-row{
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    padding: 6px 10px 10px 10px;
-    gap: 8px;
+    display:grid; grid-template-columns: 1fr auto;
+    align-items:center;
+    padding: 8px 12px 10px 12px;
+    gap:8px;
+    background:#000;
   }
-
   .m-title{
-    font-weight: 700;
-    font-size: 16px;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-weight:700; font-size:16px; line-height:1.2;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    color:#eee;
   }
-
-  /* dots */
-  .m-dots{
-    display: inline-grid;
-    grid-auto-flow: column;
-    gap: 6px;
-  }
+  .m-dots{ display:inline-grid; grid-auto-flow:column; gap:6px; }
   .m-dot{
-    width: 6px; height: 6px; border-radius: 50%;
+    width:6px; height:6px; border-radius:50%;
     background: rgba(255,255,255,.25);
   }
-  .m-dot.is-on{ background: rgba(255,255,255,.9); }
+  .m-dot.is-on{ background:#fff; }
 
-  /* bottom nav */
+  /* ===== Gallery mode (ALL images vertically) ===== */
+  .m-gallery{
+    padding: 8px 0 56px 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    background:#000;
+  }
+  .m-g-img{
+    width: 100vw;
+    height: auto;
+    display:block;
+    background:#000;
+  }
+
+  /* ===== Bottom nav ===== */
   .m-nav{
     position: sticky; bottom: 0;
     height: 56px;
-    background: rgba(0,0,0,.55);
+    background: rgba(0,0,0,.75);
     backdrop-filter: blur(8px);
     border-top: 1px solid rgba(255,255,255,.08);
     display: grid; grid-template-columns: repeat(4, 1fr);
     padding-bottom: env(safe-area-inset-bottom);
   }
   .m-nav button{
-    background: transparent; color: var(--fg, #e6e8ef);
+    background: transparent; color: #e6e6e6;
     border: 0; display: grid; gap: 2px; place-items: center;
     padding: 6px 0; font: inherit;
   }
-  .m-nav button[aria-current="page"]{ font-weight: 700; }
+  .m-nav button[aria-current="page"]{ font-weight: 700; color:#fff; }
 
-  /* toast */
+  /* ===== Small toast ===== */
   .m-toast{
-    position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%);
-    background: rgba(20,20,24,.9);
-    color: #fff; padding: 8px 12px; border-radius: 10px;
-    font-size: 13px;
-    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+    position: fixed; left:50%; bottom:76px; transform:translateX(-50%);
+    background: rgba(20,20,24,.95);
+    color:#fff; padding:8px 12px; border-radius:10px; font-size:13px;
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
   }
-  .m-toast.show { opacity: 1; }
+  .m-toast.show{ opacity:1; }
 
-  /* ===== Extra tweaks you requested ===== */
-  /* Hide desktop detail chips & SFW/NSFW on mobile */
-  #detailTags, #detailRating { display: none !important; }
-
-  /* Prevent left shift when switching thumbnails (desktop detail) */
-  #detailThumbs img, #detailThumbs img.active { transform: none !important; }
-  #detailThumbs img{ box-sizing: border-box; }
-  #detailThumbs img.active{
-    border-width: 0 !important;
-    outline: 2px solid var(--accent, #6aa0ff) !important;
-    outline-offset: 0;
-  }
-  #detailThumbs{
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
-  }
-  #detailThumbsWrap{ overflow: hidden; }
+  /* ===== Hide desktop detail bits on mobile ===== */
+  #detailTags, #detailRating { display:none !important; }
+  #detailThumbs img, #detailThumbs img.active { transform:none !important; }
+  #detailThumbs img{ box-sizing:border-box; }
+  #detailThumbs img.active{ border-width:0 !important; outline:2px solid #5ca8ff !important; outline-offset:0; }
+  #detailThumbs{ gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+  #detailThumbsWrap{ overflow:hidden; }
 }

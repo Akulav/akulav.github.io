@@ -1,8 +1,8 @@
-/* ======== Mobile "Collections feed" UI ========
-   - Vertical scroll of collections (prompts)
-   - Each collection has a horizontal, swipeable image carousel
-   - Zero RW actions on mobile; tap opens desktop detail
-   - Uses PV.state when available; falls back to DOM scraping
+/* Mobile collections feed + gallery
+   - Vertical feed of collections
+   - Each collection has a horizontal, snap carousel (swipe + tap left/right)
+   - Bottom nav: Search, Favs, Gallery, Library
+   - Pure black background; no RW actions on mobile
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -22,10 +22,10 @@
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(t._hid);
-    t._hid = setTimeout(()=> t.classList.remove("show"), 1000);
+    t._hid = setTimeout(()=> t.classList.remove("show"), 900);
   }
 
-  /* ---------- mount root ---------- */
+  /* ---------- root ---------- */
   function ensureMobileRoot(){
     let root = $(".mobile-feed");
     if (!root){
@@ -39,9 +39,9 @@
       const nav = document.createElement("nav");
       nav.className = "m-nav";
       nav.innerHTML = `
-        <button data-tab="home" aria-current="page">🏠<span>Home</span></button>
-        <button data-tab="search">🔎<span>Search</span></button>
+        <button data-tab="search"  aria-current="page">🔎<span>Search</span></button>
         <button data-tab="favs">★<span>Favs</span></button>
+        <button data-tab="gallery">🖼️<span>Gallery</span></button>
         <button data-tab="library">📚<span>Library</span></button>
       `;
       root.appendChild(nav);
@@ -58,7 +58,7 @@
     return root;
   }
 
-  /* ---------- data sources ---------- */
+  /* ---------- data ---------- */
   function fromState(){
     const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
       ? state.filtered
@@ -66,7 +66,6 @@
     if (!Array.isArray(arr)) return [];
     return arr.map((x,i)=> normalizePrompt(x, i));
   }
-
   function fromDOM(){
     const cards = $$(".page .card, .page .prompt, .page [data-id]");
     const list = [];
@@ -80,7 +79,6 @@
     });
     return list;
   }
-
   function normalizePrompt(x, i){
     const images = [];
     if (Array.isArray(x.images)) images.push(...x.images);
@@ -88,68 +86,56 @@
     if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
     if (x.preview) images.unshift(x.preview);
     if (x.cover) images.unshift(x.cover);
-
     return {
       id: x.id || x.ID || x.title || ("p_"+i),
       title: x.title || x.name || `Prompt #${i+1}`,
       images: images.filter(Boolean),
-      cover: x.cover || images[0] || "",
-      dirHandle: x.dirHandle,
-      files: x.files
+      cover: x.cover || images[0] || ""
     };
   }
-
   async function fileHandleToUrl(h){
     try{ const f = await h.getFile(); return URL.createObjectURL(f); }
     catch(_){ return null; }
   }
-
-  async function toUrl(item){
-    if (typeof item === "string") return item;
-    if (item && typeof item.getFile === "function") return await fileHandleToUrl(item);
+  async function toUrl(it){
+    if (typeof it === "string") return it;
+    if (it && typeof it.getFile === "function") return await fileHandleToUrl(it);
     return "";
   }
-
   async function resolveAllImages(p){
-    const srcs = [];
+    const out = [];
     for (const it of (p.images || [])){
       const u = await toUrl(it);
-      if (u) srcs.push(u);
+      if (u) out.push(u);
     }
-    if (!srcs.length && p.cover) {
+    if (!out.length && p.cover){
       const u = await toUrl(p.cover);
-      if (u) srcs.push(u);
+      if (u) out.push(u);
     }
-    return srcs;
+    return out;
   }
 
-  /* ---------- UI pieces ---------- */
+  /* ---------- UI ---------- */
   function dots(n){
     const wrap = document.createElement("div");
     wrap.className = "m-dots";
-    for (let i=0; i<n; i++){
+    for (let i=0;i<n;i++){
       const d = document.createElement("span");
-      d.className = "m-dot";
-      if (i===0) d.classList.add("is-on");
+      d.className = "m-dot"; if (i===0) d.classList.add("is-on");
       wrap.appendChild(d);
     }
     return wrap;
   }
-
   function setDotActive(dotsEl, idx){
-    const children = Array.from(dotsEl.children);
-    children.forEach((el,i)=> el.classList.toggle("is-on", i===idx));
+    Array.from(dotsEl.children).forEach((el,i)=> el.classList.toggle("is-on", i===idx));
   }
 
   function openPrompt(p){
-    // preferred desktop hook
     if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
-
-    // fallback: click "Open" on matching desktop card
     const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
-                   || $$(".page .card, .page .prompt").find(el => {
-                        const te = el.querySelector('[class*="title" i], h3, h2, .name');
-                        return (te?.textContent||"").trim() === (p.title||"");
+                   || $$(".page .card, .page .prompt").find(el=>{
+                        const t = el.querySelector('[class*="title" i], h3, h2, .name');
+                        return (t?.textContent||"").trim() === (p.title||"");
                       });
     const openBtn = container && Array.from(container.querySelectorAll("button")).find(b => /open/i.test(b.textContent||""));
     if (openBtn) openBtn.click();
@@ -160,12 +146,18 @@
     card.className = "m-card";
     card.dataset.id = p.id || Math.random().toString(36).slice(2);
 
-    /* carousel */
     const carousel = document.createElement("div");
     carousel.className = "m-carousel";
     const track = document.createElement("div");
     track.className = "m-track";
     carousel.appendChild(track);
+
+    const tapL = document.createElement("div");
+    tapL.className = "m-tap-left";
+    const tapR = document.createElement("div");
+    tapR.className = "m-tap-right";
+    carousel.appendChild(tapL);
+    carousel.appendChild(tapR);
 
     urls.forEach(u=>{
       const item = document.createElement("div");
@@ -179,7 +171,6 @@
       track.appendChild(item);
     });
 
-    /* title row */
     const row = document.createElement("div");
     row.className = "m-row";
     const title = document.createElement("div");
@@ -189,19 +180,25 @@
     row.appendChild(title);
     row.appendChild(ddots);
 
-    /* swipe position → dots */
+    const advance = (dir)=>{
+      const w = track.clientWidth;
+      const cur = Math.round(track.scrollLeft / w);
+      const next = Math.max(0, Math.min(cur + dir, urls.length-1));
+      track.scrollTo({ left: next * w, behavior: 'smooth' });
+    };
+    tapL.addEventListener("click", (e)=>{ e.stopPropagation(); advance(-1); });
+    tapR.addEventListener("click", (e)=>{ e.stopPropagation(); advance(+1); });
+
     const onScroll = ()=>{
       const idx = Math.round(track.scrollLeft / track.clientWidth);
       setDotActive(ddots, Math.max(0, Math.min(idx, urls.length-1)));
     };
     track.addEventListener("scroll", onScroll, {passive:true});
-    // jump to next/prev on tap near edges
+
+    // tap center to open
     carousel.addEventListener("click", (e)=>{
       const x = e.clientX, w = carousel.clientWidth;
-      const cur = Math.round(track.scrollLeft / w);
-      if (x > w*0.66) track.scrollTo({left: (cur+1)*w, behavior:'smooth'});
-      else if (x < w*0.34) track.scrollTo({left: Math.max(0,cur-1)*w, behavior:'smooth'});
-      else openPrompt(p);
+      if (x > w*0.33 && x < w*0.67) openPrompt(p);
     });
 
     card.appendChild(carousel);
@@ -209,7 +206,37 @@
     return card;
   }
 
-  /* ---------- main render ---------- */
+  /* ---------- Gallery mode ---------- */
+  async function mountGallery(){
+    const root = ensureMobileRoot();
+    const sc = root.querySelector(".m-feed-scroll");
+    sc.innerHTML = "";
+    let data = fromState();
+    if (!data.length) data = fromDOM();
+    if (!data.length){
+      sc.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
+      return;
+    }
+    const container = document.createElement("div");
+    container.className = "m-gallery";
+    sc.appendChild(container);
+
+    for (const p of data){
+      const urls = await resolveAllImages(p);
+      for (const u of (urls.length ? urls : [p.cover || ""])){
+        const img = document.createElement("img");
+        img.className = "m-g-img";
+        img.alt = p.title || "image";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.src = u;
+        img.addEventListener("click", ()=> openPrompt(p));
+        container.appendChild(img);
+      }
+    }
+  }
+
+  /* ---------- Collections feed ---------- */
   async function mountFeed(){
     if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
     document.body.classList.add("mobile-active");
@@ -222,14 +249,10 @@
     let data = fromState();
     if (!data.length) data = fromDOM();
     if (!data.length){
-      const empty = document.createElement("div");
-      empty.style.cssText = "height:calc(100vh - 56px);display:grid;place-items:center";
-      empty.textContent = "No items. Load Library or adjust filters.";
-      scroller.appendChild(empty);
+      scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
       return;
     }
 
-    // Build cards
     for (const p of data){
       const urls = await resolveAllImages(p);
       const card = renderCard(p, urls.length ? urls : [p.cover || ""]);
@@ -242,7 +265,7 @@
     if (!navEl || navEl._wired) return;
     navEl._wired = true;
 
-    navEl.addEventListener("click", (e)=>{
+    navEl.addEventListener("click", async (e)=>{
       const btn = e.target.closest("button[data-tab]");
       if (!btn) return;
       navEl.querySelectorAll("button[data-tab]").forEach(b => b.removeAttribute("aria-current"));
@@ -258,7 +281,6 @@
          Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||"")))
         ?.click();
 
-        // hide mobile while overlay open
         const overlay = $(".lib-overlay");
         if (overlay){
           const setFlag = ()=>{
@@ -274,10 +296,10 @@
       }
 
       if (tab === "favs"){
-        (document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]"))?.click();
+        (document.getElementById("toggleFavs") ||
+         document.querySelector("[data-toggle-favs]"))?.click();
         toast("Favorites toggled");
-        // re-render feed with current filters
-        setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
+        setTimeout(()=> window.MobileUI?.mountFeed?.(), 60);
         return;
       }
 
@@ -288,26 +310,24 @@
           const q = prompt("Search:");
           if (q != null){ state.q = String(q); window.__pv_applyFilters?.(); }
         }
-        setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
+        setTimeout(()=> window.MobileUI?.mountFeed?.(), 60);
         return;
       }
 
-      // home (clear filters)
-      (document.getElementById("clearFilters") || document.querySelector("[data-clear]"))?.click();
-      if (!document.getElementById("clearFilters")){
-        state.onlyFavs = false; state.q = ""; window.__pv_applyFilters?.();
+      if (tab === "gallery"){
+        await mountGallery();
+        return;
       }
-      setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
     });
   }
 
-  /* ---------- observers & hooks ---------- */
+  /* ---------- observers & public hook ---------- */
   new MutationObserver(()=>{
     const open = !!document.querySelector(".lib-overlay:not(.hidden):not([aria-hidden='true'])");
     document.body.classList.toggle("overlay-open", open);
   }).observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:["class","aria-hidden"] });
 
-  window.MobileUI = { mountFeed };
+  window.MobileUI = { mountFeed, mountGallery };
 
   document.addEventListener("DOMContentLoaded", mountFeed);
   window.addEventListener("resize", mountFeed);
