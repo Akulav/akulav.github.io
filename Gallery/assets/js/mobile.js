@@ -1,9 +1,9 @@
 /* Mobile collections feed + gallery
-   - Title centered (tight)
+   - Title overlay near top, thumbnails overlay near bottom
    - Horizontal snap carousel + left/right tap zones
-   - Thumbnail strip under the image
    - Bottom nav: Search • Favs • Gallery • Library
    - DOM-first, then State; resolves strings, File/Blob, and FileSystemFileHandle → URLs
+   - Merges by data-id first; else by normalized title (emoji stripped)
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -12,7 +12,10 @@
   const PVNS  = window.PV || (window.PV = {});
   const state = PVNS.state || (PVNS.state = {});
 
-  /* ----- toast ----- */
+  /* ---------- utils ---------- */
+  const stripEmoji = s => String(s||"").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "");
+  const normTitle  = s => stripEmoji(s).replace(/\s+/g," ").trim().toLowerCase();
+
   function toast(msg){
     let t = $(".m-toast");
     if (!t){
@@ -33,18 +36,18 @@
       if (typeof x === "string") return x;
       if (x.url || x.href) return x.url || x.href;
 
-      // File/Blob
+      // File/Blob (also covers File from ZIP)
       if (typeof x === "object" && (x instanceof Blob || ("size" in x && "type" in x && typeof x.arrayBuffer === "function"))){
         return URL.createObjectURL(x);
       }
 
-      // FileSystemFileHandle
+      // FileSystemFileHandle (R/W folder)
       if (typeof x === "object" && typeof x.getFile === "function"){
         const f = await x.getFile();
         return URL.createObjectURL(f);
       }
 
-      // PV helper, if available
+      // PV helper, if present
       if (window.PV?.Utils?.fileToUrl) {
         const u = await PV.Utils.fileToUrl(x);
         if (u) return u;
@@ -55,12 +58,8 @@
 
   async function resolveAll(rawList){
     const out = [];
-    for (const r of rawList){
-      const u = await anyToUrl(r);
-      if (u) out.push(u);
-    }
-    // de-dupe while preserving order
-    return Array.from(new Set(out));
+    for (const r of rawList){ out.push(await anyToUrl(r)); }
+    return Array.from(new Set(out.filter(Boolean)));
   }
 
   /* ----- root ----- */
@@ -131,7 +130,8 @@
         node.querySelector('[class*="title" i], h3, h2, .name') ||
         node.querySelector("figcaption") || node.querySelector("[title]");
       const title = (titleEl?.textContent || titleEl?.getAttribute?.("title") || "").trim() || `Item #${i+1}`;
-      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, raw: urls });
+      const id = node.getAttribute("data-id") || "";
+      list.push({ id, idOrTitle: id || normTitle(title), title, raw: urls });
     });
     return list;
   }
@@ -146,37 +146,42 @@
       if (x.files && Array.isArray(x.files.images)) raw.push(...x.files.images);
       if (x.preview) raw.unshift(x.preview);
       if (x.cover) raw.unshift(x.cover);
-      return {
-        id: x.id || x.ID || x.title || ("p_"+i),
-        title: x.title || x.name || `Prompt #${i+1}`,
-        raw
-      };
+      const id = x.id || x.ID || "";
+      const title = x.title || x.name || `Prompt #${i+1}`;
+      return { id, idOrTitle: id || normTitle(title), title, raw };
     });
   }
 
   function mergeRaw(domList, stateList){
-    if (!stateList.length) return domList.map(d => ({...d, raw: d.raw || []}));
-
-    const byTitle = Object.create(null);
-    domList.forEach(p => { byTitle[p.title] = { id:p.id, title:p.title, raw:[...(p.raw||[])] }; });
-
-    stateList.forEach(p=>{
-      if (!byTitle[p.title]) byTitle[p.title] = { id:p.id, title:p.title, raw:[] };
-      byTitle[p.title].raw.push(...(p.raw || []));
+    const map = new Map();
+    domList.forEach(p=>{
+      const key = p.idOrTitle;
+      map.set(key, { id:p.id, title:p.title, raw:[...(p.raw||[])] });
     });
-
-    return Object.values(byTitle);
+    stateList.forEach(p=>{
+      const key = p.idOrTitle;
+      const cur = map.get(key);
+      if (cur){
+        cur.id = cur.id || p.id;
+        cur.title = cur.title || p.title;
+        cur.raw.push(...(p.raw||[]));
+      }else{
+        map.set(key, { id:p.id, title:p.title, raw:[...(p.raw||[])] });
+      }
+    });
+    return Array.from(map.values());
   }
 
   /* ---------- UI helpers ---------- */
   function openPrompt(p){
     if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
-    const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
-                   || $$("#grid > *, .page .card, .page .prompt").find(el=>{
-                        const t = el.querySelector('[class*="title" i], h3, h2, .name, figcaption');
-                        return (t?.textContent||"").trim() === (p.title||"");
-                      });
-    const openBtn = container && Array.from(container.querySelectorAll("button")).find(b => /open/i.test(b.textContent||""));
+    const target = p.id
+      ? $(`.page [data-id="${CSS.escape(p.id)}"]`)
+      : $$("#grid > *, .page .card, .page .prompt").find(el=>{
+          const t = el.querySelector('[class*="title" i], h3, h2, .name, figcaption');
+          return normTitle(t?.textContent||"") === normTitle(p.title||"");
+        });
+    const openBtn = target && Array.from(target.querySelectorAll("button")).find(b => /open/i.test(b.textContent||""));
     if (openBtn) openBtn.click();
   }
 
@@ -185,9 +190,9 @@
 
     const card = document.createElement("section");
     card.className = "m-card";
-    card.dataset.id = p.id || Math.random().toString(36).slice(2);
+    if (p.id) card.dataset.id = p.id;
 
-    /* Header (title centered) */
+    /* overlays */
     const header = document.createElement("div");
     header.className = "m-header";
     const title = document.createElement("div");
@@ -195,7 +200,6 @@
     title.textContent = p.title || "Untitled";
     header.appendChild(title);
 
-    /* Carousel */
     const carousel = document.createElement("div");
     carousel.className = "m-carousel";
     const track = document.createElement("div");
@@ -217,7 +221,6 @@
       track.appendChild(item);
     });
 
-    /* Thumbnails */
     const thumbs = document.createElement("div");
     thumbs.className = "m-thumbs";
     urls.forEach((u, i)=>{
@@ -257,9 +260,9 @@
       if (x > w*0.33 && x < w*0.67) openPrompt(p);
     });
 
-    card.appendChild(header);
-    card.appendChild(carousel);
-    card.appendChild(thumbs);
+    card.appendChild(carousel);    /* main image layer */
+    card.appendChild(header);      /* overlay near top */
+    card.appendChild(thumbs);      /* overlay near bottom */
     return card;
   }
 
