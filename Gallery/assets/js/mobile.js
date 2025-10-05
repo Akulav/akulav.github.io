@@ -1,15 +1,29 @@
-
 /* ======== Mobile "TikTok-style" UI Layer ========
-   Non-destructive: relies on existing global PV and state when present.
-   Shows a vertical feed of prompts/images on <=768px screens.
-   RW-gated actions are hidden/disabled if !state.rw.
+   Non-destructive overlay: sits above desktop UI on <=768px screens.
+   - R/W-gated actions are disabled unless state.rw is true
+   - Uses PV.state.filtered || PV.state.all to render cards
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+
   const PVNS = (window.PV && window.PV.state) ? window.PV : (window.PV = window.PV || {});
   const state = PVNS.state || (PVNS.state = {});
   const $ = (sel, el=document) => el.querySelector(sel);
   const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+  // Toast helper
+  function toast(msg){
+    let t = $(".m-toast");
+    if (!t){
+      t = document.createElement("div");
+      t.className = "m-toast";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(t._hid);
+    t._hid = setTimeout(()=> t.classList.remove("show"), 1200);
+  }
 
   // Create container if not present
   function ensureMobileRoot(){
@@ -17,10 +31,12 @@
     if (!root){
       root = document.createElement("div");
       root.className = "mobile-feed";
+
       // Feed scroller
       const scroller = document.createElement("div");
       scroller.className = "m-feed-scroll";
       root.appendChild(scroller);
+
       // Bottom nav
       const nav = document.createElement("nav");
       nav.className = "m-nav";
@@ -38,14 +54,11 @@
         if (!btn) return;
         $$("[data-tab]", nav).forEach(b => b.removeAttribute("aria-current"));
         btn.setAttribute("aria-current", "page");
-        // simple tab switch behavior
         const tab = btn.getAttribute("data-tab");
         if (tab === "library"){
-          // If app has a "Load Library" button, click it
           const loadBtn = document.getElementById("openRW") || document.querySelector("[data-openrw]");
           if (loadBtn) loadBtn.click();
         }else if (tab === "favs"){
-          // If app has a toggle favs, click it (non-destructive)
           const favBtn = document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]");
           if (favBtn) favBtn.click();
           toast("Showing favorites");
@@ -53,31 +66,21 @@
           const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
           if (s){ s.focus(); s.scrollIntoView({block:'center'}); }
         }else{
-          // 'home' resets filters if a clear exists
           const clear = document.getElementById("clearFilters") || document.querySelector("[data-clear]");
           if (clear) clear.click();
         }
       });
     }
-    return root;
-  }
 
-  function toast(msg){
-    let t = $(".m-toast");
-    if (!t){
-      t = document.createElement("div");
-      t.className = "m-toast";
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(t._hid);
-    t._hid = setTimeout(()=> t.classList.remove("show"), 1200);
+    // Mark page as mobile-active so desktop UI hides
+    if (isMobile()) document.body.classList.add("mobile-active");
+    else document.body.classList.remove("mobile-active");
+
+    return root;
   }
 
   // Turn one "prompt" record into a card
   function renderCard(p){
-    // p expected shape (best-effort): { title, tags[], images[], cover?, nsfw? }
     const card = document.createElement("section");
     card.className = "m-card";
     card.dataset.id = p.id || p.title || Math.random().toString(36).slice(2);
@@ -85,7 +88,6 @@
     const media = document.createElement("div");
     media.className = "m-card-media";
 
-    // choose an image: prefer cover, else first
     let imgSrc = null;
     if (p.cover && typeof p.cover === "string") imgSrc = p.cover;
     if (!imgSrc && Array.isArray(p.images) && p.images.length) imgSrc = p.images[0];
@@ -117,22 +119,18 @@
 
     const actions = document.createElement("div");
     actions.className = "m-actions";
-
-    // RW-gated utilities
     const gated = [
       { key:"download", icon:"⬇️", label:"Download", action: () => tryDownload(p, imgSrc) },
-      { key:"add",      icon:"➕", label:"New", action: () => tryNewPrompt(p) },
-      { key:"cover",    icon:"📌", label:"Cover", action: () => trySetCover(p, imgSrc) },
-      { key:"delete",   icon:"🗑️", label:"Delete", action: () => tryDeleteImage(p, imgSrc) },
+      { key:"add",      icon:"➕", label:"New",      action: () => tryNewPrompt(p) },
+      { key:"cover",    icon:"📌", label:"Cover",    action: () => trySetCover(p, imgSrc) },
+      { key:"delete",   icon:"🗑️", label:"Delete",   action: () => tryDeleteImage(p, imgSrc) },
       { key:"nsfw",     icon:"⚑",  label:(p.nsfwMode || "AUTO"), action: () => tryToggleNSFW(p) },
     ];
-
     gated.forEach(g => {
       const btn = document.createElement("button");
       btn.className = "m-action";
       btn.innerHTML = `<span>${g.icon}</span>`;
       btn.title = g.label;
-      // Gate if !state.rw
       if (!state.rw){
         btn.classList.add("is-disabled");
         btn.disabled = true;
@@ -156,14 +154,13 @@
     return card;
   }
 
-  // Dummy action shims: call existing app functions when available, otherwise toast
+  // Action shims
   function tryDownload(p, src){
-    // Search for a per-image download hook
     const dl = window.PV && window.PV.downloadImage;
     if (dl){ dl(p, src); } else { toast("Download (requires RW)"); }
   }
   function tryNewPrompt(){
-    const fn = window.PV && window.PV.createPrompt;
+    const fn = window.PV && window.PV.openNewPromptView || (window.PV && window.PV.createPrompt);
     if (fn){ fn(); } else { toast("Add new prompt (requires RW)"); }
   }
   function trySetCover(p, src){
@@ -179,17 +176,16 @@
     if (fn){ fn(p); } else { toast("Toggle NSFW (requires RW)"); }
   }
 
-  // Build the feed based on whatever the app has loaded (state.all / state.filtered etc.)
+  // Data helpers
   function getPrompts(){
-    // Heuristics: use state.filtered or state.all
-    const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length) ? state.filtered : state.all;
+    const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
+      ? state.filtered
+      : state.all;
     if (Array.isArray(arr)) return arr.map((x,i)=> normalizePrompt(x, i));
     return [];
   }
-
   function normalizePrompt(x, i){
-    // Try to infer shape
-    const out = {
+    return {
       id: x.id || x.ID || x.title || ("p_" + i),
       title: x.title || x.name || `Prompt #${i+1}`,
       tags: x.tags || x.keywords || [],
@@ -198,16 +194,16 @@
       images: x.images || x.files || (x.image ? [x.image] : []),
       mainImage: x.mainImage || x.preview
     };
-    return out;
   }
 
   function mountFeed(){
-    if (!isMobile()) return;
+    if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
+    document.body.classList.add("mobile-active");
+
     const root = ensureMobileRoot();
     const scroller = root.querySelector(".m-feed-scroll");
     if (!scroller) return;
 
-    // clear old
     scroller.innerHTML = "";
     const prompts = getPrompts();
     if (!prompts.length){
@@ -225,16 +221,10 @@
     scroller.appendChild(frag);
   }
 
-  // When app updates lists, attempt to re-render (best-effort)
-  const reMount = ()=> { try{ mountFeed(); }catch(e){ /* silent */ } };
+  // Expose so desktop code can re-render mobile after filters/search
+  window.MobileUI = { mountFeed };
 
-  // Attach to global so desktop code can call re-render after filters/search
-  window.MobileUI = { mountFeed: reMount };
-
-  // Observe changes that typical app flows trigger
-  document.addEventListener("DOMContentLoaded", reMount);
-  window.addEventListener("resize", reMount);
-
-  // If app exposes a custom event after library load, listen for it too
-  window.addEventListener("pv:data", reMount);
+  document.addEventListener("DOMContentLoaded", mountFeed);
+  window.addEventListener("resize", mountFeed);
+  window.addEventListener("pv:data", mountFeed);
 })();

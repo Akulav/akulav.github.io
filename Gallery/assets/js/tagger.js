@@ -94,6 +94,9 @@
   // 2) Phrase pass (multi-word → semantic tags)
   // --------------------------------------------------------------------------
   const PHRASES = [
+    // --- Duo detection (2 girls / lesbian -> duo) ---
+    { re:/\b(2\s*girls?|two\s+girls?)\b/i, tags:['duo'], strip:true },
+    { re:/\blesbians?\b/i,                 tags:['duo'], strip:true },
     { re:/\b(doggy\s*style)\b/i, tags:['pose:doggy'], strip:true },
     { re:/\bkneeling on bed\b/i, tags:['kneeling','bed'], strip:true },
     { re:/\blegs?\s+spread\b/i, tags:['legs_spread'], strip:true },
