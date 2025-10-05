@@ -12,7 +12,16 @@
     }
   }
 
-  async function setCoverImage(prompt, newCoverHandle) {
+  async function setCoverImage(prompt, idxOrHandle) {
+    // Back-compat: accept either an index (number) or a FileSystemFileHandle
+    let newCoverHandle = idxOrHandle;
+    try{
+      if (typeof idxOrHandle === 'number') {
+        const list = (prompt && prompt.files && prompt.files.previews) ? prompt.files.previews : [];
+        newCoverHandle = list[idxOrHandle];
+      }
+    }catch(e){ /* ignore */ }
+
     if (!prompt.dirHandle) return false;
     const prefix = '_';
     const ops = [];
@@ -84,6 +93,19 @@
 
   PV.deleteImage = deleteImage;
   PV.setCoverImage = setCoverImage;
+  // Back-compat wrapper: delete by index as used in detail.js
+  PV.deleteImageFromPrompt = async function(prompt, idx){
+    try{
+      const list = (prompt && prompt.files && prompt.files.previews) ? prompt.files.previews : [];
+      const handle = list[idx];
+      if (!handle) return false;
+      return await PV.deleteImage(prompt, handle);
+    }catch(e){
+      console.error('deleteImageFromPrompt failed', e);
+      return false;
+    }
+  };
+
   PV.addImagesToPrompt = addImagesToPrompt;
   PV.refreshPrompt = refreshPrompt;
 })();

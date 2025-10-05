@@ -13,7 +13,7 @@
       }
       state.rw = true;
       state.rootHandle = rootForManifest;
-      const { items, tagSet } = await PV.scanPromptsRW(promptsDir);
+      state.promptsHandle = promptsDir; const { items, tagSet } = await PV.scanPromptsRW(promptsDir);
 
       try {
         const fh = await rootForManifest.getFileHandle('_favorites.json', { create:false });
@@ -49,14 +49,14 @@
       const msgEl   = $('#newPromptMsg');
       saveBtn.disabled = true; msgEl.textContent = 'Saving...';
       try {
-        const title      = $('#newTitle').value.trim();
-        const tags       = $('#newTags').value.split(',').map(t => t.trim()).filter(Boolean);
+        const title      = $('#newPromptTitle').value.trim();
+        const tags       = $('#newPromptTags').value.split(',').map(t => t.trim()).filter(Boolean);
         const promptText = $('#newPromptText').value;
         const images     = $('#newImages').files;
         if (!title) throw new Error('Title is required.');
         const folderName = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-');
         if (!folderName) throw new Error('Could not generate a valid folder name from the title.');
-        const promptsDir = await state.rootHandle.getDirectoryHandle('prompts', { create: true });
+        const promptsDir = state.promptsHandle || await state.rootHandle.getDirectoryHandle('prompts', { create: true });
         const newDirHandle = await promptsDir.getDirectoryHandle(folderName, { create: true });
 
         const tagsMeta = { title, tags };

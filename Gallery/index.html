@@ -1,196 +1,201 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Prompt Vault</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/styles.css">
-
-  <!-- JSZip (needed for zip import/export) -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-</head>
+<meta charset="utf-8"/>
+<title>Prompt Vault</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<!-- Styles -->
+<link href="assets/styles.css" rel="stylesheet"/>
+<!-- JSZip (needed for zip import/export) -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<link href="assets/css/mobile.css" rel="stylesheet"/>
+<link href="assets/css/newprompt.css" rel="stylesheet"/></head>
 <body class="boot-gate">
-
-  <!-- ========================== TOPBAR ========================== -->
-  <header class="topbar">
-    <div class="left-spacer"></div>
-    <h1>Prompt Vault</h1>
-    <div class="actions">
-      <input id="searchBox" type="search" placeholder="Search title, tags, or prompt…">
-      <button id="toggleFavs" title="Only favorites">★ Favs</button>
-      <button id="clearFilters" title="Clear filters">Clear</button>
-      <button id="openGallery" title="Open gallery grid">Gallery</button>
-      <button id="reloadLibraryBtn" title="Reload library">Reload</button>
-      <button id="openRW" title="Open Library">Open</button>
-    </div>
-  </header>
-
-  <!-- ========================== FILTERS ========================== -->
-  <section id="filters" class="filters-inline">
-    <div class="filters-row">
-      <div class="chips-wrap">
-        <h2>Tags</h2>
-        <div id="tagChips" class="chips"></div>
-      </div>
-      <div class="filter-mode">
-        <label><input type="radio" name="mode" value="AND" checked> AND</label>
-        <label><input type="radio" name="mode" value="OR"> OR</label>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================== RESULTS PAGE ========================== -->
-  <main class="page">
-    <section class="results">
-      <div class="results-bar">
-        <div id="stats" class="stats">0 prompts</div>
-      </div>
-
-      <div id="grid" class="grid"></div>
-      <div id="empty" class="empty hidden">No results. Try clearing filters.</div>
-    </section>
-  </main>
-
-  <!-- ========================== LIBRARY OVERLAY ========================== -->
-  <div id="libraryOverlay" class="lib-overlay hidden" role="dialog" aria-modal="true">
-    <div class="lib-sheet">
-      <button id="libClose" class="icon-close" aria-label="Close">✕</button>
-      <h2 class="lib-title">Load your library</h2>
-      <p class="lib-sub">Pick a source below. On iOS, ZIP is recommended.</p>
-
-      <div id="dropZone" class="dropzone" tabindex="0">
-        <div class="dz-inner">
-          <div class="dz-icon">📦</div>
-          <div class="dz-title">Drop your <b>prompts</b> folder or ZIP</div>
-          <div class="dz-sub">We’ll index <code>prompt.txt</code>, <code>tags.json</code>, and images.</div>
-          <div class="dz-hint">Supports directory picker (desktop), ZIP import, or loose files.</div>
-        </div>
-      </div>
-
-      <div class="lib-actions">
-        <button id="libRW" class="btn">Open Folder (R/W)</button>
-        <button id="libFolder" class="btn">Open Folder (Read-only)</button>
-        <button id="libZip" class="btn btn-primary">Open ZIP</button>
-      </div>
-
-      <p id="libMsg" class="lib-msg"></p>
-
-      <!-- hidden file inputs -->
-      <input id="dirInput" type="file" webkitdirectory multiple hidden>
-      <input id="zipInput" type="file" accept=".zip" hidden>
-    </div>
-  </div>
-
-  <!-- ========================== NEW PROMPT MODAL ========================== -->
-  <div id="newPromptModal" class="lib-overlay hidden" role="dialog" aria-modal="true">
-    <div class="lib-sheet">
-      <button id="newPromptClose" class="icon-close" aria-label="Close">✕</button>
-      <h2 class="lib-title">New Prompt</h2>
-      <p class="lib-sub">Create a new prompt folder (requires R/W)</p>
-
-      <form id="newPromptForm">
-        <div class="form-group">
-          <label for="newTitle">Title</label>
-          <input id="newTitle" type="text" placeholder="e.g., Sunset Study">
-        </div>
-        <div class="form-group">
-          <label for="newTags">Tags (comma-separated)</label>
-          <input id="newTags" type="text" placeholder="tag1, tag2">
-        </div>
-        <div class="form-group">
-          <label for="newPromptText">Prompt Text</label>
-          <textarea id="newPromptText" rows="6" placeholder="Paste your prompt text…"></textarea>
-        </div>
-        <div class="form-group">
-          <label for="newImages">Images</label>
-          <input id="newImages" type="file" accept="image/*" multiple>
-        </div>
-        <div class="form-actions">
-          <button id="newPromptSave" class="btn btn-primary" type="submit">Save</button>
-        </div>
-      </form>
-      <p id="newPromptMsg" class="lib-msg"></p>
-    </div>
-  </div>
-
-  <!-- ========================== DETAIL VIEW (FULLSCREEN) ========================== -->
-  <section id="detailView" aria-hidden="true">
-    <div class="detail-header">
-      <button id="detailBack" class="btn" title="Back">← Back</button>
-
-      <div class="detail-title-area">
-        <h2 id="detailTitle">Title</h2>
-        <div id="detailTags" class="chips small"></div>
-      </div>
-
-      <div class="detail-actions">
-        <button id="detailCopyPrompt" class="btn">Copy Prompt</button>
-        <button id="detailDownloadImg" class="btn">Download Image</button>
-        <button id="detailAddImages" class="btn">Add Images</button>
-        <!-- Manual content rating control mounts here -->
-        <div id="detailRating"></div>
-      </div>
-    </div>
-
-    <div class="detail-gallery">
-      <div id="detailHero">
-        <img id="detailImg" alt="">
-      </div>
-
-      <!-- Slider with arrows -->
-      <div id="detailThumbsWrap">
-        <button id="thumbNavLeft"  class="thumb-nav" title="Scroll left">‹</button>
-        <div id="detailThumbs"></div>
-        <button id="thumbNavRight" class="thumb-nav" title="Scroll right">›</button>
-      </div>
-    </div>
-
-    <aside class="detail-prompt">
-      <div id="detailPromptText"></div>
-    </aside>
-
-    <!-- hidden uploader used by "Add Images" -->
-    <input id="imageUploader" type="file" accept="image/*" multiple hidden>
-  </section>
-
-  <!-- ========================== GALLERY VIEW (FULLSCREEN) ========================== -->
-  <section id="galleryView" aria-hidden="true">
-    <div class="gallery-header">
-      <button id="galleryBack" class="btn" title="Back">← Back</button>
-      <div class="gallery-title-area">
-        <h2>Gallery</h2>
-        <div id="galleryMeta" class="gallery-meta"></div>
-      </div>
-      <div class="gallery-actions">
-        <button id="exportZip" class="btn btn-primary">Export Current View (.zip)</button>
-      </div>
-    </div>
-
-    <div id="galleryGrid"></div>
-    <div id="gallerySentinel" class="gallery-sentinel">Loading…</div>
-  </section>
-
-  <!-- ========================== SCRIPTS (no modules) ========================== -->
-  <!-- Order matters: core → features → entry -->
-  <script defer src="assets/js/state.js"></script>
-  <script defer src="assets/js/utils.js"></script>
-  <script defer src="assets/js/favorites.js"></script>
-  <script defer src="assets/js/titles.js"></script>
-  <script defer src="assets/js/transforms.js"></script>
-  <script defer src="assets/js/nsfw.js"></script>
-  <script defer src="assets/js/tagger.js"></script>
-  <script defer src="assets/js/render.js"></script>
-  <script defer src="assets/js/filters.js"></script>
-  <script defer src="assets/js/fs-rw.js"></script>
-  <script defer src="assets/js/detail.js"></script>
-  <script defer src="assets/js/gallery.js"></script>
-  <script defer src="assets/js/library.js"></script>
-  <script src="assets/js/lazyload.js" defer></script>
-  <script src="assets/js/lazy-patch.js" defer></script>
-  
-  <!-- App entry last -->
-  <script defer src="assets/app.js"></script>
+<!-- ========================== TOPBAR ========================== -->
+<header class="topbar">
+<div class="left-spacer"></div>
+<h1>Prompt Vault</h1>
+<div class="actions">
+<input id="searchBox" placeholder="Search title, tags, or prompt…" type="search"/>
+<button id="toggleFavs" title="Only favorites">★ Favs</button>
+<button id="clearFilters" title="Clear filters">Clear</button>
+<button id="openGallery" title="Open gallery grid">Gallery</button>
+<button id="newPromptBtn" title="Create new prompt (R/W)">New Prompt</button><button id="reloadLibraryBtn" title="Reload library">Reload</button>
+<button id="openRW" title="Open Library">Open</button>
+</div>
+</header>
+<!-- ========================== FILTERS ========================== -->
+<section class="filters-inline" id="filters">
+<div class="filters-row">
+<div class="chips-wrap">
+<h2>Tags</h2>
+<div class="chips" id="tagChips"></div>
+</div>
+<div class="filter-mode">
+<label><input checked="" name="mode" type="radio" value="AND"/> AND</label>
+<label><input name="mode" type="radio" value="OR"/> OR</label>
+</div>
+</div>
+</section>
+<!-- ========================== RESULTS PAGE ========================== -->
+<main class="page">
+<section class="results">
+<div class="results-bar">
+<div class="stats" id="stats">0 prompts</div>
+</div>
+<div class="grid" id="grid"></div>
+<div class="empty hidden" id="empty">No results. Try clearing filters.</div>
+</section>
+</main>
+<!-- ========================== LIBRARY OVERLAY ========================== -->
+<div aria-modal="true" class="lib-overlay hidden" id="libraryOverlay" role="dialog">
+<div class="lib-sheet">
+<button aria-label="Close" class="icon-close" id="libClose">✕</button>
+<h2 class="lib-title">Load your library</h2>
+<p class="lib-sub">Pick a source below. On iOS, ZIP is recommended.</p>
+<div class="dropzone" id="dropZone" tabindex="0">
+<div class="dz-inner">
+<div class="dz-icon">📦</div>
+<div class="dz-title">Drop your <b>prompts</b> folder or ZIP</div>
+<div class="dz-sub">We’ll index <code>prompt.txt</code>, <code>tags.json</code>, and images.</div>
+<div class="dz-hint">Supports directory picker (desktop), ZIP import, or loose files.</div>
+</div>
+</div>
+<div class="lib-actions">
+<button class="btn" id="libRW">Open Folder (R/W)</button>
+<button class="btn" id="libFolder">Open Folder (Read-only)</button>
+<button class="btn btn-primary" id="libZip">Open ZIP</button>
+</div>
+<p class="lib-msg" id="libMsg"></p>
+<!-- hidden file inputs -->
+<input hidden="" id="dirInput" multiple="" type="file" webkitdirectory=""/>
+<input accept=".zip" hidden="" id="zipInput" type="file"/>
+</div>
+</div>
+<!-- ========================== NEW PROMPT MODAL ========================== -->
+<div aria-hidden="true" aria-modal="true" class="hidden lib-overlay" id="newPromptModal" role="dialog">
+<div class="lib-sheet">
+<button aria-label="Close" class="icon-close" id="newPromptClose">✕</button>
+<h2 class="lib-title">New Prompt</h2>
+<p class="lib-sub">Create a new prompt folder (requires R/W)</p>
+<form id="newPromptForm">
+<div class="form-group">
+<label for="newTitle">Title</label>
+<input id="newTitle" placeholder="e.g., Sunset Study" type="text"/>
+</div>
+<div class="form-group">
+<label for="newTags">Tags (comma-separated)</label>
+<input id="newTags" placeholder="tag1, tag2" type="text"/>
+</div>
+<div class="form-group">
+<label for="newPromptText">Prompt Text</label>
+<textarea id="newPromptText" placeholder="Paste your prompt text…" rows="6"></textarea>
+</div>
+<div class="form-group">
+<label for="newImages">Images</label>
+<input accept="image/*" id="newImages" multiple="" type="file"/>
+</div>
+<div class="form-actions">
+<button class="btn btn-primary" id="newPromptSave" type="submit">Save</button>
+</div>
+</form>
+<p class="lib-msg" id="newPromptMsg"></p>
+</div>
+</div>
+<!-- ========================== DETAIL VIEW (FULLSCREEN) ========================== -->
+<section aria-hidden="true" id="detailView">
+<div class="detail-header">
+<button class="btn" id="detailBack" title="Back">← Back</button>
+<div class="detail-title-area">
+<h2 id="detailTitle">Title</h2>
+<div class="chips small" id="detailTags"></div>
+</div>
+<div class="detail-actions">
+<button class="btn" id="detailCopyPrompt">Copy Prompt</button>
+<button class="btn" id="detailDownloadImg">Download Image</button>
+<button class="btn" id="detailAddImages">Add Images</button>
+<!-- Manual content rating control mounts here -->
+<div id="detailRating"></div>
+</div>
+</div>
+<div class="detail-gallery">
+<div id="detailHero">
+<img alt="" id="detailImg"/>
+</div>
+<!-- Slider with arrows -->
+<div id="detailThumbsWrap">
+<button class="thumb-nav" id="thumbNavLeft" title="Scroll left">‹</button>
+<div id="detailThumbs"></div>
+<button class="thumb-nav" id="thumbNavRight" title="Scroll right">›</button>
+</div>
+</div>
+<aside class="detail-prompt">
+<div id="detailPromptText"></div>
+</aside>
+<!-- hidden uploader used by "Add Images" -->
+<input accept="image/*" hidden="" id="imageUploader" multiple="" type="file"/>
+</section><section aria-hidden="true" id="newPromptView"><div class="np-header"><button class="btn" id="newPromptBack" title="Back">← Back</button><h2 id="newPromptTitleHdr">New Prompt</h2></div><div class="np-content"><div class="np-card"><form id="newPromptForm">
+<div class="form-group">
+<label for="newTitle">Title</label>
+<input id="newTitle" placeholder="e.g., Sunset Study" type="text"/>
+</div>
+<div class="form-group">
+<label for="newTags">Tags (comma-separated)</label>
+<input id="newTags" placeholder="tag1, tag2" type="text"/>
+</div>
+<div class="form-group">
+<label for="newPromptText">Prompt Text</label>
+<textarea id="newPromptText" placeholder="Paste your prompt text…" rows="6"></textarea>
+</div>
+<div class="form-group">
+<label for="newImages">Images</label>
+<input accept="image/*" id="newImages" multiple="" type="file"/>
+</div>
+<div class="form-actions">
+<button class="btn btn-primary" id="newPromptSave" type="submit">Save</button>
+</div>
+</form></div></div></section>
+<!-- ========================== GALLERY VIEW (FULLSCREEN) ========================== -->
+<section aria-hidden="true" id="galleryView">
+<div class="gallery-header">
+<button class="btn" id="galleryBack" title="Back">← Back</button>
+<div class="gallery-title-area">
+<h2>Gallery</h2>
+<div class="gallery-meta" id="galleryMeta"></div>
+</div>
+<div class="gallery-actions">
+<button class="btn btn-primary" id="exportZip">Export Current View (.zip)</button>
+</div>
+</div>
+<div id="galleryGrid"></div>
+<div class="gallery-sentinel" id="gallerySentinel">Loading…</div>
+</section>
+<!-- ========================== SCRIPTS (no modules) ========================== -->
+<!-- Order matters: core → features → entry -->
+<script defer="" src="assets/js/state.js"></script>
+<script defer="" src="assets/js/utils.js"></script>
+<script defer="" src="assets/js/favorites.js"></script>
+<script defer="" src="assets/js/titles.js"></script>
+<script defer="" src="assets/js/transforms.js"></script>
+<script defer="" src="assets/js/nsfw.js"></script>
+<script defer="" src="assets/js/tagger.js"></script>
+<script defer="" src="assets/js/render.js"></script>
+<script defer="" src="assets/js/filters.js"></script>
+<script defer="" src="assets/js/fs-rw.js"></script>
+<script defer="" src="assets/js/detail.js"></script>
+<script defer="" src="assets/js/gallery.js"></script>
+<script defer="" src="assets/js/library.js"></script>
+<script defer="" src="assets/js/lazyload.js"></script>
+<script defer="" src="assets/js/lazy-patch.js"></script>
+<!-- App entry last -->
+<script defer="" src="assets/app.js"></script>
+<script defer="" src="assets/js/mobile.js"></script>
+<script>window.dispatchEvent(new Event("pv:data"));</script>
+<script defer="" src="assets/js/newprompt-modal-fix.js"></script>
+  <script defer src="assets/js/newprompt-view.js"></script>
+  <script defer src="assets/js/favorites-disk.js"></script>
+  <script defer src="assets/js/newprompt-save-hotfix.js"></script>
+  <script defer src="assets/js/newprompt-event-guard.js"></script>
 </body>
 </html>

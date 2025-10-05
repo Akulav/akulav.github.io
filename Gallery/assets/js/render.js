@@ -133,6 +133,8 @@
     starBtn.classList.toggle('active', !isFav);
     starBtn.textContent = !isFav ? '★' : '☆';
     if (state.onlyFavs) window.__pv_applyFilters?.();
+    // persist to disk if RW
+    PV.syncFavoritesToDisk && PV.syncFavoritesToDisk();
   }
 
   PV.renderTags = renderTags;

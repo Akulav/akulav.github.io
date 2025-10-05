@@ -753,3 +753,5 @@ body.gallery-view-active #detailView { display: none; }
 .boot-gate .actions,
 .boot-gate #filters,
 .boot-gate .page{ display:none !important; }
+
+.input-error{ outline:2px solid #ff5c5c; box-shadow:0 0 0 3px rgba(255,92,92,.25); }
