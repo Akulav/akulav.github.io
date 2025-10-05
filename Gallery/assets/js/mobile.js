@@ -1,17 +1,18 @@
 /* ======== Mobile "TikTok-style" UI Layer ========
-   Non-destructive overlay: sits above desktop UI on <=768px screens.
-   - R/W-gated actions are disabled unless state.rw is true
-   - Uses PV.state.filtered || PV.state.all to render cards
+   - Renders a simple feed (image + title) on <=768px screens
+   - No RW action buttons on mobile
+   - Works even if images are FileSystem handles (resolves to object URLs)
+   - Bottom nav is wired to desktop logic (clear, search, favorites, library)
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
+  const $  = (s, el=document) => el.querySelector(s);
+  const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
 
-  const PVNS = (window.PV && window.PV.state) ? window.PV : (window.PV = window.PV || {});
+  const PVNS  = window.PV || (window.PV = {});
   const state = PVNS.state || (PVNS.state = {});
-  const $ = (sel, el=document) => el.querySelector(sel);
-  const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 
-  // Toast helper
+  // ---------- helpers ----------
   function toast(msg){
     let t = $(".m-toast");
     if (!t){
@@ -25,19 +26,16 @@
     t._hid = setTimeout(()=> t.classList.remove("show"), 1200);
   }
 
-  // Create container if not present
   function ensureMobileRoot(){
-    let root = document.querySelector(".mobile-feed");
+    let root = $(".mobile-feed");
     if (!root){
       root = document.createElement("div");
       root.className = "mobile-feed";
 
-      // Feed scroller
       const scroller = document.createElement("div");
       scroller.className = "m-feed-scroll";
       root.appendChild(scroller);
 
-      // Bottom nav
       const nav = document.createElement("nav");
       nav.className = "m-nav";
       nav.innerHTML = `
@@ -47,82 +45,123 @@
         <button data-tab="library">📚<span>Library</span></button>
       `;
       root.appendChild(nav);
+
+      const toastEl = document.createElement("div");
+      toastEl.className = "m-toast";
+      toastEl.hidden = true;
+      root.appendChild(toastEl);
+
       document.body.appendChild(root);
-
-      nav.addEventListener("click", (e)=>{
-  const btn = e.target.closest("button");
-  if (!btn) return;
-  $$("[data-tab]", nav).forEach(b => b.removeAttribute("aria-current"));
-  btn.setAttribute("aria-current", "page");
-  const tab = btn.getAttribute("data-tab");
-
-  const overlay = document.querySelector(".lib-overlay");
-
-  if (tab === "library"){
-    // Show the library picker; prefer the RW open button, else read-only, else ZIP (iOS)
-    const openRW  = document.getElementById("openRW") ||
-                    document.querySelector("[data-openrw]");
-    const openRO  = document.getElementById("openRO") ||
-                    document.querySelector("[data-openro]");
-    const openZIP = document.getElementById("openZip") ||
-                    document.querySelector("[data-openzip]") ||
-                    Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||""));
-
-    (openRW || openRO || openZIP)?.click();
-
-    // When overlay appears, suspend the mobile layer
-    if (overlay){
-      const setFlag = ()=>{
-        const hidden = overlay.classList.contains("hidden") ||
-                       overlay.getAttribute("aria-hidden")==="true";
-        document.body.classList.toggle("overlay-open", !hidden);
-        if (hidden){ MobileUI.mountFeed?.(); }
-      };
-      setFlag();
-      new MutationObserver(setFlag).observe(overlay, { attributes:true, attributeFilter:["class","aria-hidden"] });
-    }
-  } else if (tab === "favs"){
-    const favBtn = document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]");
-    if (favBtn) favBtn.click();
-    toast("Showing favorites");
-  } else if (tab === "search"){
-    const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
-    if (s){ s.focus(); s.scrollIntoView({block:'center'}); }
-  } else {
-    const clear = document.getElementById("clearFilters") || document.querySelector("[data-clear]");
-    if (clear) clear.click();
-  }
-});
-
+      wireNav(nav);
     }
 
-    // Mark page as mobile-active so desktop UI hides
-    if (isMobile()) document.body.classList.add("mobile-active");
-    else document.body.classList.remove("mobile-active");
-
+    document.body.classList.toggle("mobile-active", isMobile());
     return root;
   }
 
-  // Turn one "prompt" record into a card
+  // Try to get a visible list of prompts from state
+  function collectFromState(){
+    const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
+      ? state.filtered
+      : state.all;
+    if (!Array.isArray(arr)) return [];
+    return arr.map((x,i) => normalizePrompt(x, i));
+  }
+
+  // DOM fallback — read from existing desktop cards
+  function collectFromDOM(){
+    const cards = $$(".page .card, .page .prompt, .page [data-id]");
+    const list = [];
+    cards.forEach((n,i)=>{
+      const img = n.querySelector("img");
+      if (!img) return;
+      const titleEl = n.querySelector('[class*="title" i], h3, h2, .name') || {};
+      const chips = Array.from(n.querySelectorAll('.chips .chip, .tags .tag, .chip')).slice(0,12).map(c=>c.textContent.trim());
+      list.push({
+        id: n.getAttribute("data-id") || img.currentSrc || img.src || ("d_" + i),
+        title: (titleEl.textContent || "").trim() || "Untitled",
+        cover: img.currentSrc || img.src || "",
+        images: [img.currentSrc || img.src].filter(Boolean),
+        tags: chips
+      });
+    });
+    return list;
+  }
+
+  function normalizePrompt(x, i){
+    return {
+      id: x.id || x.ID || x.title || ("p_" + i),
+      title: x.title || x.name || `Prompt #${i+1}`,
+      tags: x.tags || x.keywords || [],
+      cover: x.cover || (x.images && x.images[0]) || x.image || x.preview || null,
+      images: x.images || (x.image ? [x.image] : []),
+      dirHandle: x.dirHandle,     // keep handles for FS fetch
+      files: x.files              // some builds keep {previews:[FileHandle,...]}
+    };
+  }
+
+  async function fileHandleToUrl(h){
+    try{
+      const f = await h.getFile();
+      return URL.createObjectURL(f);
+    }catch(_){ return null; }
+  }
+
+  // Resolve a usable image URL from the prompt data; async when needed.
+  async function resolveImageUrl(p){
+    // direct string
+    if (typeof p.cover === "string" && p.cover) return p.cover;
+
+    // PV helpers if present
+    if (window.PV){
+      if (typeof PV.getImageURL === "function"){
+        try{ const u = await PV.getImageURL(p, 0); if (u) return u; }catch(_){}
+      }
+      if (typeof PV.urlForImage === "function"){
+        try{ const u = await PV.urlForImage(p, 0); if (u) return u; }catch(_){}
+      }
+    }
+
+    // images array: strings or handles
+    if (Array.isArray(p.images) && p.images.length){
+      for (const it of p.images){
+        if (typeof it === "string" && it) return it;
+        if (it && typeof it.getFile === "function"){ const u = await fileHandleToUrl(it); if (u) return u; }
+      }
+    }
+
+    // known place for preview handles
+    const previews = p.files && (p.files.previews || p.files.images || p.files.list);
+    if (Array.isArray(previews)){
+      for (const h of previews){
+        if (typeof h === "string" && h) return h;
+        if (h && typeof h.getFile === "function"){ const u = await fileHandleToUrl(h); if (u) return u; }
+      }
+    }
+
+    // DOM fallback: find a desktop card image by id/title
+    const byId = $(`.page [data-id="${CSS.escape(p.id||"")}"] img`);
+    if (byId && (byId.currentSrc || byId.src)) return byId.currentSrc || byId.src;
+
+    const titleSel = `.page [class*="title" i], .page h2, .page h3, .page .name`;
+    const candidates = $$(titleSel).filter(el => (el.textContent||"").trim() === (p.title||""));
+    for (const el of candidates){
+      const img = el.closest(".card,.prompt,[data-id]")?.querySelector("img");
+      if (img && (img.currentSrc || img.src)) return img.currentSrc || img.src;
+    }
+
+    return "";
+  }
+
   function renderCard(p){
     const card = document.createElement("section");
     card.className = "m-card";
-    card.dataset.id = p.id || p.title || Math.random().toString(36).slice(2);
+    card.dataset.id = p.id || Math.random().toString(36).slice(2);
 
     const media = document.createElement("div");
     media.className = "m-card-media";
-
-    let imgSrc = null;
-    if (p.cover && typeof p.cover === "string") imgSrc = p.cover;
-    if (!imgSrc && Array.isArray(p.images) && p.images.length) imgSrc = p.images[0];
-    if (!imgSrc && p.mainImage) imgSrc = p.mainImage;
-    if (!imgSrc) imgSrc = p.image || p.preview || "";
-
     const img = document.createElement("img");
-    img.decoding = "async";
-    img.loading = "lazy";
     img.alt = p.title || "image";
-    if (imgSrc) img.src = imgSrc;
     media.appendChild(img);
 
     const meta = document.createElement("div");
@@ -130,94 +169,54 @@
     const t = document.createElement("div");
     t.className = "m-title";
     t.textContent = p.title || "Untitled";
-    const tags = document.createElement("div");
-    tags.className = "m-tags";
+
+    const tagsWrap = document.createElement("div");
+    tagsWrap.className = "m-tags";
     (p.tags || []).slice(0,12).forEach(tag => {
       const chip = document.createElement("span");
       chip.className = "m-tag";
       chip.textContent = tag;
-      tags.appendChild(chip);
+      tagsWrap.appendChild(chip);
     });
-    meta.appendChild(t);
-    meta.appendChild(tags);
 
-    const actions = document.createElement("div");
-    actions.className = "m-actions";
-    const gated = [
-      { key:"download", icon:"⬇️", label:"Download", action: () => tryDownload(p, imgSrc) },
-      { key:"add",      icon:"➕", label:"New",      action: () => tryNewPrompt(p) },
-      { key:"cover",    icon:"📌", label:"Cover",    action: () => trySetCover(p, imgSrc) },
-      { key:"delete",   icon:"🗑️", label:"Delete",   action: () => tryDeleteImage(p, imgSrc) },
-      { key:"nsfw",     icon:"⚑",  label:(p.nsfwMode || "AUTO"), action: () => tryToggleNSFW(p) },
-    ];
-    gated.forEach(g => {
-      const btn = document.createElement("button");
-      btn.className = "m-action";
-      btn.innerHTML = `<span>${g.icon}</span>`;
-      btn.title = g.label;
-      if (!state.rw){
-        btn.classList.add("is-disabled");
-        btn.disabled = true;
-      }else{
-        btn.addEventListener("click", (e)=>{ e.stopPropagation(); g.action && g.action(); });
-      }
-      const wrap = document.createElement("div");
-      wrap.style.display = "grid";
-      wrap.style.justifyItems = "center";
-      wrap.appendChild(btn);
-      const lab = document.createElement("div");
-      lab.className = "m-action-label";
-      lab.textContent = g.label;
-      wrap.appendChild(lab);
-      actions.appendChild(wrap);
-    });
+    meta.appendChild(t);
+    meta.appendChild(tagsWrap);
+
+    // open detail on tap
+    card.addEventListener("click", ()=> openPrompt(p));
 
     card.appendChild(media);
     card.appendChild(meta);
-    card.appendChild(actions);
+
+    // async image resolution
+    resolveImageUrl(p).then(url => { if (url) img.src = url; });
+
     return card;
   }
 
-  // Action shims
-  function tryDownload(p, src){
-    const dl = window.PV && window.PV.downloadImage;
-    if (dl){ dl(p, src); } else { toast("Download (requires RW)"); }
-  }
-  function tryNewPrompt(){
-    const fn = window.PV && window.PV.openNewPromptView || (window.PV && window.PV.createPrompt);
-    if (fn){ fn(); } else { toast("Add new prompt (requires RW)"); }
-  }
-  function trySetCover(p, src){
-    const fn = window.PV && window.PV.setCoverImage;
-    if (fn){ fn(p, src); } else { toast("Set cover (requires RW)"); }
-  }
-  function tryDeleteImage(p, src){
-    const fn = window.PV && window.PV.deleteImageFromPrompt;
-    if (fn){ fn(p, src); } else { toast("Delete image (requires RW)"); }
-  }
-  function tryToggleNSFW(p){
-    const fn = window.PV && window.PV.toggleNSFWMode;
-    if (fn){ fn(p); } else { toast("Toggle NSFW (requires RW)"); }
+  function openPrompt(p){
+    // Prefer a direct API if your app exposes one
+    if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
+
+    // Otherwise click the "Open" button on the desktop card if we can find it
+    const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
+                   || $$(".page .card, .page .prompt").find(el => {
+                        const titleEl = el.querySelector('[class*="title" i], h3, h2, .name');
+                        return (titleEl?.textContent||"").trim() === (p.title||"");
+                      });
+    const openBtn = container && (container.querySelector('button') && Array.from(container.querySelectorAll('button')).find(b => /open/i.test(b.textContent||"")));
+    if (openBtn){ openBtn.click(); return; }
   }
 
-  // Data helpers
   function getPrompts(){
-    const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
-      ? state.filtered
-      : state.all;
-    if (Array.isArray(arr)) return arr.map((x,i)=> normalizePrompt(x, i));
-    return [];
-  }
-  function normalizePrompt(x, i){
-    return {
-      id: x.id || x.ID || x.title || ("p_" + i),
-      title: x.title || x.name || `Prompt #${i+1}`,
-      tags: x.tags || x.keywords || [],
-      nsfwMode: x.nsfwMode || x.nsfw || x.safety,
-      cover: x.cover || (x.images && x.images[0]),
-      images: x.images || x.files || (x.image ? [x.image] : []),
-      mainImage: x.mainImage || x.preview
-    };
+    const fromState = collectFromState();
+    // If state exists but images look unresolved, fall back to DOM
+    const looksEmpty = !fromState.length || fromState.every(p => !p.cover && !(Array.isArray(p.images) && p.images.length));
+    if (looksEmpty){
+      const fromDom = collectFromDOM();
+      if (fromDom.length) return fromDom;
+    }
+    return fromState;
   }
 
   function mountFeed(){
@@ -245,7 +244,87 @@
     scroller.appendChild(frag);
   }
 
-  // Expose so desktop code can re-render mobile after filters/search
+  function wireNav(navEl){
+    if (!navEl || navEl._wired) return;
+    navEl._wired = true;
+
+    navEl.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-tab]");
+      if (!btn) return;
+      navEl.querySelectorAll("button[data-tab]").forEach(b => b.removeAttribute("aria-current"));
+      btn.setAttribute("aria-current","page");
+      const tab = btn.getAttribute("data-tab");
+
+      if (tab === "library"){
+        (document.getElementById("openRW") ||
+         document.querySelector("[data-openrw]") ||
+         document.getElementById("openRO") ||
+         document.querySelector("[data-openro]") ||
+         document.getElementById("openZip") ||
+         Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||"")))
+        ?.click();
+
+        // Hide mobile layer while overlay is open
+        const overlay = $(".lib-overlay");
+        if (overlay){
+          const setFlag = ()=>{
+            const hidden = overlay.classList.contains("hidden") ||
+                           overlay.getAttribute("aria-hidden")==="true";
+            document.body.classList.toggle("overlay-open", !hidden);
+            if (hidden){ mountFeed(); }
+          };
+          setFlag();
+          new MutationObserver(setFlag).observe(overlay, { attributes:true, attributeFilter:["class","aria-hidden"] });
+        }
+        return;
+      }
+
+      if (tab === "favs"){
+        // Try the official toggler, else toggle state + re-apply
+        (document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]"))?.click();
+        if (!document.getElementById("toggleFavs")){
+          state.onlyFavs = !state.onlyFavs;
+          window.__pv_applyFilters?.();
+        }
+        toast(state.onlyFavs ? "Favorites ON" : "Favorites OFF");
+        return;
+      }
+
+      if (tab === "search"){
+        const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
+        if (s){
+          // focus existing search; user types and desktop filter will fire
+          s.focus();
+          s.scrollIntoView({block:"center"});
+        }else{
+          // simple inline prompt fallback
+          const q = prompt("Search:");
+          if (q != null){
+            state.q = String(q);
+            window.__pv_applyFilters?.();
+          }
+        }
+        return;
+      }
+
+      // home
+      (document.getElementById("clearFilters") || document.querySelector("[data-clear]"))?.click();
+      // fallback: reset common state flags and re-apply
+      if (!document.getElementById("clearFilters")){
+        state.onlyFavs = false;
+        state.q = "";
+        window.__pv_applyFilters?.();
+      }
+    });
+  }
+
+  // Observe overlays and DOM changes to keep things in sync
+  new MutationObserver(()=>{
+    const open = !!document.querySelector(".lib-overlay:not(.hidden):not([aria-hidden='true'])");
+    document.body.classList.toggle("overlay-open", open);
+  }).observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:["class","aria-hidden"] });
+
+  // Public hook so desktop can refresh the mobile feed
   window.MobileUI = { mountFeed };
 
   document.addEventListener("DOMContentLoaded", mountFeed);
