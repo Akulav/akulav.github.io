@@ -116,9 +116,6 @@
   body.mobile-active .page,
   body.mobile-active #detailView,
   body.mobile-active .footer,
-  body.mobile-active .lib-overlay{
-    display: none !important;
-  }
 
   /* ===== Detail view mobile tweaks ===== */
 

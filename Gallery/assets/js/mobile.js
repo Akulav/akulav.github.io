@@ -50,26 +50,50 @@
       document.body.appendChild(root);
 
       nav.addEventListener("click", (e)=>{
-        const btn = e.target.closest("button");
-        if (!btn) return;
-        $$("[data-tab]", nav).forEach(b => b.removeAttribute("aria-current"));
-        btn.setAttribute("aria-current", "page");
-        const tab = btn.getAttribute("data-tab");
-        if (tab === "library"){
-          const loadBtn = document.getElementById("openRW") || document.querySelector("[data-openrw]");
-          if (loadBtn) loadBtn.click();
-        }else if (tab === "favs"){
-          const favBtn = document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]");
-          if (favBtn) favBtn.click();
-          toast("Showing favorites");
-        }else if (tab === "search"){
-          const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
-          if (s){ s.focus(); s.scrollIntoView({block:'center'}); }
-        }else{
-          const clear = document.getElementById("clearFilters") || document.querySelector("[data-clear]");
-          if (clear) clear.click();
-        }
-      });
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  $$("[data-tab]", nav).forEach(b => b.removeAttribute("aria-current"));
+  btn.setAttribute("aria-current", "page");
+  const tab = btn.getAttribute("data-tab");
+
+  const overlay = document.querySelector(".lib-overlay");
+
+  if (tab === "library"){
+    // Show the library picker; prefer the RW open button, else read-only, else ZIP (iOS)
+    const openRW  = document.getElementById("openRW") ||
+                    document.querySelector("[data-openrw]");
+    const openRO  = document.getElementById("openRO") ||
+                    document.querySelector("[data-openro]");
+    const openZIP = document.getElementById("openZip") ||
+                    document.querySelector("[data-openzip]") ||
+                    Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||""));
+
+    (openRW || openRO || openZIP)?.click();
+
+    // When overlay appears, suspend the mobile layer
+    if (overlay){
+      const setFlag = ()=>{
+        const hidden = overlay.classList.contains("hidden") ||
+                       overlay.getAttribute("aria-hidden")==="true";
+        document.body.classList.toggle("overlay-open", !hidden);
+        if (hidden){ MobileUI.mountFeed?.(); }
+      };
+      setFlag();
+      new MutationObserver(setFlag).observe(overlay, { attributes:true, attributeFilter:["class","aria-hidden"] });
+    }
+  } else if (tab === "favs"){
+    const favBtn = document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]");
+    if (favBtn) favBtn.click();
+    toast("Showing favorites");
+  } else if (tab === "search"){
+    const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
+    if (s){ s.focus(); s.scrollIntoView({block:'center'}); }
+  } else {
+    const clear = document.getElementById("clearFilters") || document.querySelector("[data-clear]");
+    if (clear) clear.click();
+  }
+});
+
     }
 
     // Mark page as mobile-active so desktop UI hides
