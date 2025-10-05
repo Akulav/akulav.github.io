@@ -1,9 +1,8 @@
 /* Mobile collections feed + gallery
-   - Title overlay near top, thumbnails overlay near bottom
-   - Horizontal snap carousel + left/right tap zones
-   - Bottom nav: Search • Favs • Gallery • Library
-   - DOM-first, then State; resolves strings, File/Blob, and FileSystemFileHandle → URLs
-   - Merges by data-id first; else by normalized title (emoji stripped)
+   - Title/Thumb overlays
+   - Horizontal snap carousel
+   - Search • Favs • Gallery • Library
+   - Collects images from DOM, state, and dirHandle (R/W)
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -12,111 +11,57 @@
   const PVNS  = window.PV || (window.PV = {});
   const state = PVNS.state || (PVNS.state = {});
 
-  /* ---------- utils ---------- */
   const stripEmoji = s => String(s||"").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "");
   const normTitle  = s => stripEmoji(s).replace(/\s+/g," ").trim().toLowerCase();
 
   function toast(msg){
     let t = $(".m-toast");
-    if (!t){
-      t = document.createElement("div");
-      t.className = "m-toast";
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(t._hid);
-    t._hid = setTimeout(()=> t.classList.remove("show"), 900);
+    if (!t){ t = Object.assign(document.createElement("div"), { className:"m-toast" }); document.body.appendChild(t); }
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(t._hid); t._hid = setTimeout(()=> t.classList.remove("show"), 900);
   }
 
-  /* ----- URL resolution (string | File | Blob | FileSystemFileHandle | {url}) ----- */
+  /* ---------- URL resolution ---------- */
   async function anyToUrl(x){
     try{
       if (!x) return "";
       if (typeof x === "string") return x;
       if (x.url || x.href) return x.url || x.href;
-
-      // File/Blob (also covers File from ZIP)
-      if (typeof x === "object" && (x instanceof Blob || ("size" in x && "type" in x && typeof x.arrayBuffer === "function"))){
-        return URL.createObjectURL(x);
-      }
-
-      // FileSystemFileHandle (R/W folder)
-      if (typeof x === "object" && typeof x.getFile === "function"){
-        const f = await x.getFile();
-        return URL.createObjectURL(f);
-      }
-
-      // PV helper, if present
-      if (window.PV?.Utils?.fileToUrl) {
-        const u = await PV.Utils.fileToUrl(x);
-        if (u) return u;
-      }
-    }catch(_){}
-    return "";
+      if (typeof x === "object" && (x instanceof Blob || ("size" in x && "type" in x && typeof x.arrayBuffer === "function"))) return URL.createObjectURL(x);
+      if (typeof x === "object" && typeof x.getFile === "function"){ const f = await x.getFile(); return URL.createObjectURL(f); }
+      if (window.PV?.Utils?.fileToUrl){ const u = await PV.Utils.fileToUrl(x); if (u) return u; }
+    }catch(_){} return "";
   }
+  async function resolveAll(raw){ const out=[]; for (const r of raw) out.push(await anyToUrl(r)); return Array.from(new Set(out.filter(Boolean))); }
 
-  async function resolveAll(rawList){
-    const out = [];
-    for (const r of rawList){ out.push(await anyToUrl(r)); }
-    return Array.from(new Set(out.filter(Boolean)));
-  }
-
-  /* ----- root ----- */
-  function ensureMobileRoot(){
-    let root = $(".mobile-feed");
-    if (!root){
-      root = document.createElement("div");
-      root.className = "mobile-feed";
-
-      const scroller = document.createElement("div");
-      scroller.className = "m-feed-scroll";
-      root.appendChild(scroller);
-
-      const nav = document.createElement("nav");
-      nav.className = "m-nav";
-      nav.innerHTML = `
-        <button data-tab="search"  aria-current="page">🔎<span>Search</span></button>
-        <button data-tab="favs">★<span>Favs</span></button>
-        <button data-tab="gallery">🖼️<span>Gallery</span></button>
-        <button data-tab="library">📚<span>Library</span></button>
-      `;
-      root.appendChild(nav);
-
-      const toastEl = document.createElement("div");
-      toastEl.className = "m-toast";
-      toastEl.hidden = true;
-      root.appendChild(toastEl);
-
-      document.body.appendChild(root);
-      wireNav(nav);
+  /* ---------- dirHandle enumeration (R/W mode) ---------- */
+  async function listImagesFromDirHandle(dh){
+    const out=[];
+    if (!dh || typeof dh.entries !== "function") return out;
+    const ok = /\.(png|jpe?g|webp|gif|bmp|avif)$/i;
+    for await (const [name,handle] of dh.entries()){
+      if (handle && handle.kind === "file" && ok.test(name||"")) out.push(handle);
     }
-    document.body.classList.toggle("mobile-active", isMobile());
-    return root;
+    // stable order by filename (numeric-aware)
+    out.sort((a,b)=> String(a.name||"").localeCompare(String(b.name||""),'en',{numeric:true}));
+    return out;
   }
 
-  /* ---------- DOM-first scraping (handles <img>, data-src, background-image) ---------- */
+  /* ---------- scrape DOM ---------- */
   function extractUrlsFromNode(node){
     const urls = new Set();
-
     node.querySelectorAll("img").forEach(img=>{
       const u = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy") || "";
       if (u) urls.add(u);
     });
-
     node.querySelectorAll("[data-src],[data-image],[data-bg],[data-url]").forEach(el=>{
       const u = el.getAttribute("data-src") || el.getAttribute("data-image") || el.getAttribute("data-bg") || el.getAttribute("data-url");
       if (u) urls.add(u);
     });
-
     node.querySelectorAll("*").forEach(el=>{
       const bg = (el.style && el.style.backgroundImage) || getComputedStyle(el).backgroundImage;
-      if (bg && bg.startsWith("url(")){
-        const m = bg.match(/url\((['"]?)(.*?)\1\)/);
-        if (m && m[2]) urls.add(m[2]);
-      }
+      if (bg && bg.startsWith("url(")){ const m = bg.match(/url\((['"]?)(.*?)\1\)/); if (m && m[2]) urls.add(m[2]); }
     });
-
     return Array.from(urls);
   }
 
@@ -124,14 +69,12 @@
     const cards = $$("#grid > *, .results .grid > *, .page .grid > *, .page .card, .page .prompt, .page [data-id]");
     const list = [];
     cards.forEach((node,i)=>{
-      const urls = extractUrlsFromNode(node);
-      if (!urls.length) return;
-      const titleEl =
-        node.querySelector('[class*="title" i], h3, h2, .name') ||
-        node.querySelector("figcaption") || node.querySelector("[title]");
+      const raw = extractUrlsFromNode(node);
+      if (!raw.length) return;
+      const titleEl = node.querySelector('[class*="title" i], h3, h2, .name, figcaption') || node.querySelector("[title]");
       const title = (titleEl?.textContent || titleEl?.getAttribute?.("title") || "").trim() || `Item #${i+1}`;
       const id = node.getAttribute("data-id") || "";
-      list.push({ id, idOrTitle: id || normTitle(title), title, raw: urls });
+      list.push({ id, idOrTitle: id || normTitle(title), title, raw });
     });
     return list;
   }
@@ -144,35 +87,38 @@
       if (Array.isArray(x.images)) raw.push(...x.images);
       if (x.image) raw.push(x.image);
       if (x.files && Array.isArray(x.files.images)) raw.push(...x.files.images);
+      // try other common buckets just in case
+      if (x.files){
+        for (const v of Object.values(x.files)){
+          if (Array.isArray(v)) raw.push(...v);
+        }
+      }
       if (x.preview) raw.unshift(x.preview);
       if (x.cover) raw.unshift(x.cover);
       const id = x.id || x.ID || "";
       const title = x.title || x.name || `Prompt #${i+1}`;
-      return { id, idOrTitle: id || normTitle(title), title, raw };
+      return { id, idOrTitle: id || normTitle(title), title, raw, dirHandle: x.dirHandle };
     });
   }
 
   function mergeRaw(domList, stateList){
     const map = new Map();
-    domList.forEach(p=>{
-      const key = p.idOrTitle;
-      map.set(key, { id:p.id, title:p.title, raw:[...(p.raw||[])] });
-    });
+    domList.forEach(p=> map.set(p.idOrTitle, { id:p.id, title:p.title, raw:[...(p.raw||[])], dirHandle:null }));
     stateList.forEach(p=>{
-      const key = p.idOrTitle;
-      const cur = map.get(key);
+      const cur = map.get(p.idOrTitle);
       if (cur){
         cur.id = cur.id || p.id;
         cur.title = cur.title || p.title;
         cur.raw.push(...(p.raw||[]));
-      }else{
-        map.set(key, { id:p.id, title:p.title, raw:[...(p.raw||[])] });
+        if (p.dirHandle) cur.dirHandle = p.dirHandle;
+      } else {
+        map.set(p.idOrTitle, { id:p.id, title:p.title, raw:[...(p.raw||[])], dirHandle:p.dirHandle||null });
       }
     });
     return Array.from(map.values());
   }
 
-  /* ---------- UI helpers ---------- */
+  /* ---------- UI ---------- */
   function openPrompt(p){
     if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
     const target = p.id
@@ -192,7 +138,6 @@
     card.className = "m-card";
     if (p.id) card.dataset.id = p.id;
 
-    /* overlays */
     const header = document.createElement("div");
     header.className = "m-header";
     const title = document.createElement("div");
@@ -211,95 +156,60 @@
     carousel.appendChild(tapL); carousel.appendChild(tapR);
 
     urls.forEach(u=>{
-      const item = document.createElement("div");
-      item.className = "m-item";
-      const img = document.createElement("img");
-      img.alt = p.title || "image";
-      img.loading = "lazy"; img.decoding = "async";
-      img.src = u;
-      item.appendChild(img);
-      track.appendChild(item);
+      const item = document.createElement("div"); item.className = "m-item";
+      const img = document.createElement("img"); img.alt = p.title || "image"; img.loading = "lazy"; img.decoding = "async"; img.src = u;
+      item.appendChild(img); track.appendChild(item);
     });
 
-    const thumbs = document.createElement("div");
-    thumbs.className = "m-thumbs";
+    const thumbs = document.createElement("div"); thumbs.className = "m-thumbs";
     urls.forEach((u, i)=>{
       const t = document.createElement("img");
-      t.className = "m-thumb" + (i===0 ? " is-on" : "");
-      t.src = u; t.alt = `thumb ${i+1}`;
-      t.addEventListener("click", ()=> {
-        track.scrollTo({ left: i * track.clientWidth, behavior:'smooth' });
-        setThumb(i);
-      });
+      t.className = "m-thumb" + (i===0 ? " is-on" : ""); t.src = u; t.alt = `thumb ${i+1}`;
+      t.addEventListener("click", ()=> { track.scrollTo({ left: i * track.clientWidth, behavior:'smooth' }); setThumb(i); });
       thumbs.appendChild(t);
     });
 
-    const setThumb = (idx)=>{
-      Array.from(thumbs.children).forEach((el,i)=> el.classList.toggle("is-on", i===idx));
-    };
-
+    const setThumb = (idx)=> Array.from(thumbs.children).forEach((el,i)=> el.classList.toggle("is-on", i===idx));
     const advance = (dir)=>{
-      const w = track.clientWidth;
-      const cur = Math.round(track.scrollLeft / w);
+      const w = track.clientWidth, cur = Math.round(track.scrollLeft / w);
       const next = Math.max(0, Math.min(cur + dir, urls.length-1));
-      track.scrollTo({ left: next * w, behavior: 'smooth' });
-      setThumb(next);
+      track.scrollTo({ left: next * w, behavior: 'smooth' }); setThumb(next);
     };
     tapL.addEventListener("click", (e)=>{ e.stopPropagation(); advance(-1); });
     tapR.addEventListener("click", (e)=>{ e.stopPropagation(); advance(+1); });
+    track.addEventListener("scroll", ()=>{ const i = Math.round(track.scrollLeft / track.clientWidth); setThumb(Math.max(0, Math.min(i, urls.length-1))); }, {passive:true});
 
-    const onScroll = ()=>{
-      const idx = Math.round(track.scrollLeft / track.clientWidth);
-      setThumb(Math.max(0, Math.min(idx, urls.length-1)));
-    };
-    track.addEventListener("scroll", onScroll, {passive:true});
+    carousel.addEventListener("click", (e)=>{ const x=e.clientX, w=carousel.clientWidth; if (x>w*0.33 && x<w*0.67) openPrompt(p); });
 
-    // tap middle to open detail
-    carousel.addEventListener("click", (e)=>{
-      const x = e.clientX, w = carousel.clientWidth;
-      if (x > w*0.33 && x < w*0.67) openPrompt(p);
-    });
-
-    card.appendChild(carousel);    /* main image layer */
-    card.appendChild(header);      /* overlay near top */
-    card.appendChild(thumbs);      /* overlay near bottom */
+    card.appendChild(carousel); card.appendChild(header); card.appendChild(thumbs);
     return card;
   }
 
-  /* ---------- Gallery mode ---------- */
+  /* ---------- Gallery ---------- */
   async function mountGallery(){
     const root = ensureMobileRoot();
     const sc = root.querySelector(".m-feed-scroll");
     sc.innerHTML = "";
 
     const dom = fromDOM();
-    const stateRaw = fromStateRaw();
-    const merged = mergeRaw(dom, stateRaw);
+    const st  = fromStateRaw();
+    const merged = mergeRaw(dom, st);
+    if (!merged.length){ sc.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`; return; }
 
-    if (!merged.length){
-      sc.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
-      return;
-    }
-
-    const container = document.createElement("div");
-    container.className = "m-gallery";
-    sc.appendChild(container);
+    const box = document.createElement("div"); box.className = "m-gallery"; sc.appendChild(box);
 
     for (const p of merged){
-      const urls = await resolveAll(p.raw || []);
+      let raw = p.raw || [];
+      if (p.dirHandle) raw = raw.concat(await listImagesFromDirHandle(p.dirHandle));
+      const urls = await resolveAll(raw);
       for (const u of urls){
-        const img = document.createElement("img");
-        img.className = "m-g-img";
-        img.alt = p.title || "image";
-        img.loading = "lazy"; img.decoding = "async";
-        img.src = u;
-        img.addEventListener("click", ()=> openPrompt(p));
-        container.appendChild(img);
+        const img = document.createElement("img"); img.className="m-g-img"; img.alt=p.title||"image"; img.loading="lazy"; img.decoding="async"; img.src=u;
+        img.addEventListener("click", ()=> openPrompt(p)); box.appendChild(img);
       }
     }
   }
 
-  /* ---------- Collections feed ---------- */
+  /* ---------- Feed ---------- */
   async function mountFeed(){
     if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
     document.body.classList.add("mobile-active");
@@ -307,46 +217,59 @@
     const root = ensureMobileRoot();
     const scroller = root.querySelector(".m-feed-scroll");
     if (!scroller) return;
-
     scroller.innerHTML = "";
 
-    const dom = fromDOM();            // DOM FIRST
-    const stateRaw = fromStateRaw();  // then state
-    const merged = mergeRaw(dom, stateRaw);
-
-    if (!merged.length){
-      scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
-      return;
-    }
+    const dom = fromDOM();
+    const st  = fromStateRaw();
+    const merged = mergeRaw(dom, st);
+    if (!merged.length){ scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`; return; }
 
     for (const p of merged){
-      const urls = await resolveAll(p.raw || []);
+      let raw = p.raw || [];
+      if (p.dirHandle) raw = raw.concat(await listImagesFromDirHandle(p.dirHandle));  // <-- pulls images from folder
+      const urls = await resolveAll(raw);
       const card = renderCardResolved(p, urls);
       if (card) scroller.appendChild(card);
     }
   }
 
-  /* ---------- bottom nav ---------- */
-  function wireNav(navEl){
-    if (!navEl || navEl._wired) return;
-    navEl._wired = true;
+  /* ---------- nav ---------- */
+  function ensureMobileRoot(){
+    let root = $(".mobile-feed");
+    if (!root){
+      root = document.createElement("div");
+      root.className = "mobile-feed";
+      root.innerHTML = `
+        <div class="m-feed-scroll"></div>
+        <nav class="m-nav">
+          <button data-tab="search" aria-current="page">🔎<span>Search</span></button>
+          <button data-tab="favs">★<span>Favs</span></button>
+          <button data-tab="gallery">🖼️<span>Gallery</span></button>
+          <button data-tab="library">📚<span>Library</span></button>
+        </nav>
+        <div class="m-toast" hidden></div>`;
+      document.body.appendChild(root);
+      wireNav(root.querySelector(".m-nav"));
+    }
+    document.body.classList.toggle("mobile-active", isMobile());
+    return root;
+  }
 
-    navEl.addEventListener("click", (e)=>{
-      const btn = e.target.closest("button[data-tab]");
-      if (!btn) return;
-      navEl.querySelectorAll("button[data-tab]").forEach(b => b.removeAttribute("aria-current"));
+  function wireNav(nav){
+    if (!nav || nav._wired) return; nav._wired = true;
+    nav.addEventListener("click", (e)=>{
+      const btn = e.target.closest("button[data-tab]"); if (!btn) return;
+      nav.querySelectorAll("button[data-tab]").forEach(b => b.removeAttribute("aria-current"));
       btn.setAttribute("aria-current","page");
       const tab = btn.getAttribute("data-tab");
 
       if (tab === "library"){
         (document.getElementById("openRW") || document.getElementById("libRW") ||
          document.getElementById("libFolder") || document.getElementById("libZip"))?.click();
-
         const overlay = document.getElementById("libraryOverlay");
         if (overlay){
           const setFlag = ()=>{
-            const hidden = overlay.classList.contains("hidden") ||
-                           overlay.getAttribute("aria-hidden")==="true";
+            const hidden = overlay.classList.contains("hidden") || overlay.getAttribute("aria-hidden")==="true";
             document.body.classList.toggle("overlay-open", !hidden);
             if (hidden){ mountFeed(); }
           };
@@ -355,33 +278,16 @@
         }
         return;
       }
-
-      if (tab === "favs"){
-        document.getElementById("toggleFavs")?.click();
-        toast("Favorites toggled");
-        setTimeout(mountFeed, 60);
-        return;
-      }
-
+      if (tab === "favs"){ document.getElementById("toggleFavs")?.click(); toast("Favorites toggled"); setTimeout(mountFeed, 60); return; }
       if (tab === "search"){
-        const s = document.getElementById("searchBox");
-        if (s){ s.focus(); s.scrollIntoView({block:"center"}); }
-        else{
-          const q = prompt("Search:");
-          if (q != null){ state.q = String(q); window.__pv_applyFilters?.(); }
-        }
-        setTimeout(mountFeed, 60);
-        return;
+        const s = document.getElementById("searchBox"); if (s){ s.focus(); s.scrollIntoView({block:"center"}); }
+        else { const q = prompt("Search:"); if (q != null){ state.q = String(q); window.__pv_applyFilters?.(); } }
+        setTimeout(mountFeed, 60); return;
       }
-
-      if (tab === "gallery"){
-        mountGallery();
-        return;
-      }
+      if (tab === "gallery"){ mountGallery(); return; }
     });
   }
 
-  /* ---------- overlay observer & public hook ---------- */
   new MutationObserver(()=>{
     const overlay = document.getElementById("libraryOverlay");
     const open = overlay && !overlay.classList.contains("hidden") && overlay.getAttribute("aria-hidden")!=="true";
@@ -389,7 +295,6 @@
   }).observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:["class","aria-hidden"] });
 
   window.MobileUI = { mountFeed, mountGallery };
-
   document.addEventListener("DOMContentLoaded", ()=>{ mountFeed(); });
   window.addEventListener("resize", ()=>{ mountFeed(); });
   window.addEventListener("pv:data", ()=>{ mountFeed(); });

@@ -11,7 +11,6 @@
     background:#000; color:#e6e6e6;
   }
 
-  /* Hide desktop while mobile is active (allow overlays) */
   body.mobile-active { overflow:hidden; background:#000; }
   body.mobile-active .topbar,
   body.mobile-active #filters,
@@ -20,7 +19,6 @@
   body.mobile-active .footer{ display:none !important; }
   body.overlay-open .mobile-feed{ display:none !important; }
 
-  /* Content area */
   .m-feed-scroll{
     height: calc(100vh - 56px);
     overflow-y: auto;
@@ -29,7 +27,6 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* One vertical card per collection (overlays live inside) */
   .m-card{
     position: relative;
     height: calc(100vh - 56px);
@@ -38,11 +35,10 @@
     border-bottom: 1px solid rgba(255,255,255,.06);
   }
 
-  /* Horizontal carousel */
   .m-carousel{ position:relative; width:100vw; height:100%; overflow:hidden; background:#000; }
   .m-track{
     width:100vw; height:100%;
-    display:grid; grid-auto-flow:column; grid-auto-columns:100vw; /* 1 slide = viewport width */
+    display:grid; grid-auto-flow:column; grid-auto-columns:100vw;
     overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch;
     scroll-snap-type:x mandatory; scrollbar-width:none; background:#000;
   }
@@ -50,18 +46,14 @@
   .m-item{ scroll-snap-align:center; height:100%; display:grid; place-items:center; background:#000; }
   .m-item img{ width:100%; height:100%; object-fit:contain; -webkit-user-drag:none; user-select:none; background:#000; }
 
-  /* tap zones to nudge slides */
   .m-tap-left,.m-tap-right{ position:absolute; top:0; bottom:0; width:33%; z-index:2; }
   .m-tap-left{ left:0; } .m-tap-right{ right:0; }
 
-  /* ===== Overlays ===== */
-
-  /* Title over image, tight to the content */
+  /* Title overlay – moved further down */
   .m-header{
     position:absolute; left:0; right:0;
-    top: calc(env(safe-area-inset-top) + 4px);
-    display:grid; place-items:center; pointer-events:none;
-    z-index:3;
+    top: calc(env(safe-area-inset-top) + 18px); /* was +4px */
+    display:grid; place-items:center; pointer-events:none; z-index:3;
   }
   .m-title{
     pointer-events:auto;
@@ -74,16 +66,15 @@
     border-radius:10px;
   }
 
-  /* Thumbnail strip over image, above navbar */
+  /* Thumb strip – nudged slightly DOWN (closer to navbar) */
   .m-thumbs{
     position:absolute; left:8px; right:8px;
-    bottom: calc(56px + env(safe-area-inset-bottom) + 6px);
+    bottom: calc(56px + env(safe-area-inset-bottom) + 2px); /* was +6px */
     display:grid; grid-auto-flow:column; grid-auto-columns:max-content;
     gap:8px; padding:6px 8px;
     overflow-x:auto; -webkit-overflow-scrolling:touch;
     background:rgba(0,0,0,.45);
-    border-radius:10px;
-    backdrop-filter: blur(6px);
+    border-radius:10px; backdrop-filter: blur(6px);
     z-index:3; scrollbar-width:none;
   }
   .m-thumbs::-webkit-scrollbar{ display:none; }
@@ -94,11 +85,9 @@
   }
   .m-thumb.is-on{ opacity:1; outline:2px solid #5ca8ff; outline-offset:2px; transform:translateZ(0); }
 
-  /* Gallery tab: ALL images vertically */
   .m-gallery{ padding:8px 0 56px; display:grid; grid-template-columns:1fr; gap:6px; background:#000; }
   .m-g-img{ width:100vw; height:auto; display:block; background:#000; }
 
-  /* Bottom nav — Search • Favs • Gallery • Library */
   .m-nav{
     position:sticky; bottom:0; height:56px;
     background:rgba(0,0,0,.78); backdrop-filter:blur(8px);
@@ -112,7 +101,6 @@
   }
   .m-nav button[aria-current="page"]{ font-weight:700; color:#fff; }
 
-  /* tiny toast */
   .m-toast{
     position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
     background:rgba(20,20,24,.95); color:#fff; padding:8px 12px; border-radius:10px; font-size:13px;
@@ -120,11 +108,10 @@
   }
   .m-toast.show{ opacity:1; }
 
-  /* Hide desktop detail bits on mobile */
   #detailTags, #detailRating { display:none !important; }
   #detailThumbs img, #detailThumbs img.active { transform:none !important; }
   #detailThumbs img{ box-sizing:border-box; }
-  #detailThumbs img.active{ border-width:0 !important; outline:2px solid #5ca8ff !important; outline-offset:0; }
+  #detailThumbs img.active{ outline:2px solid #5ca8ff !important; outline-offset:0; }
   #detailThumbs{ gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
   #detailThumbsWrap{ overflow:hidden; }
 }
