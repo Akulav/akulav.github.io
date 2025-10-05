@@ -1,8 +1,8 @@
-/* Mobile collections feed + gallery
+/* Mobile collections feed + gallery (DOM-first, no blank frames)
    - Vertical feed of collections
-   - Each collection has a horizontal, snap carousel (swipe + tap left/right)
-   - Bottom nav: Search, Favs, Gallery, Library
-   - Pure black background; no RW actions on mobile
+   - Each collection: horizontal snap carousel (swipe or tap left/right)
+   - Bottom nav: Search • Favs • Gallery • Library
+   - Uses your real IDs: #searchBox, #toggleFavs, #openRW (topbar), and falls back to #libRW/#libFolder/#libZip
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -11,7 +11,7 @@
   const PVNS  = window.PV || (window.PV = {});
   const state = PVNS.state || (PVNS.state = {});
 
-  /* ---------- toast ---------- */
+  /* ----- toast ----- */
   function toast(msg){
     let t = $(".m-toast");
     if (!t){
@@ -25,7 +25,7 @@
     t._hid = setTimeout(()=> t.classList.remove("show"), 900);
   }
 
-  /* ---------- root ---------- */
+  /* ----- root ----- */
   function ensureMobileRoot(){
     let root = $(".mobile-feed");
     if (!root){
@@ -58,64 +58,87 @@
     return root;
   }
 
-  /* ---------- data ---------- */
-  function fromState(){
-    const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
-      ? state.filtered
-      : state.all;
-    if (!Array.isArray(arr)) return [];
-    return arr.map((x,i)=> normalizePrompt(x, i));
+  /* ---------- DOM-first scraping (handles <img>, data-src, and background-image) ---------- */
+  function extractUrlsFromNode(node){
+    const urls = new Set();
+
+    // <img> and lazy <img data-src>
+    node.querySelectorAll("img").forEach(img=>{
+      const u = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy") || "";
+      if (u) urls.add(u);
+    });
+
+    // common lazy attributes on any element
+    node.querySelectorAll("[data-src],[data-image],[data-bg],[data-url]").forEach(el=>{
+      const u = el.getAttribute("data-src") || el.getAttribute("data-image") || el.getAttribute("data-bg") || el.getAttribute("data-url");
+      if (u) urls.add(u);
+    });
+
+    // background-image styles
+    node.querySelectorAll("*").forEach(el=>{
+      const bg = (el.style && el.style.backgroundImage) || getComputedStyle(el).backgroundImage;
+      if (bg && bg.startsWith("url(")){
+        const m = bg.match(/url\((['"]?)(.*?)\1\)/);
+        if (m && m[2]) urls.add(m[2]);
+      }
+    });
+
+    return Array.from(urls);
   }
+
   function fromDOM(){
-    const cards = $$(".page .card, .page .prompt, .page [data-id]");
+    // Try several selectors; your grid is #grid
+    const cards = $$("#grid > *, .results .grid > *, .page .grid > *, .page .card, .page .prompt, .page [data-id]");
     const list = [];
     cards.forEach((node,i)=>{
-      const titleEl = node.querySelector('[class*="title" i], h3, h2, .name');
-      const imgs = Array.from(node.querySelectorAll("img"));
-      if (!imgs.length) return;
-      const title = (titleEl?.textContent || "").trim() || `Item #${i+1}`;
-      const urls  = imgs.map(im => im.currentSrc || im.src).filter(Boolean);
-      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, images: urls, cover: urls[0] });
+      const urls = extractUrlsFromNode(node);
+      if (!urls.length) return;  // skip truly imageless cards
+      const titleEl =
+        node.querySelector('[class*="title" i], h3, h2, .name') ||
+        node.querySelector("figcaption") ||
+        node.querySelector("[title]");
+      const title = (titleEl?.textContent || titleEl?.getAttribute?.("title") || "").trim() || `Item #${i+1}`;
+      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, images: urls });
     });
     return list;
   }
-  function normalizePrompt(x, i){
-    const images = [];
-    if (Array.isArray(x.images)) images.push(...x.images);
-    if (x.image && !images.length) images.push(x.image);
-    if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
-    if (x.preview) images.unshift(x.preview);
-    if (x.cover) images.unshift(x.cover);
-    return {
-      id: x.id || x.ID || x.title || ("p_"+i),
-      title: x.title || x.name || `Prompt #${i+1}`,
-      images: images.filter(Boolean),
-      cover: x.cover || images[0] || ""
-    };
-  }
-  async function fileHandleToUrl(h){
-    try{ const f = await h.getFile(); return URL.createObjectURL(f); }
-    catch(_){ return null; }
-  }
-  async function toUrl(it){
-    if (typeof it === "string") return it;
-    if (it && typeof it.getFile === "function") return await fileHandleToUrl(it);
-    return "";
-  }
-  async function resolveAllImages(p){
-    const out = [];
-    for (const it of (p.images || [])){
-      const u = await toUrl(it);
-      if (u) out.push(u);
-    }
-    if (!out.length && p.cover){
-      const u = await toUrl(p.cover);
-      if (u) out.push(u);
-    }
-    return out;
+
+  // Optionally merge with state if it adds more URLs
+  function mergeWithState(domList){
+    const arr = (state.filtered && state.filtered.length) ? state.filtered : (state.all || []);
+    if (!arr.length) return domList;
+
+    const byTitle = Object.create(null);
+    domList.forEach(p => { byTitle[p.title] = p; });
+
+    arr.forEach(x=>{
+      const title = x.title || x.name;
+      if (!title) return;
+      const images = [];
+      if (Array.isArray(x.images)) images.push(...x.images);
+      if (x.image) images.push(x.image);
+      if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
+      if (x.preview) images.unshift(x.preview);
+      if (x.cover) images.unshift(x.cover);
+
+      const urls = [];
+      for (const it of images){
+        if (typeof it === "string" && it) urls.push(it);
+      }
+      if (!urls.length) return;
+
+      if (byTitle[title]) {
+        const s = new Set([...byTitle[title].images, ...urls]);
+        byTitle[title].images = Array.from(s);
+      } else {
+        byTitle[title] = { id: x.id || title, title, images: urls };
+      }
+    });
+
+    return Object.values(byTitle).filter(p => p.images && p.images.length);
   }
 
-  /* ---------- UI ---------- */
+  /* ---------- UI helpers ---------- */
   function dots(n){
     const wrap = document.createElement("div");
     wrap.className = "m-dots";
@@ -133,15 +156,18 @@
   function openPrompt(p){
     if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
     const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
-                   || $$(".page .card, .page .prompt").find(el=>{
-                        const t = el.querySelector('[class*="title" i], h3, h2, .name');
+                   || $$("#grid > *, .page .card, .page .prompt").find(el=>{
+                        const t = el.querySelector('[class*="title" i], h3, h2, .name, figcaption');
                         return (t?.textContent||"").trim() === (p.title||"");
                       });
     const openBtn = container && Array.from(container.querySelectorAll("button")).find(b => /open/i.test(b.textContent||""));
     if (openBtn) openBtn.click();
   }
 
-  function renderCard(p, urls){
+  function renderCard(p){
+    const urls = p.images || [];
+    if (!urls.length) return null;
+
     const card = document.createElement("section");
     card.className = "m-card";
     card.dataset.id = p.id || Math.random().toString(36).slice(2);
@@ -152,20 +178,16 @@
     track.className = "m-track";
     carousel.appendChild(track);
 
-    const tapL = document.createElement("div");
-    tapL.className = "m-tap-left";
-    const tapR = document.createElement("div");
-    tapR.className = "m-tap-right";
-    carousel.appendChild(tapL);
-    carousel.appendChild(tapR);
+    const tapL = document.createElement("div"); tapL.className = "m-tap-left";
+    const tapR = document.createElement("div"); tapR.className = "m-tap-right";
+    carousel.appendChild(tapL); carousel.appendChild(tapR);
 
     urls.forEach(u=>{
       const item = document.createElement("div");
       item.className = "m-item";
       const img = document.createElement("img");
       img.alt = p.title || "image";
-      img.loading = "lazy";
-      img.decoding = "async";
+      img.loading = "lazy"; img.decoding = "async";
       img.src = u;
       item.appendChild(img);
       track.appendChild(item);
@@ -177,8 +199,7 @@
     title.className = "m-title";
     title.textContent = p.title || "Untitled";
     const ddots = dots(Math.max(urls.length,1));
-    row.appendChild(title);
-    row.appendChild(ddots);
+    row.appendChild(title); row.appendChild(ddots);
 
     const advance = (dir)=>{
       const w = track.clientWidth;
@@ -195,7 +216,7 @@
     };
     track.addEventListener("scroll", onScroll, {passive:true});
 
-    // tap center to open
+    // tap middle to open
     carousel.addEventListener("click", (e)=>{
       const x = e.clientX, w = carousel.clientWidth;
       if (x > w*0.33 && x < w*0.67) openPrompt(p);
@@ -207,23 +228,24 @@
   }
 
   /* ---------- Gallery mode ---------- */
-  async function mountGallery(){
+  function mountGallery(){
     const root = ensureMobileRoot();
     const sc = root.querySelector(".m-feed-scroll");
     sc.innerHTML = "";
-    let data = fromState();
-    if (!data.length) data = fromDOM();
+
+    const dom = fromDOM();
+    const data = mergeWithState(dom);
     if (!data.length){
       sc.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
       return;
     }
+
     const container = document.createElement("div");
     container.className = "m-gallery";
     sc.appendChild(container);
 
     for (const p of data){
-      const urls = await resolveAllImages(p);
-      for (const u of (urls.length ? urls : [p.cover || ""])){
+      for (const u of p.images){
         const img = document.createElement("img");
         img.className = "m-g-img";
         img.alt = p.title || "image";
@@ -237,7 +259,7 @@
   }
 
   /* ---------- Collections feed ---------- */
-  async function mountFeed(){
+  function mountFeed(){
     if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
     document.body.classList.add("mobile-active");
 
@@ -246,18 +268,21 @@
     if (!scroller) return;
 
     scroller.innerHTML = "";
-    let data = fromState();
-    if (!data.length) data = fromDOM();
+
+    const dom = fromDOM();            // DOM FIRST (prevents blanks)
+    const data = mergeWithState(dom); // merge with state if helpful
+
     if (!data.length){
       scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
       return;
     }
 
-    for (const p of data){
-      const urls = await resolveAllImages(p);
-      const card = renderCard(p, urls.length ? urls : [p.cover || ""]);
-      scroller.appendChild(card);
-    }
+    const frag = document.createDocumentFragment();
+    data.forEach(p => {
+      const card = renderCard(p);
+      if (card) frag.appendChild(card);
+    });
+    scroller.appendChild(frag);
   }
 
   /* ---------- bottom nav ---------- */
@@ -265,7 +290,7 @@
     if (!navEl || navEl._wired) return;
     navEl._wired = true;
 
-    navEl.addEventListener("click", async (e)=>{
+    navEl.addEventListener("click", (e)=>{
       const btn = e.target.closest("button[data-tab]");
       if (!btn) return;
       navEl.querySelectorAll("button[data-tab]").forEach(b => b.removeAttribute("aria-current"));
@@ -273,15 +298,11 @@
       const tab = btn.getAttribute("data-tab");
 
       if (tab === "library"){
-        (document.getElementById("openRW") ||
-         document.querySelector("[data-openrw]") ||
-         document.getElementById("openRO") ||
-         document.querySelector("[data-openro]") ||
-         document.getElementById("openZip") ||
-         Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||"")))
-        ?.click();
+        // Prefer topbar #openRW which opens your overlay; then fall back to sheet buttons
+        (document.getElementById("openRW") || document.getElementById("libRW") ||
+         document.getElementById("libFolder") || document.getElementById("libZip"))?.click();
 
-        const overlay = $(".lib-overlay");
+        const overlay = document.getElementById("libraryOverlay");
         if (overlay){
           const setFlag = ()=>{
             const hidden = overlay.classList.contains("hidden") ||
@@ -296,35 +317,35 @@
       }
 
       if (tab === "favs"){
-        (document.getElementById("toggleFavs") ||
-         document.querySelector("[data-toggle-favs]"))?.click();
+        document.getElementById("toggleFavs")?.click();
         toast("Favorites toggled");
-        setTimeout(()=> window.MobileUI?.mountFeed?.(), 60);
+        setTimeout(mountFeed, 60);
         return;
       }
 
       if (tab === "search"){
-        const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
+        const s = document.getElementById("searchBox");
         if (s){ s.focus(); s.scrollIntoView({block:"center"}); }
         else{
           const q = prompt("Search:");
           if (q != null){ state.q = String(q); window.__pv_applyFilters?.(); }
         }
-        setTimeout(()=> window.MobileUI?.mountFeed?.(), 60);
+        setTimeout(mountFeed, 60);
         return;
       }
 
       if (tab === "gallery"){
-        await mountGallery();
+        mountGallery();
         return;
       }
     });
   }
 
-  /* ---------- observers & public hook ---------- */
+  /* ---------- overlay observer & public hook ---------- */
   new MutationObserver(()=>{
-    const open = !!document.querySelector(".lib-overlay:not(.hidden):not([aria-hidden='true'])");
-    document.body.classList.toggle("overlay-open", open);
+    const overlay = document.getElementById("libraryOverlay");
+    const open = overlay && !overlay.classList.contains("hidden") && overlay.getAttribute("aria-hidden")!=="true";
+    document.body.classList.toggle("overlay-open", !!open);
   }).observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:["class","aria-hidden"] });
 
   window.MobileUI = { mountFeed, mountGallery };
