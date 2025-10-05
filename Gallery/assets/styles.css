@@ -749,6 +749,29 @@ body.gallery-view-active #detailView { display: none; }
   #detailTitle{ font-size: 18px; }
 }
 
+@media (max-width: 768px){
+  /* Hide chips & content rating */
+  #detailTags,
+  #detailRating { display: none !important; }
+
+  /* Stop left-shift: keep thumbs stable */
+  #detailThumbs img,
+  #detailThumbs img.active { transform: none !important; }
+
+  /* Highlight without changing layout width */
+  #detailThumbs img { box-sizing: border-box; }
+  #detailThumbs img.active {
+    border-width: 0 !important;
+    outline: 2px solid var(--accent,#6aa0ff) !important;
+    outline-offset: 0;
+  }
+
+  /* Safer horizontal scrolling for thumb rail */
+  #detailThumbs { gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  #detailThumbsWrap { overflow: hidden; }
+}
+
+
 /* ================== BOOT & SKELETON ================== */
 .boot-gate .actions,
 .boot-gate #filters,
