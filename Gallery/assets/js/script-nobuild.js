@@ -19,6 +19,474 @@ const state = {
   _scrollPos: 0,
 };
 
+
+// ===== NSFW helpers =====
+
+
+function refreshDetailTags(p){
+  const chipWrap = $('#detailTags');
+  if (!chipWrap) return;
+  chipWrap.innerHTML = '';
+  (p.tags || []).forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'chip';
+    span.textContent = t;
+    span.title = 'Filter by tag';
+    span.onclick = () => { if (!state.sel.has(t)) { state.sel.add(t); $$('#tagChips .chip').forEach(c => { if(c.textContent === t) c.classList.add('active'); }); applyFilters(); } };
+    chipWrap.appendChild(span);
+  });
+}
+
+function refreshCardBadge(p){
+  const card = $(`.card [data-id="${p.id}"]`)?.closest('.card');
+  if (!card) return;
+  const badge = card.querySelector('.badge');
+  if (!badge) return;
+  // Use tags (after override) to drive label
+  badge.textContent = (p.tags || []).includes('nsfw') ? 'NSFW' : 'SFW';
+}
+
+function renderRatingControl(p){
+  const wrap = document.createElement('div');
+  wrap.className = 'rating-ctrl';
+  wrap.innerHTML = `
+    <div class="rating-label">Content rating</div>
+    <div class="rating-seg">
+      <button data-set="sfw">SFW</button>
+      <button data-set="auto">Auto</button>
+      <button data-set="nsfw">NSFW</button>
+    </div>
+  `;
+
+  const btns = wrap.querySelectorAll('button');
+  const markActive = () => {
+    btns.forEach(b => b.classList.toggle('active', b.dataset.set === (p.nsfw || 'auto')));
+  };
+  markActive();
+
+  btns.forEach(b=>{
+    b.addEventListener('click', async () => {
+      const val = b.dataset.set; // 'sfw'|'auto'|'nsfw'
+      p.nsfw = val;
+      // apply to tags in-memory
+      applyNsfwOverride(p);
+      // persist if RW
+      try { await saveNsfwOverride(p); } catch {}
+
+      // refresh visible chips/badges in detail & in card grid if needed
+      try { refreshDetailTags(p); } catch {}
+      try { refreshCardBadge(p); } catch {}
+      markActive();
+    });
+  });
+
+  return wrap;
+}
+
+
+function readNsfwFlagFromMeta(meta){
+  // support either boolean "nsfw" or string "rating"
+  if (!meta) return 'auto';
+  if (typeof meta.nsfw === 'boolean') return meta.nsfw ? 'nsfw' : 'sfw';
+  if (typeof meta.rating === 'string') {
+    const r = meta.rating.toLowerCase();
+    if (r === 'nsfw') return 'nsfw';
+    if (r === 'sfw')  return 'sfw';
+  }
+  return 'auto';
+}
+
+function applyNsfwOverride(p){
+  // Ensure visual/tag consistency based on p.nsfw override
+  if (!p.tags) p.tags = [];
+  const has = p.tags.includes('nsfw');
+
+  if (p.nsfw === 'nsfw' && !has) {
+    p.tags = ['nsfw', ...p.tags];
+  } else if (p.nsfw === 'sfw' && has) {
+    p.tags = p.tags.filter(t => t !== 'nsfw');
+  }
+  // 'auto' does nothing; Tagger-derived 'nsfw' remains as-is
+}
+
+function effectiveNSFW(p){
+  if (p.nsfw === 'nsfw') return true;
+  if (p.nsfw === 'sfw')  return false;
+  return p.tags?.includes('nsfw');
+}
+
+// Write the override (RW only). Keeps existing title, writes tags + nsfw.
+async function saveNsfwOverride(p){
+  if (!state.rw || !p?.dirHandle) return;
+  let title = p.title || 'Untitled';
+  try {
+    const fh = await p.dirHandle.getFileHandle('tags.json', { create:false }).catch(()=>null);
+    if (fh) {
+      const f = await fh.getFile();
+      const j = JSON.parse(await f.text());
+      if (j?.title) title = j.title;
+    }
+  } catch {}
+  const nsfw = (p.nsfw === 'nsfw') ? true : (p.nsfw === 'sfw') ? false : undefined;
+  const payload = (nsfw === undefined) ? { title, tags: p.tags } : { title, tags: p.tags, nsfw };
+  await writeTagsJSON(p, payload);
+}
+
+/* ============================
+   AUTO-TAGGING ENGINE (no deps)
+   ============================ */
+
+const Tagger = (() => {
+  // 0) Canonical maps & stopwords  -----------------------------------------
+  // keep this list tame—focused on SD-style prompts (you can extend later)
+  const STOP = new Set([
+    'masterpiece','best','quality','ultra-detailed','ultradetailed','highres','high-res','hires',
+    'full','body','uncropped','centered','composition','solo','1girl','girl','female','woman',
+    'detailed','realistic','cinematic','shading','lighting','light','soft','warm','glow','cozy',
+    'atmosphere','background','intimate','bedroom','sheets','silky','detailed','with','and','or',
+    'either','showing','naturally','options','option','either','the','a','an','in','on','at','of',
+    'to','for','by','from','over','under','front','back','low','high','very','more','less','no','hand',
+    'neck','half','out','other','wrist','while','visibly','visible','looking','looking at viewer','looking at camera',
+    'pretending','head','herself','her','surface','view','viewer','camera','slight','slightly','own','forward','body','both',
+    'down','cheek','long','look','link','but','support','onto','only','one','through','optional','other',
+    'above','below','near','upper','edge','frame','focus','scene','setting',
+    'open','off','together','between','still','clearly','completely','poking','them','tea','wrist','up','turn','tugging',
+    'tight','toned','stare','side'
+  ]);
+
+  // simple NSFW lexical bucket (expand as you wish)
+  const NSFW_HARD = [
+    'pussy','vagina','clitoris','labia','areola','nipples','boobs','breast','penis','cum','semen','cock','vulva'
+  ];
+  const NSFW_SOFT = [
+    'nude','naked','nsfw','lewd','panties','wet','saliva','fluids','underboob','underwear','lingerie',
+    'spread','spread_pussy','pussy_spread','panties_pulled_aside'
+  ];
+
+  // === Canonicalization & Lemmatization ===
+  // Equivalence groups: all 'forms' collapse into 'canon'
+  const EQUIV = [
+    // adverb/adjective → base
+    { canon:'playful',        forms:['playfully'] },
+
+    // wetness family
+    { canon:'wet',            forms:['wetly','wetness','drenched','soaked','soaking','dripping','drippin','puddling','puddle','drenching'] },
+
+    // shiny family
+    { canon:'shiny',          forms:['shine','shining','glistening','glossy','sheen'] },
+
+    // smile / kiss / peek
+    { canon:'smile',          forms:['smiling','smiled'] },
+    { canon:'kiss',           forms:['kissing','kissed'] },
+    { canon:'peeking',        forms:['peek','peeks','peeked'] },
+
+    // orgasm / masturbation families
+    { canon:'orgasm',         forms:['orgasmic'] },
+    { canon:'masturbation',   forms:['masturbating','masturbate','self_pleasure','self-stimulation'] },
+
+    // press / squeeze / arch / blush / tie
+    { canon:'pressing',       forms:['pressed','press'] },
+    { canon:'squeezing',      forms:['squeeze','squeezed','grabbing'] },
+    { canon:'arching',        forms:['arched','arch'] },
+    { canon:'blushing',       forms:['blush','blushed'] },
+    { canon:'tied',           forms:['tie','tying'] },
+    { canon:'straddling',     forms:['straddle','straddling'] },
+
+    // posture
+    { canon:'standing',       forms:['stand','stood'] },
+    { canon:'sitting',        forms:['sit','sat'] },
+    { canon:'lying',          forms:['laying','lie','lied','lay'] },
+
+    // outfit/clothing
+    { canon:'clothes',        forms:['clothing','outfit','clothe'] },
+
+    // sunglasses
+    { canon:'sunglasses',     forms:['sunglass'] },
+
+    // light variants
+    { canon:'spotlight',      forms:['spot-light'] },
+    { canon:'sunlight',       forms:['sun light','sun-light'] },
+
+    // plurals you want singular
+    { canon:'lesbian',        forms:['lesbians'] },
+    { canon:'sofa',           forms:['sofas'] },
+    { canon:'desk',           forms:['desks'] },
+    { canon:'kitchen',        forms:['kitchens'] },
+  ];
+
+  // Build lookup map from EQUIV
+  const CANON = new Map();
+  for (const g of EQUIV) {
+    const base = g.canon.toLowerCase();
+    CANON.set(base, base);
+    for (const f of g.forms) CANON.set(f.toLowerCase(), base);
+  }
+  // plus some single-word synonyms
+  CANON.set('boobs','breasts'); CANON.set('boob','breast');
+  CANON.set('tits','breasts');  CANON.set('nipples','nipple');
+  CANON.set('pussies','vulva');  // plural directly to canonical
+  CANON.set('vagina','vulva');  CANON.set('pussy','vulva');
+  CANON.set('ass','butt');      CANON.set('buttocks','butt');
+  CANON.set('face','portrait'); CANON.set('hair','hairstyle');
+  CANON.set('see_through','see-through'); CANON.set('seethrough','see-through');
+
+  // phrase extractors (regex → emit tags[]) & text cleaner
+  // Run these BEFORE tokenization so we keep multi-word concepts.
+  const PHRASES = [
+    { re: /\b(doggy\s*style)\b/i, tags: ['pose:doggy'], strip:true },
+    { re: /\bkneeling on bed\b/i, tags: ['kneeling','bed'], strip:true },
+    { re: /\blegs?\s+spread\b/i, tags: ['legs_spread'], strip:true },
+    { re: /\bhead turned back\b/i, tags: ['look_back'], strip:true },
+    { re: /\bsitting on (?:the )?edge of bed\b/i, tags: ['sitting','bed_edge'], strip:true },
+    { re: /\bangle (?:very )?low\b/i, tags: ['cam:low_angle'], strip:true },
+    { re: /\blow front perspective\b/i, tags: ['cam:low_front'], strip:true },
+    { re: /\bcentered composition\b/i, tags: ['framing:centered'], strip:true },
+    { re: /\bsoft warm (?:bedroom )?lighting\b/i, tags: ['light:soft_warm'], strip:true },
+    { re: /\bwarm sunset glow\b/i, tags: ['light:sunset_glow'], strip:true },
+    { re: /\bflushed(?: cheeks)?\b/i, tags: ['face:flushed'], strip:true },
+    { re: /\b(inviting|seductive) expression\b/i, tags: ['exp:seductive'], strip:true },
+    { re: /\bpony(?:\s|-)?tail\b/i, tags: ['hair:ponytail'], strip:true },
+    { re: /\bcolored hair\b/i, tags: ['hair:colored'], strip:true },
+    { re: /\b(earrings?)\b/i, tags: ['accessory:earrings'], strip:true },
+    { re: /\bleg warmers?\b/i, tags: ['accessory:leg_warmers'], strip:true },
+    { re: /\bcrop top\b/i, tags: ['clothes:crop_top'], strip:true },
+    { re: /\bloose slipping t-?shirt\b/i, tags: ['clothes:loose_tshirt'], strip:true },
+    { re: /\bpanties pulled aside\b/i, tags: ['panties_pulled_aside'], strip:true },
+    { re: /\bwet panties\b/i, tags: ['panties_wet'], strip:true },
+    { re: /\bspread pussy\b/i, tags: ['pussy_spread'], strip:true },
+    { re: /\bsqueez(?:ing|e) (?:her )?own boob\b/i, tags: ['hands:on_breast'], strip:true },
+    { re: /\b(fingering)\b/i, tags: ['fingering'], strip:true },
+    { re: /\bpressing down on (?:her )?own ass(?: cheek)?\b/i, tags: ['hands:on_butt'], strip:true },
+    { re: /\bbreasts (?:either )?pressed against bed\b/i, tags: ['breasts:pressed'], strip:true },
+    { re: /\bbreasts? hanging naturally\b/i, tags: ['breasts:hanging'], strip:true },
+    { re: /\bass raised high\b/i, tags: ['butt:raised'], strip:true },
+    { re: /\bbed(?:room)?\b/i, tags: ['scene:bedroom'], strip:false }, // keep the word too
+  ];
+
+  // light morphological reducer for common English endings
+// 1) No plural logic here; only adverbs/nominalizers and verb endings.
+function reduceVariant(tok) {
+  let t = tok;
+
+  // adverbs / nominalizers
+  if (t.endsWith('ly')   && t.length > 4) t = t.slice(0, -2);   // playfully → playful
+  if (t.endsWith('ness') && t.length > 6) t = t.slice(0, -4);   // wetness  → wet
+
+  // -ing → base (restore silent 'e' for outline/outlining, etc.)
+  if (t.endsWith('ing') && t.length > 5) {
+    const stem = t.slice(0, -3);
+    if (/[^aeiou]lin$/.test(stem)) t = stem + 'e';  // outlin → outline
+    else                           t = stem;
+  }
+
+  // -ed → base (restore silent 'e' for outlined → outline)
+  if (t.endsWith('ed') && t.length > 4) {
+    const stem = t.slice(0, -2);
+    if (/[^aeiou]lin$/.test(stem)) t = stem + 'e';
+    else                           t = stem;
+  }
+
+  return t;
+}
+
+// 2) Proper plural → singular logic lives here.
+function singularize(tok){
+  let t = tok;
+
+  // panties → panty, bodies → body, etc.
+  if (t.endsWith('ies') && t.length > 4) return t.slice(0, -3) + 'y';
+
+  // -sses / -zzes (e.g., kisses handled below; classes → class via -es rule)
+  if (t.endsWith('sses') || t.endsWith('zzes')) return t.slice(0, -2);
+
+  // -es after sibilants/zh/x/ch/sh/z (boxes → box, kisses → kiss, bushes → bush)
+  if (t.endsWith('es') && t.length > 4) {
+    const root = t.slice(0, -2);
+    if (/(s|x|z|ch|sh)$/.test(root)) return root;
+    // otherwise fall through to the general -s rule below
+  }
+
+  // General final -s (but not -ss)
+  if (t.endsWith('s') && t.length > 3 && !t.endsWith('ss')) t = t.slice(0, -1);
+
+  // final safety: sometimes upstream steps can yield "panti"
+  if (t === 'panti') t = 'panty';
+
+  return t;
+}
+
+
+  // simple plural → singular trim (only for common anatomy/etc)
+  function singularize(tok){
+    if (tok.endsWith('ies')) return tok.slice(0,-3)+'y';
+    if (tok.endsWith('sses')||tok.endsWith('zzes')) return tok.slice(0,-2);
+    if (tok.endsWith('s') && tok.length > 3 && !tok.endsWith('ss')) return tok.slice(0,-1);
+    return tok;
+  }
+
+  // utility helpers ---------------------------------------------------------
+  function normalize(s){
+    // unify separators, flatten option braces, strip weights like `)1.4` or `(tag:1.2)`
+    return s
+      .replace(/[{}]/g, ', ')
+      .replace(/[()]/g, ' ')
+      .replace(/:[0-9.]+/g, '')       // (tag:1.2) → tag
+      .replace(/[,/|]+/g, ',')        // unify separators
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function tokenize(s){
+    return s
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .map(w=> w.replace(/[^a-z:_-]/g,''))
+      .filter(Boolean);
+  }
+
+  // final canonicalizer used by Tagger
+  function canon(tok){
+    let t = tok.toLowerCase();
+
+    // fix a few common typos seen in screenshots
+    const typos = {
+      invinting:'inviting',
+      focu:'focus',
+      clothe:'clothes',
+      mischievou:'mischievous',
+    };
+    if (typos[t]) t = typos[t];
+
+    // reduce morphology
+    t = reduceVariant(t);
+
+    // map via equivalence groups & synonyms
+    if (CANON.has(t)) t = CANON.get(t);
+
+    // extra single-word synonyms not covered in EQUIV
+    const quick = {
+      boobs:'breasts', boob:'breast', tits:'breasts', nipples:'nipple',
+      vagina:'vulva', pussy:'vulva', clit:'clitoris',
+      outfit:'clothes', clothing:'clothes'
+    };
+    if (quick[t]) t = quick[t];
+
+    // final plural → singular normalization
+    t = singularize(t);
+    return t;
+  }
+
+  function scoreToken(tok){
+    // lightweight scoring: anatomy/actions/camera > setting > generic
+    if (/^(pose:|cam:|hands:|breasts:|butt:|face:|exp:)/.test(tok)) return 5;
+    if (/^(light:|scene:|framing:|hair:|accessory:|clothes:)/.test(tok)) return 4;
+    if (NSFW_HARD.includes(tok)) return 6;
+    if (NSFW_SOFT.includes(tok)) return 4.5;
+    if (tok.length <= 2) return 0.5;
+    return 2;
+  }
+
+  function postProcess(bag){
+    // 1) NSFW flag
+    const hasHard = NSFW_HARD.some(w => bag.has(w));
+    const hasSoft = NSFW_SOFT.some(w => bag.has(w));
+    if (hasHard || hasSoft) bag.set('nsfw', (bag.get('nsfw')||0) + (hasHard? 6 : 4));
+
+    // 2) collapse near-duplicates (e.g., panties_wet + wet → keep panties_wet)
+    if (bag.has('wet') && bag.has('panties_wet')) bag.delete('wet');
+
+    return bag;
+  }
+
+  function bagToSortedArray(bag, limit=24){
+    return [...bag.entries()]
+      .sort((a,b)=> b[1] - a[1])
+      .slice(0, limit)
+      .map(([t])=>t);
+  }
+
+  // public: extract tags from raw prompt text
+  function extract(rawText){
+    if (!rawText || typeof rawText !== 'string') return [];
+    let text = rawText;
+
+    // 1) phrase pass (emit tags and optionally strip matched text)
+    const em = new Set();
+    PHRASES.forEach(p=>{
+      const m = text.match(p.re);
+      if (m) {
+        p.tags.forEach(t=> em.add(t));
+        if (p.strip) text = text.replace(p.re, ' ');
+      }
+    });
+
+    // 2) normalize & tokenize
+    text = normalize(text);
+    const tokens = tokenize(text);
+
+    // 3) build frequency bag
+    const bag = new Map();
+    for (let tok of tokens){
+      if (!tok || STOP.has(tok)) continue;
+
+      // canon & score
+      tok = canon(tok);
+
+      // light normalization of common SD tokens
+      if (tok === '1girl') tok = 'solo_female';
+      if (tok === 'solo') tok = 'solo_female';
+
+      const sc = scoreToken(tok);
+      if (sc <= 0) continue;
+      bag.set(tok, (bag.get(tok)||0) + sc);
+    }
+
+    // 4) merge phrase-emitted tags with higher weight
+    em.forEach(t => bag.set(t, (bag.get(t)||0)+6));
+
+    // 5) post process + finalize
+    postProcess(bag);
+    return bagToSortedArray(bag);
+  }
+
+  // bulk helper: mutate prompts list with generated tags
+  async function tagPrompts(list, {writeBack=false} = {}){
+    const BATCH = 24;
+    for (let i = 0; i < list.length; i += BATCH){
+      const slice = list.slice(i, i+BATCH);
+      await Promise.all(slice.map(async (p)=>{
+        try{
+          const txt = await loadPromptText(p);
+          const tags = extract(txt);
+          p.tags = tags;
+
+          // Optional: write back to tags.json (title preserved if available)
+          if (writeBack && state.rw && p.dirHandle){
+            let title = p.title || 'Untitled';
+            try{
+              // if there is an existing tags.json, try to keep any other fields
+              const fh = await p.dirHandle.getFileHandle('tags.json', { create:false }).catch(()=>null);
+              if (fh) {
+                const f = await fh.getFile(); const j = JSON.parse(await f.text());
+                title = (j && j.title) ? j.title : title;
+              }
+            }catch{}
+            await writeTagsJSON(p, { title, tags });
+          }
+        }catch(e){
+          console.warn('Tagging failed for', p?.id, e);
+          p.tags = [];
+        }
+      }));
+      await new Promise(r=> setTimeout(r,0));
+    }
+  }
+
+  return { extract, tagPrompts };
+})();
+
+
+
 /* ========== R/W FILE SYSTEM HELPERS ========== */
 async function deleteImage(prompt, imageHandle) {
   if (!prompt.dirHandle || !confirm(`Are you sure you want to delete ${imageHandle.name}? This cannot be undone.`)) {
@@ -246,38 +714,80 @@ async function rescanCurrentLibrary() {
 async function tryGetSubdir(dir,name){ try{ return await dir.getDirectoryHandle(name,{create:false}); }catch{ return null; } }
 
 async function scanPromptsRW(promptsDir) {
-  const items = []; const tagSet = new Set();
+  const items = [];
+
   for await (const [entryName, entryHandle] of promptsDir.entries()) {
     if (entryHandle.kind !== 'directory') continue;
+
     const folder = `prompts/${entryName}`;
-    const p = { id: folder.replace(/\s+/g, '-').toLowerCase(), title: entryName, tags: [], folder, files: { prompt: null, tags: null, previews: [] }, dirHandle: entryHandle, favorite: false, rootHandle: state.rootHandle };
+    const p = {
+      id: folder.replace(/\s+/g, '-').toLowerCase(),
+      title: entryName,
+      tags: [],
+      folder,
+      files: { prompt: null, tags: null, previews: [] },
+      dirHandle: entryHandle,
+      favorite: false,
+      rootHandle: state.rootHandle,
+      nsfw: 'auto', // 'nsfw' | 'sfw' | 'auto'
+    };
+
+    // Walk files inside the prompt folder
     for await (const [childName, child] of entryHandle.entries()) {
       const lower = childName.toLowerCase();
       if (child.kind === 'file') {
-        if (lower === 'prompt.txt') { p.files.prompt = child; }
-        else if (lower === 'tags.json') { p.files.tags = child; }
-        else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(lower)) { p.files.previews.push(child); }
-        else if(lower==='favorites.json'){ const data=await readJSONHandle(child).catch(()=>null); if(data?.favorite===true) p.favorite=true; }
+        if (lower === 'prompt.txt') {
+          p.files.prompt = child;
+        } else if (lower === 'tags.json') {
+          p.files.tags = child; // we’ll read only {title, nsfw}
+        } else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(lower)) {
+          p.files.previews.push(child);
+        } else if (lower === 'favorites.json') {
+          const data = await readJSONHandle(child).catch(() => null);
+          if (data?.favorite === true) p.favorite = true;
+        }
       }
     }
-    if (!p.files.tags) continue;
-    const meta = await readJSONHandle(p.files.tags).catch(() => null);
-    if (!meta) continue;
-    p.title = meta.title || p.title;
-    p.tags = Array.isArray(meta.tags) ? meta.tags : [];
-    p.tags.forEach(t => tagSet.add(t));
+
+    // Require prompt.txt to consider it a valid collection
+    if (!p.files.prompt) continue;
+
+    // Use tags.json only for title + nsfw flag (ignore old tags)
+    if (p.files.tags) {
+      const meta = await readJSONHandle(p.files.tags).catch(() => null);
+      if (meta?.title) p.title = meta.title;
+      p.nsfw = readNsfwFlagFromMeta(meta); // 'nsfw' | 'sfw' | 'auto'
+    }
+
+    // Cover-first sort: files starting with '_' come first
     p.files.previews.sort((a, b) => {
-        const aIsCover = a.name.startsWith('_');
-        const bIsCover = b.name.startsWith('_');
-        if (aIsCover && !bIsCover) return -1;
-        if (!aIsCover && bIsCover) return 1;
-        return a.name.localeCompare(b.name);
+      const aIsCover = a.name.startsWith('_');
+      const bIsCover = b.name.startsWith('_');
+      if (aIsCover && !bIsCover) return -1;
+      if (!aIsCover && bIsCover) return 1;
+      return a.name.localeCompare(b.name);
     });
+
     items.push(p);
   }
+
+  // Auto-generate tags from prompt text
+  await Tagger.tagPrompts(items, { writeBack: false });
+
+  // Apply manual NSFW/SFW override (adds/removes 'nsfw' tag)
+  items.forEach(applyNsfwOverride);
+
+  // Build global tag set
+  const tagSet = new Set();
+  items.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
+
+  // Sort by title for grid
   items.sort((a, b) => a.title.localeCompare(b.title));
+
   return { items, tagSet };
 }
+
+
 
 async function readJSONHandle(h) { const f = await h.getFile(); return JSON.parse(await f.text()); }
 
@@ -289,94 +799,209 @@ async function handleDirPickReadOnly(e) {
 
 function isZipEntry(x) { return x && typeof x.async === 'function' && typeof x.name === 'string'; }
 
-async function handleZipFile(file){
-  if (!file) { return; }
+async function handleZipFile(file) {
+  if (!file) return;
   const libMsg = $('#libMsg');
-  if (!/\.zip$/i.test(file.name)) { libMsg.textContent = 'Please choose a .zip file.'; return; }
-  if (!window.JSZip) { libMsg.textContent = 'ZIP support not loaded.'; return; }
+
+  if (!/\.zip$/i.test(file.name)) {
+    libMsg.textContent = 'Please choose a .zip file.';
+    return;
+  }
+  if (!window.JSZip) {
+    libMsg.textContent = 'ZIP support not loaded.';
+    return;
+  }
+
   try {
     libMsg.textContent = 'Reading ZIP…';
     const ab = await file.arrayBuffer();
-    const zip = await JSZip.loadAsync(ab, { createFolders:false });
+    const zip = await JSZip.loadAsync(ab, { createFolders: false });
     const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
+
+    // Group by prompt folder
     const groups = new Map();
-    for (const zf of fileEntries){
+    for (const zf of fileEntries) {
       const rel = (zf.name || '').replace(/^[\/]+/, '');
       const parts = rel.split('/').filter(Boolean);
+
       let folderKey;
       const pIdx = parts.indexOf('prompts');
       if (pIdx >= 0) {
-        if (parts.length < pIdx + 2) continue;
+        if (parts.length < pIdx + 2) continue; // need /prompts/<folder>/...
         folderKey = parts.slice(0, pIdx + 2).join('/');
       } else {
+        // accept <folder>/... (fallback)
         if (parts.length < 2) continue;
         folderKey = `prompts/${parts[0]}`;
       }
-      const leaf = (parts.at(-1) || '').toLowerCase();
-      if (leaf !== 'prompt.txt' && leaf !== 'tags.json' && !/\.(jpg|jpeg|png|webp|avif)$/i.test(leaf)) continue;
-      const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
-      if (leaf === 'prompt.txt') bucket.promptFile = zf;
-      else if (leaf === 'tags.json') bucket.tagsFile = zf;
-      else bucket.previews.push(zf);
-      groups.set(folderKey, bucket);
+
+      let g = groups.get(folderKey);
+      if (!g) {
+        g = { folder: folderKey, prompt: null, tagsFile: null, previews: [], favFile: null };
+        groups.set(folderKey, g);
+      }
+
+      const base = parts[parts.length - 1].toLowerCase();
+      if (base === 'prompt.txt') g.prompt = zf;
+      else if (base === 'tags.json') g.tagsFile = zf;           // title + nsfw only
+      else if (base === 'favorites.json') g.favFile = zf;
+      else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(base)) g.previews.push(zf);
     }
+
+    // Build items
     const all = [];
-    const tagSet = new Set();
-    for (const g of groups.values()){
-      if (!g.tagsFile) continue;
-      let meta=null; try { meta = JSON.parse(await g.tagsFile.async('string')); } catch { continue; }
-      const id = g.folder.replace(/\s+/g,'-').toLowerCase();
-      const title = meta.title || g.folder.split('/').at(-1);
-      const tags = Array.isArray(meta.tags) ? meta.tags : [];
-      tags.forEach(t => tagSet.add(t));
-      g.previews.sort((a,b)=> a.name.localeCompare(b.name));
-      all.push({ id, title, tags, folder: g.folder, files: { prompt: g.promptFile, tags: g.tagsFile, previews: g.previews }, favorite: FavStore.has(id) });
+    for (const g of groups.values()) {
+      if (!g.prompt) continue; // require prompt.txt
+
+      let title = g.folder.split('/').at(-1);
+      let nsfwFlag = 'auto';
+
+      if (g.tagsFile) {
+        try {
+          const meta = JSON.parse(await g.tagsFile.async('string'));
+          if (meta?.title) title = meta.title;
+          nsfwFlag = readNsfwFlagFromMeta(meta);
+        } catch {}
+      }
+
+      const id = g.folder.replace(/\s+/g, '-').toLowerCase();
+
+      // favorite from favorites.json (if any), else leave false
+      let favorite = false;
+      if (g.favFile) {
+        try {
+          const favObj = JSON.parse(await g.favFile.async('string'));
+          favorite = !!favObj?.favorite;
+        } catch {}
+      } else {
+        // ZIP mode usually doesn’t use FavStore; keep false or your memory logic
+        favorite = false;
+      }
+
+      g.previews.sort((a, b) => a.name.localeCompare(b.name));
+
+      all.push({
+        id,
+        title,
+        tags: [], // will be generated
+        folder: g.folder,
+        files: { prompt: g.prompt, tags: g.tagsFile, previews: g.previews },
+        favorite,
+        nsfw: nsfwFlag
+      });
     }
+
+    if (!all.length) {
+      libMsg.textContent = 'No prompts detected in ZIP.';
+      return;
+    }
+
+    // Generate tags from prompt
+    await Tagger.tagPrompts(all, { writeBack: false });
+
+    // Apply NSFW override
+    all.forEach(applyNsfwOverride);
+
+    // Global tag set
+    const tagSet = new Set();
+    all.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
+
     await finalizeLibrary(all, tagSet);
-  } catch (err){ console.error('ZIP parse failed:', err); libMsg.textContent = 'Failed to read ZIP.'; }
+  } catch (err) {
+    console.error('ZIP parse failed:', err);
+    libMsg.textContent = 'Failed to read ZIP.';
+  }
 }
 
-async function buildFromLooseFiles(files){
+
+
+async function buildFromLooseFiles(files) {
   const libMsg = $('#libMsg');
   libMsg.textContent = 'Indexing files…';
+
+  // Group by prompt folder
   const groups = new Map();
-  for (const f of files){
+  for (const f of files) {
     const rel = (f.webkitRelativePath || f.name).replace(/^[\/]*/, '');
     const parts = rel.split('/');
-    if (parts.length >= 1){
-      let folderKey;
-      const pIdx = parts.indexOf('prompts');
-      if (pIdx >= 0){
-        if (parts.length >= pIdx + 2) folderKey = parts.slice(0, pIdx + 2).join('/');
-      } else {
-        if (parts.length >= 2) folderKey = `prompts/${parts[0]}`;
-      }
-      if (folderKey){
-        const bucket = groups.get(folderKey) || { folder: folderKey, promptFile:null, tagsFile:null, previews:[] };
-        const leaf = (parts.at(-1) || '').toLowerCase();
-        if (leaf === 'prompt.txt') bucket.promptFile = f;
-        else if (leaf === 'tags.json') bucket.tagsFile = f;
-        else if (/(\.jpg|\.jpeg|\.png|\.webp|\.avif)$/i.test(leaf)) bucket.previews.push(f);
-        groups.set(folderKey, bucket);
-      }
+
+    let folderKey;
+    const pIdx = parts.indexOf('prompts');
+    if (pIdx >= 0) {
+      if (parts.length >= pIdx + 2) folderKey = parts.slice(0, pIdx + 2).join('/');
+    } else {
+      if (parts.length >= 2) folderKey = `prompts/${parts[0]}`;
     }
+    if (!folderKey) continue;
+
+    let g = groups.get(folderKey);
+    if (!g) {
+      g = { folder: folderKey, promptFile: null, tagsFile: null, previews: [], favFile: null };
+      groups.set(folderKey, g);
+    }
+
+    const base = parts[parts.length - 1].toLowerCase();
+    if (base === 'prompt.txt') g.promptFile = f;
+    else if (base === 'tags.json') g.tagsFile = f;         // title + nsfw only
+    else if (base === 'favorites.json') g.favFile = f;
+    else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(base)) g.previews.push(f);
   }
+
+  // Build items
   const all = [];
-  const tagSet = new Set();
-  for (const [folder, g] of groups.entries()){
-    if (!g.tagsFile) continue;
-    const meta = await readJSONFile(g.tagsFile).catch(()=>null);
-    if (!meta) continue;
-    const id = folder.replace(/\s+/g,'-').toLowerCase();
-    const title = meta.title || folder.split('/').at(-1);
-    const tags = Array.isArray(meta.tags) ? meta.tags : [];
-    tags.forEach(t=> tagSet.add(t));
-    g.previews.sort((a,b)=> a.name.localeCompare(b.name));
-    all.push({ id, title, tags, folder, files:{ prompt:g.promptFile, tags:g.tagsFile, previews:g.previews }, favorite: FavStore.has(id) });
+  for (const [folder, g] of groups.entries()) {
+    if (!g.promptFile) continue; // require prompt.txt
+
+    let title = folder.split('/').at(-1);
+    let nsfwFlag = 'auto';
+
+    if (g.tagsFile) {
+      const meta = await readJSONFile(g.tagsFile).catch(() => null);
+      if (meta?.title) title = meta.title;
+      nsfwFlag = readNsfwFlagFromMeta(meta);
+    }
+
+    const id = folder.replace(/\s+/g, '-').toLowerCase();
+
+    // favorite from favorites.json else false
+    let favorite = false;
+    if (g.favFile) {
+      const favObj = await readJSONFile(g.favFile).catch(() => null);
+      favorite = !!favObj?.favorite;
+    }
+
+    g.previews.sort((a, b) => a.name.localeCompare(b.name));
+
+    all.push({
+      id,
+      title,
+      tags: [], // generated later
+      folder,
+      files: { prompt: g.promptFile, tags: g.tagsFile, previews: g.previews },
+      favorite,
+      nsfw: nsfwFlag
+    });
   }
-  if (!all.length){ libMsg.textContent = 'No prompts detected. Select your /prompts (with tags.json).'; return; }
+
+  if (!all.length) {
+    libMsg.textContent = 'No prompts detected. Select your /prompts with prompt.txt files.';
+    return;
+  }
+
+  // Generate tags from prompt
+  await Tagger.tagPrompts(all, { writeBack: false });
+
+  // Apply NSFW override
+  all.forEach(applyNsfwOverride);
+
+  // Global tag set
+  const tagSet = new Set();
+  all.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
+
   await finalizeLibrary(all, tagSet);
 }
+
+
 
 async function readJSONFile(f){ return JSON.parse(await f.text()); }
 
@@ -800,6 +1425,18 @@ function openDetailView(p) {
   view.setAttribute('aria-hidden', 'false');
   lockScroll();
   window.addEventListener('keydown', handleDetailKeys);
+
+  applyNsfwOverride(p);
+
+// mount rating control
+const ratingMount = document.getElementById('detailRating');
+if (ratingMount) {
+  ratingMount.innerHTML = '';
+  ratingMount.appendChild(renderRatingControl(p));
+}
+
+// make sure the visible chips match (nsfw chip etc.)
+refreshDetailTags(p);
 }
 
 function closeDetailView() {
