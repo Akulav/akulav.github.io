@@ -1,18 +1,17 @@
-/* ======== Mobile "TikTok-style" UI Layer ========
-   - Renders a simple feed (image + title) on <=768px screens
-   - No RW action buttons on mobile
-   - Works even if images are FileSystem handles (resolves to object URLs)
-   - Bottom nav is wired to desktop logic (clear, search, favorites, library)
+/* ======== Mobile "Collections feed" UI ========
+   - Vertical scroll of collections (prompts)
+   - Each collection has a horizontal, swipeable image carousel
+   - Zero RW actions on mobile; tap opens desktop detail
+   - Uses PV.state when available; falls back to DOM scraping
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
   const $  = (s, el=document) => el.querySelector(s);
   const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
-
   const PVNS  = window.PV || (window.PV = {});
   const state = PVNS.state || (PVNS.state = {});
 
-  // ---------- helpers ----------
+  /* ---------- toast ---------- */
   function toast(msg){
     let t = $(".m-toast");
     if (!t){
@@ -23,9 +22,10 @@
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(t._hid);
-    t._hid = setTimeout(()=> t.classList.remove("show"), 1200);
+    t._hid = setTimeout(()=> t.classList.remove("show"), 1000);
   }
 
+  /* ---------- mount root ---------- */
   function ensureMobileRoot(){
     let root = $(".mobile-feed");
     if (!root){
@@ -54,172 +54,163 @@
       document.body.appendChild(root);
       wireNav(nav);
     }
-
     document.body.classList.toggle("mobile-active", isMobile());
     return root;
   }
 
-  // Try to get a visible list of prompts from state
-  function collectFromState(){
+  /* ---------- data sources ---------- */
+  function fromState(){
     const arr = (state.filtered && Array.isArray(state.filtered) && state.filtered.length)
       ? state.filtered
       : state.all;
     if (!Array.isArray(arr)) return [];
-    return arr.map((x,i) => normalizePrompt(x, i));
+    return arr.map((x,i)=> normalizePrompt(x, i));
   }
 
-  // DOM fallback — read from existing desktop cards
-  function collectFromDOM(){
+  function fromDOM(){
     const cards = $$(".page .card, .page .prompt, .page [data-id]");
     const list = [];
-    cards.forEach((n,i)=>{
-      const img = n.querySelector("img");
-      if (!img) return;
-      const titleEl = n.querySelector('[class*="title" i], h3, h2, .name') || {};
-      const chips = Array.from(n.querySelectorAll('.chips .chip, .tags .tag, .chip')).slice(0,12).map(c=>c.textContent.trim());
-      list.push({
-        id: n.getAttribute("data-id") || img.currentSrc || img.src || ("d_" + i),
-        title: (titleEl.textContent || "").trim() || "Untitled",
-        cover: img.currentSrc || img.src || "",
-        images: [img.currentSrc || img.src].filter(Boolean),
-        tags: chips
-      });
+    cards.forEach((node,i)=>{
+      const titleEl = node.querySelector('[class*="title" i], h3, h2, .name');
+      const imgs = Array.from(node.querySelectorAll("img"));
+      if (!imgs.length) return;
+      const title = (titleEl?.textContent || "").trim() || `Item #${i+1}`;
+      const urls  = imgs.map(im => im.currentSrc || im.src).filter(Boolean);
+      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, images: urls, cover: urls[0] });
     });
     return list;
   }
 
   function normalizePrompt(x, i){
+    const images = [];
+    if (Array.isArray(x.images)) images.push(...x.images);
+    if (x.image && !images.length) images.push(x.image);
+    if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
+    if (x.preview) images.unshift(x.preview);
+    if (x.cover) images.unshift(x.cover);
+
     return {
-      id: x.id || x.ID || x.title || ("p_" + i),
+      id: x.id || x.ID || x.title || ("p_"+i),
       title: x.title || x.name || `Prompt #${i+1}`,
-      tags: x.tags || x.keywords || [],
-      cover: x.cover || (x.images && x.images[0]) || x.image || x.preview || null,
-      images: x.images || (x.image ? [x.image] : []),
-      dirHandle: x.dirHandle,     // keep handles for FS fetch
-      files: x.files              // some builds keep {previews:[FileHandle,...]}
+      images: images.filter(Boolean),
+      cover: x.cover || images[0] || "",
+      dirHandle: x.dirHandle,
+      files: x.files
     };
   }
 
   async function fileHandleToUrl(h){
-    try{
-      const f = await h.getFile();
-      return URL.createObjectURL(f);
-    }catch(_){ return null; }
+    try{ const f = await h.getFile(); return URL.createObjectURL(f); }
+    catch(_){ return null; }
   }
 
-  // Resolve a usable image URL from the prompt data; async when needed.
-  async function resolveImageUrl(p){
-    // direct string
-    if (typeof p.cover === "string" && p.cover) return p.cover;
-
-    // PV helpers if present
-    if (window.PV){
-      if (typeof PV.getImageURL === "function"){
-        try{ const u = await PV.getImageURL(p, 0); if (u) return u; }catch(_){}
-      }
-      if (typeof PV.urlForImage === "function"){
-        try{ const u = await PV.urlForImage(p, 0); if (u) return u; }catch(_){}
-      }
-    }
-
-    // images array: strings or handles
-    if (Array.isArray(p.images) && p.images.length){
-      for (const it of p.images){
-        if (typeof it === "string" && it) return it;
-        if (it && typeof it.getFile === "function"){ const u = await fileHandleToUrl(it); if (u) return u; }
-      }
-    }
-
-    // known place for preview handles
-    const previews = p.files && (p.files.previews || p.files.images || p.files.list);
-    if (Array.isArray(previews)){
-      for (const h of previews){
-        if (typeof h === "string" && h) return h;
-        if (h && typeof h.getFile === "function"){ const u = await fileHandleToUrl(h); if (u) return u; }
-      }
-    }
-
-    // DOM fallback: find a desktop card image by id/title
-    const byId = $(`.page [data-id="${CSS.escape(p.id||"")}"] img`);
-    if (byId && (byId.currentSrc || byId.src)) return byId.currentSrc || byId.src;
-
-    const titleSel = `.page [class*="title" i], .page h2, .page h3, .page .name`;
-    const candidates = $$(titleSel).filter(el => (el.textContent||"").trim() === (p.title||""));
-    for (const el of candidates){
-      const img = el.closest(".card,.prompt,[data-id]")?.querySelector("img");
-      if (img && (img.currentSrc || img.src)) return img.currentSrc || img.src;
-    }
-
+  async function toUrl(item){
+    if (typeof item === "string") return item;
+    if (item && typeof item.getFile === "function") return await fileHandleToUrl(item);
     return "";
   }
 
-  function renderCard(p){
+  async function resolveAllImages(p){
+    const srcs = [];
+    for (const it of (p.images || [])){
+      const u = await toUrl(it);
+      if (u) srcs.push(u);
+    }
+    if (!srcs.length && p.cover) {
+      const u = await toUrl(p.cover);
+      if (u) srcs.push(u);
+    }
+    return srcs;
+  }
+
+  /* ---------- UI pieces ---------- */
+  function dots(n){
+    const wrap = document.createElement("div");
+    wrap.className = "m-dots";
+    for (let i=0; i<n; i++){
+      const d = document.createElement("span");
+      d.className = "m-dot";
+      if (i===0) d.classList.add("is-on");
+      wrap.appendChild(d);
+    }
+    return wrap;
+  }
+
+  function setDotActive(dotsEl, idx){
+    const children = Array.from(dotsEl.children);
+    children.forEach((el,i)=> el.classList.toggle("is-on", i===idx));
+  }
+
+  function openPrompt(p){
+    // preferred desktop hook
+    if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
+
+    // fallback: click "Open" on matching desktop card
+    const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
+                   || $$(".page .card, .page .prompt").find(el => {
+                        const te = el.querySelector('[class*="title" i], h3, h2, .name');
+                        return (te?.textContent||"").trim() === (p.title||"");
+                      });
+    const openBtn = container && Array.from(container.querySelectorAll("button")).find(b => /open/i.test(b.textContent||""));
+    if (openBtn) openBtn.click();
+  }
+
+  function renderCard(p, urls){
     const card = document.createElement("section");
     card.className = "m-card";
     card.dataset.id = p.id || Math.random().toString(36).slice(2);
 
-    const media = document.createElement("div");
-    media.className = "m-card-media";
-    const img = document.createElement("img");
-    img.alt = p.title || "image";
-    media.appendChild(img);
+    /* carousel */
+    const carousel = document.createElement("div");
+    carousel.className = "m-carousel";
+    const track = document.createElement("div");
+    track.className = "m-track";
+    carousel.appendChild(track);
 
-    const meta = document.createElement("div");
-    meta.className = "m-card-meta";
-    const t = document.createElement("div");
-    t.className = "m-title";
-    t.textContent = p.title || "Untitled";
-
-    const tagsWrap = document.createElement("div");
-    tagsWrap.className = "m-tags";
-    (p.tags || []).slice(0,12).forEach(tag => {
-      const chip = document.createElement("span");
-      chip.className = "m-tag";
-      chip.textContent = tag;
-      tagsWrap.appendChild(chip);
+    urls.forEach(u=>{
+      const item = document.createElement("div");
+      item.className = "m-item";
+      const img = document.createElement("img");
+      img.alt = p.title || "image";
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.src = u;
+      item.appendChild(img);
+      track.appendChild(item);
     });
 
-    meta.appendChild(t);
-    meta.appendChild(tagsWrap);
+    /* title row */
+    const row = document.createElement("div");
+    row.className = "m-row";
+    const title = document.createElement("div");
+    title.className = "m-title";
+    title.textContent = p.title || "Untitled";
+    const ddots = dots(Math.max(urls.length,1));
+    row.appendChild(title);
+    row.appendChild(ddots);
 
-    // open detail on tap
-    card.addEventListener("click", ()=> openPrompt(p));
+    /* swipe position → dots */
+    const onScroll = ()=>{
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      setDotActive(ddots, Math.max(0, Math.min(idx, urls.length-1)));
+    };
+    track.addEventListener("scroll", onScroll, {passive:true});
+    // jump to next/prev on tap near edges
+    carousel.addEventListener("click", (e)=>{
+      const x = e.clientX, w = carousel.clientWidth;
+      const cur = Math.round(track.scrollLeft / w);
+      if (x > w*0.66) track.scrollTo({left: (cur+1)*w, behavior:'smooth'});
+      else if (x < w*0.34) track.scrollTo({left: Math.max(0,cur-1)*w, behavior:'smooth'});
+      else openPrompt(p);
+    });
 
-    card.appendChild(media);
-    card.appendChild(meta);
-
-    // async image resolution
-    resolveImageUrl(p).then(url => { if (url) img.src = url; });
-
+    card.appendChild(carousel);
+    card.appendChild(row);
     return card;
   }
 
-  function openPrompt(p){
-    // Prefer a direct API if your app exposes one
-    if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
-
-    // Otherwise click the "Open" button on the desktop card if we can find it
-    const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
-                   || $$(".page .card, .page .prompt").find(el => {
-                        const titleEl = el.querySelector('[class*="title" i], h3, h2, .name');
-                        return (titleEl?.textContent||"").trim() === (p.title||"");
-                      });
-    const openBtn = container && (container.querySelector('button') && Array.from(container.querySelectorAll('button')).find(b => /open/i.test(b.textContent||"")));
-    if (openBtn){ openBtn.click(); return; }
-  }
-
-  function getPrompts(){
-    const fromState = collectFromState();
-    // If state exists but images look unresolved, fall back to DOM
-    const looksEmpty = !fromState.length || fromState.every(p => !p.cover && !(Array.isArray(p.images) && p.images.length));
-    if (looksEmpty){
-      const fromDom = collectFromDOM();
-      if (fromDom.length) return fromDom;
-    }
-    return fromState;
-  }
-
-  function mountFeed(){
+  /* ---------- main render ---------- */
+  async function mountFeed(){
     if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
     document.body.classList.add("mobile-active");
 
@@ -228,22 +219,25 @@
     if (!scroller) return;
 
     scroller.innerHTML = "";
-    const prompts = getPrompts();
-    if (!prompts.length){
+    let data = fromState();
+    if (!data.length) data = fromDOM();
+    if (!data.length){
       const empty = document.createElement("div");
-      empty.style.display = "grid";
-      empty.style.placeItems = "center";
-      empty.style.height = "calc(100vh - 64px)";
+      empty.style.cssText = "height:calc(100vh - 56px);display:grid;place-items:center";
       empty.textContent = "No items. Load Library or adjust filters.";
       scroller.appendChild(empty);
       return;
     }
 
-    const frag = document.createDocumentFragment();
-    prompts.forEach(p => frag.appendChild(renderCard(p)));
-    scroller.appendChild(frag);
+    // Build cards
+    for (const p of data){
+      const urls = await resolveAllImages(p);
+      const card = renderCard(p, urls.length ? urls : [p.cover || ""]);
+      scroller.appendChild(card);
+    }
   }
 
+  /* ---------- bottom nav ---------- */
   function wireNav(navEl){
     if (!navEl || navEl._wired) return;
     navEl._wired = true;
@@ -264,7 +258,7 @@
          Array.from(document.querySelectorAll("button")).find(b => /open\s*zip/i.test(b.textContent||"")))
         ?.click();
 
-        // Hide mobile layer while overlay is open
+        // hide mobile while overlay open
         const overlay = $(".lib-overlay");
         if (overlay){
           const setFlag = ()=>{
@@ -280,51 +274,39 @@
       }
 
       if (tab === "favs"){
-        // Try the official toggler, else toggle state + re-apply
         (document.getElementById("toggleFavs") || document.querySelector("[data-toggle-favs]"))?.click();
-        if (!document.getElementById("toggleFavs")){
-          state.onlyFavs = !state.onlyFavs;
-          window.__pv_applyFilters?.();
-        }
-        toast(state.onlyFavs ? "Favorites ON" : "Favorites OFF");
+        toast("Favorites toggled");
+        // re-render feed with current filters
+        setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
         return;
       }
 
       if (tab === "search"){
         const s = document.getElementById("searchBox") || document.querySelector("input[type='search']");
-        if (s){
-          // focus existing search; user types and desktop filter will fire
-          s.focus();
-          s.scrollIntoView({block:"center"});
-        }else{
-          // simple inline prompt fallback
+        if (s){ s.focus(); s.scrollIntoView({block:"center"}); }
+        else{
           const q = prompt("Search:");
-          if (q != null){
-            state.q = String(q);
-            window.__pv_applyFilters?.();
-          }
+          if (q != null){ state.q = String(q); window.__pv_applyFilters?.(); }
         }
+        setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
         return;
       }
 
-      // home
+      // home (clear filters)
       (document.getElementById("clearFilters") || document.querySelector("[data-clear]"))?.click();
-      // fallback: reset common state flags and re-apply
       if (!document.getElementById("clearFilters")){
-        state.onlyFavs = false;
-        state.q = "";
-        window.__pv_applyFilters?.();
+        state.onlyFavs = false; state.q = ""; window.__pv_applyFilters?.();
       }
+      setTimeout(()=> window.MobileUI?.mountFeed?.(), 50);
     });
   }
 
-  // Observe overlays and DOM changes to keep things in sync
+  /* ---------- observers & hooks ---------- */
   new MutationObserver(()=>{
     const open = !!document.querySelector(".lib-overlay:not(.hidden):not([aria-hidden='true'])");
     document.body.classList.toggle("overlay-open", open);
   }).observe(document.documentElement, { subtree:true, childList:true, attributes:true, attributeFilter:["class","aria-hidden"] });
 
-  // Public hook so desktop can refresh the mobile feed
   window.MobileUI = { mountFeed };
 
   document.addEventListener("DOMContentLoaded", mountFeed);

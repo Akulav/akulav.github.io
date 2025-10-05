@@ -1,9 +1,9 @@
-/* ======== Mobile-first UI layer (TikTok-like feed) ======== */
+/* ======== Mobile-first UI layer (TikTok-like collections feed) ======== */
 @media (max-width: 768px){
   /* base */
   html, body { height: 100%; overflow-x: hidden; }
 
-  /* ===== Mobile overlay ===== */
+  /* ===== Mobile overlay (sits above desktop UI) ===== */
   .mobile-feed{
     position: fixed;
     inset: 0;
@@ -14,79 +14,7 @@
     color: var(--fg, #e6e8ef);
   }
 
-  /* feed scaffold */
-  .m-feed-scroll{
-    height: calc(100vh - 64px);      /* minus bottom nav */
-    overflow-y: auto;
-    scroll-snap-type: y mandatory;
-  }
-
-  .m-card{
-    position: relative;
-    height: calc(100vh - 64px);
-    scroll-snap-align: start;
-    display: grid;
-    grid-template-rows: 1fr auto;
-    border-bottom: 1px solid var(--line, #1d2230);
-  }
-
-  .m-card-media{
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-  }
-  .m-card-media img{
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    -webkit-user-drag: none;
-    user-select: none;
-    background: rgba(255,255,255,.02);
-  }
-
-  /* meta (bottom-left overlay) */
-  .m-card-meta{
-    position: absolute;
-    left: 12px; right: 12px; bottom: 84px;
-    display: grid; gap: 8px;
-    pointer-events: none;
-    text-shadow: 0 2px 10px rgba(0,0,0,.5);
-  }
-  .m-title{
-    font-weight: 700;
-    font-size: 18px;
-    line-height: 1.2;
-  }
-  /* Hide feed tags on mobile (requested) */
-  .m-tags{ display: none !important; }
-
-  /* bottom nav */
-  .m-nav{
-    position: sticky; bottom: 0;
-    height: 64px;
-    background: rgba(0,0,0,.6);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid rgba(255,255,255,.12);
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  .m-nav button{
-    background: transparent; color: var(--fg, #e6e8ef);
-    border: 0; display: grid; gap: 4px; place-items: center;
-    padding: 8px 0; font: inherit;
-  }
-  .m-nav button[aria-current="page"]{ font-weight: 700; }
-
-  /* toast */
-  .m-toast{
-    position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
-    background: rgba(20,20,24,.9);
-    color: #fff; padding: 10px 14px; border-radius: 10px;
-    opacity: 0; pointer-events: none; transition: opacity .25s ease;
-  }
-  .m-toast.show { opacity: 1; }
-
-  /* ===== Desktop suppression (allow overlays) ===== */
+  /* Hide desktop while mobile is active (but allow overlays) */
   body.mobile-active { overflow: hidden; }
   body.mobile-active .topbar,
   body.mobile-active #filters,
@@ -95,28 +23,144 @@
   body.mobile-active .footer{
     display: none !important;
   }
-
-  /* If any app overlay is open, hide the mobile layer instead */
   body.overlay-open .mobile-feed{ display: none !important; }
 
-  /* ===== Detail view mobile tweaks ===== */
-  /* Hide chips/tags & content rating on mobile */
-  #detailTags,
-  #detailRating { display: none !important; }
+  /* ===== Feed scaffold ===== */
+  .m-feed-scroll{
+    height: calc(100vh - 56px);      /* a bit tighter than 64px */
+    overflow-y: auto;
+    scroll-snap-type: y proximity;
+  }
 
-  /* Stop left shift when switching thumbnails */
-  #detailThumbs img,
-  #detailThumbs img.active { transform: none !important; }
+  .m-card{
+    position: relative;
+    height: calc(100vh - 56px);
+    scroll-snap-align: start;
+    display: grid;
+    grid-template-rows: 1fr auto;    /* media + title row */
+    padding: 6px 0 2px 0;            /* minimal padding to reduce wasted space */
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
 
-  /* Keep selection highlight without changing layout width */
+  /* ===== Horizontal carousel inside each card ===== */
+  .m-carousel{
+    position: relative;
+    height: 100%;
+    overflow: hidden;
+    --pad: 8px;
+  }
+
+  .m-track{
+    height: 100%;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 100%;
+    gap: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .m-track::-webkit-scrollbar{ display: none; }
+
+  .m-item{
+    scroll-snap-align: center;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.02);
+  }
+
+  .m-item img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    -webkit-user-drag: none;
+    user-select: none;
+    background: rgba(255,255,255,.02);
+  }
+
+  /* subtle edge gradients so boundaries feel soft */
+  .m-carousel::before,
+  .m-carousel::after{
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; width: 18px;
+    pointer-events: none;
+  }
+  .m-carousel::before{ left: 0; background: linear-gradient(90deg, rgba(15,17,21,1), rgba(15,17,21,0)); }
+  .m-carousel::after { right:0; background: linear-gradient(-90deg, rgba(15,17,21,1), rgba(15,17,21,0)); }
+
+  /* ===== Title row ===== */
+  .m-row{
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 6px 10px 10px 10px;
+    gap: 8px;
+  }
+
+  .m-title{
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* dots */
+  .m-dots{
+    display: inline-grid;
+    grid-auto-flow: column;
+    gap: 6px;
+  }
+  .m-dot{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,.25);
+  }
+  .m-dot.is-on{ background: rgba(255,255,255,.9); }
+
+  /* bottom nav */
+  .m-nav{
+    position: sticky; bottom: 0;
+    height: 56px;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,.08);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .m-nav button{
+    background: transparent; color: var(--fg, #e6e8ef);
+    border: 0; display: grid; gap: 2px; place-items: center;
+    padding: 6px 0; font: inherit;
+  }
+  .m-nav button[aria-current="page"]{ font-weight: 700; }
+
+  /* toast */
+  .m-toast{
+    position: fixed; left: 50%; bottom: 76px; transform: translateX(-50%);
+    background: rgba(20,20,24,.9);
+    color: #fff; padding: 8px 12px; border-radius: 10px;
+    font-size: 13px;
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  .m-toast.show { opacity: 1; }
+
+  /* ===== Extra tweaks you requested ===== */
+  /* Hide desktop detail chips & SFW/NSFW on mobile */
+  #detailTags, #detailRating { display: none !important; }
+
+  /* Prevent left shift when switching thumbnails (desktop detail) */
+  #detailThumbs img, #detailThumbs img.active { transform: none !important; }
   #detailThumbs img{ box-sizing: border-box; }
   #detailThumbs img.active{
     border-width: 0 !important;
     outline: 2px solid var(--accent, #6aa0ff) !important;
     outline-offset: 0;
   }
-
-  /* Stable horizontal scrolling for thumb rail */
   #detailThumbs{
     gap: 8px;
     overflow-x: auto;
