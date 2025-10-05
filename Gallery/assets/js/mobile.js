@@ -1,9 +1,9 @@
 /* Mobile collections feed + gallery
-   - Title centered on top
-   - Horizontal snap carousel (+ left/right tap zones)
-   - Thumbnail strip under the image for quick navigation
+   - Title centered (tight)
+   - Horizontal snap carousel + left/right tap zones
+   - Thumbnail strip under the image
    - Bottom nav: Search • Favs • Gallery • Library
-   - DOM-first scraping so we never render blank frames
+   - DOM-first, then State; resolves strings, File/Blob, and FileSystemFileHandle → URLs
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -24,6 +24,43 @@
     t.classList.add("show");
     clearTimeout(t._hid);
     t._hid = setTimeout(()=> t.classList.remove("show"), 900);
+  }
+
+  /* ----- URL resolution (string | File | Blob | FileSystemFileHandle | {url}) ----- */
+  async function anyToUrl(x){
+    try{
+      if (!x) return "";
+      if (typeof x === "string") return x;
+      if (x.url || x.href) return x.url || x.href;
+
+      // File/Blob
+      if (typeof x === "object" && (x instanceof Blob || ("size" in x && "type" in x && typeof x.arrayBuffer === "function"))){
+        return URL.createObjectURL(x);
+      }
+
+      // FileSystemFileHandle
+      if (typeof x === "object" && typeof x.getFile === "function"){
+        const f = await x.getFile();
+        return URL.createObjectURL(f);
+      }
+
+      // PV helper, if available
+      if (window.PV?.Utils?.fileToUrl) {
+        const u = await PV.Utils.fileToUrl(x);
+        if (u) return u;
+      }
+    }catch(_){}
+    return "";
+  }
+
+  async function resolveAll(rawList){
+    const out = [];
+    for (const r of rawList){
+      const u = await anyToUrl(r);
+      if (u) out.push(u);
+    }
+    // de-dupe while preserving order
+    return Array.from(new Set(out));
   }
 
   /* ----- root ----- */
@@ -94,39 +131,41 @@
         node.querySelector('[class*="title" i], h3, h2, .name') ||
         node.querySelector("figcaption") || node.querySelector("[title]");
       const title = (titleEl?.textContent || titleEl?.getAttribute?.("title") || "").trim() || `Item #${i+1}`;
-      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, images: urls });
+      list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, raw: urls });
     });
     return list;
   }
 
-  function mergeWithState(domList){
-    const arr = (state.filtered && state.filtered.length) ? state.filtered : (state.all || []);
-    if (!arr.length) return domList;
+  function fromStateRaw(){
+    const src = (state.filtered && state.filtered.length) ? state.filtered : (state.all || []);
+    if (!Array.isArray(src)) return [];
+    return src.map((x,i)=>{
+      const raw = [];
+      if (Array.isArray(x.images)) raw.push(...x.images);
+      if (x.image) raw.push(x.image);
+      if (x.files && Array.isArray(x.files.images)) raw.push(...x.files.images);
+      if (x.preview) raw.unshift(x.preview);
+      if (x.cover) raw.unshift(x.cover);
+      return {
+        id: x.id || x.ID || x.title || ("p_"+i),
+        title: x.title || x.name || `Prompt #${i+1}`,
+        raw
+      };
+    });
+  }
+
+  function mergeRaw(domList, stateList){
+    if (!stateList.length) return domList.map(d => ({...d, raw: d.raw || []}));
 
     const byTitle = Object.create(null);
-    domList.forEach(p => { byTitle[p.title] = p; });
+    domList.forEach(p => { byTitle[p.title] = { id:p.id, title:p.title, raw:[...(p.raw||[])] }; });
 
-    arr.forEach(x=>{
-      const title = x.title || x.name;
-      if (!title) return;
-      const images = [];
-      if (Array.isArray(x.images)) images.push(...x.images);
-      if (x.image) images.push(x.image);
-      if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
-      if (x.preview) images.unshift(x.preview);
-      if (x.cover) images.unshift(x.cover);
-      const urls = images.filter(v => typeof v === "string" && v);
-      if (!urls.length) return;
-
-      if (byTitle[title]) {
-        const s = new Set([...byTitle[title].images, ...urls]);
-        byTitle[title].images = Array.from(s);
-      } else {
-        byTitle[title] = { id: x.id || title, title, images: urls };
-      }
+    stateList.forEach(p=>{
+      if (!byTitle[p.title]) byTitle[p.title] = { id:p.id, title:p.title, raw:[] };
+      byTitle[p.title].raw.push(...(p.raw || []));
     });
 
-    return Object.values(byTitle).filter(p => p.images && p.images.length);
+    return Object.values(byTitle);
   }
 
   /* ---------- UI helpers ---------- */
@@ -141,8 +180,7 @@
     if (openBtn) openBtn.click();
   }
 
-  function renderCard(p){
-    const urls = p.images || [];
+  function renderCardResolved(p, urls){
     if (!urls.length) return null;
 
     const card = document.createElement("section");
@@ -226,14 +264,16 @@
   }
 
   /* ---------- Gallery mode ---------- */
-  function mountGallery(){
+  async function mountGallery(){
     const root = ensureMobileRoot();
     const sc = root.querySelector(".m-feed-scroll");
     sc.innerHTML = "";
 
     const dom = fromDOM();
-    const data = mergeWithState(dom);
-    if (!data.length){
+    const stateRaw = fromStateRaw();
+    const merged = mergeRaw(dom, stateRaw);
+
+    if (!merged.length){
       sc.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
       return;
     }
@@ -242,8 +282,9 @@
     container.className = "m-gallery";
     sc.appendChild(container);
 
-    for (const p of data){
-      for (const u of p.images){
+    for (const p of merged){
+      const urls = await resolveAll(p.raw || []);
+      for (const u of urls){
         const img = document.createElement("img");
         img.className = "m-g-img";
         img.alt = p.title || "image";
@@ -256,7 +297,7 @@
   }
 
   /* ---------- Collections feed ---------- */
-  function mountFeed(){
+  async function mountFeed(){
     if (!isMobile()) { document.body.classList.remove("mobile-active"); return; }
     document.body.classList.add("mobile-active");
 
@@ -266,20 +307,20 @@
 
     scroller.innerHTML = "";
 
-    const dom = fromDOM();
-    const data = mergeWithState(dom);
+    const dom = fromDOM();            // DOM FIRST
+    const stateRaw = fromStateRaw();  // then state
+    const merged = mergeRaw(dom, stateRaw);
 
-    if (!data.length){
+    if (!merged.length){
       scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
       return;
     }
 
-    const frag = document.createDocumentFragment();
-    data.forEach(p => {
-      const card = renderCard(p);
-      if (card) frag.appendChild(card);
-    });
-    scroller.appendChild(frag);
+    for (const p of merged){
+      const urls = await resolveAll(p.raw || []);
+      const card = renderCardResolved(p, urls);
+      if (card) scroller.appendChild(card);
+    }
   }
 
   /* ---------- bottom nav ---------- */
@@ -346,7 +387,7 @@
 
   window.MobileUI = { mountFeed, mountGallery };
 
-  document.addEventListener("DOMContentLoaded", mountFeed);
-  window.addEventListener("resize", mountFeed);
-  window.addEventListener("pv:data", mountFeed);
+  document.addEventListener("DOMContentLoaded", ()=>{ mountFeed(); });
+  window.addEventListener("resize", ()=>{ mountFeed(); });
+  window.addEventListener("pv:data", ()=>{ mountFeed(); });
 })();
