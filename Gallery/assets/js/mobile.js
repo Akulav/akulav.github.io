@@ -1,8 +1,9 @@
-/* Mobile collections feed + gallery (DOM-first, no blank frames)
-   - Vertical feed of collections
-   - Each collection: horizontal snap carousel (swipe or tap left/right)
+/* Mobile collections feed + gallery
+   - Title centered on top
+   - Horizontal snap carousel (+ left/right tap zones)
+   - Thumbnail strip under the image for quick navigation
    - Bottom nav: Search • Favs • Gallery • Library
-   - Uses your real IDs: #searchBox, #toggleFavs, #openRW (topbar), and falls back to #libRW/#libFolder/#libZip
+   - DOM-first scraping so we never render blank frames
 */
 (function(){
   const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -58,23 +59,20 @@
     return root;
   }
 
-  /* ---------- DOM-first scraping (handles <img>, data-src, and background-image) ---------- */
+  /* ---------- DOM-first scraping (handles <img>, data-src, background-image) ---------- */
   function extractUrlsFromNode(node){
     const urls = new Set();
 
-    // <img> and lazy <img data-src>
     node.querySelectorAll("img").forEach(img=>{
       const u = img.currentSrc || img.src || img.getAttribute("data-src") || img.getAttribute("data-lazy") || "";
       if (u) urls.add(u);
     });
 
-    // common lazy attributes on any element
     node.querySelectorAll("[data-src],[data-image],[data-bg],[data-url]").forEach(el=>{
       const u = el.getAttribute("data-src") || el.getAttribute("data-image") || el.getAttribute("data-bg") || el.getAttribute("data-url");
       if (u) urls.add(u);
     });
 
-    // background-image styles
     node.querySelectorAll("*").forEach(el=>{
       const bg = (el.style && el.style.backgroundImage) || getComputedStyle(el).backgroundImage;
       if (bg && bg.startsWith("url(")){
@@ -87,23 +85,20 @@
   }
 
   function fromDOM(){
-    // Try several selectors; your grid is #grid
     const cards = $$("#grid > *, .results .grid > *, .page .grid > *, .page .card, .page .prompt, .page [data-id]");
     const list = [];
     cards.forEach((node,i)=>{
       const urls = extractUrlsFromNode(node);
-      if (!urls.length) return;  // skip truly imageless cards
+      if (!urls.length) return;
       const titleEl =
         node.querySelector('[class*="title" i], h3, h2, .name') ||
-        node.querySelector("figcaption") ||
-        node.querySelector("[title]");
+        node.querySelector("figcaption") || node.querySelector("[title]");
       const title = (titleEl?.textContent || titleEl?.getAttribute?.("title") || "").trim() || `Item #${i+1}`;
       list.push({ id: node.getAttribute("data-id") || urls[0] || ("dom_"+i), title, images: urls });
     });
     return list;
   }
 
-  // Optionally merge with state if it adds more URLs
   function mergeWithState(domList){
     const arr = (state.filtered && state.filtered.length) ? state.filtered : (state.all || []);
     if (!arr.length) return domList;
@@ -120,11 +115,7 @@
       if (x.files && Array.isArray(x.files.images)) images.push(...x.files.images);
       if (x.preview) images.unshift(x.preview);
       if (x.cover) images.unshift(x.cover);
-
-      const urls = [];
-      for (const it of images){
-        if (typeof it === "string" && it) urls.push(it);
-      }
+      const urls = images.filter(v => typeof v === "string" && v);
       if (!urls.length) return;
 
       if (byTitle[title]) {
@@ -139,20 +130,6 @@
   }
 
   /* ---------- UI helpers ---------- */
-  function dots(n){
-    const wrap = document.createElement("div");
-    wrap.className = "m-dots";
-    for (let i=0;i<n;i++){
-      const d = document.createElement("span");
-      d.className = "m-dot"; if (i===0) d.classList.add("is-on");
-      wrap.appendChild(d);
-    }
-    return wrap;
-  }
-  function setDotActive(dotsEl, idx){
-    Array.from(dotsEl.children).forEach((el,i)=> el.classList.toggle("is-on", i===idx));
-  }
-
   function openPrompt(p){
     if (PVNS.openPrompt) { try{ PVNS.openPrompt(p); return; }catch(_){ } }
     const container = $(`.page [data-id="${CSS.escape(p.id||"")}"]`)
@@ -172,6 +149,15 @@
     card.className = "m-card";
     card.dataset.id = p.id || Math.random().toString(36).slice(2);
 
+    /* Header (title centered) */
+    const header = document.createElement("div");
+    header.className = "m-header";
+    const title = document.createElement("div");
+    title.className = "m-title";
+    title.textContent = p.title || "Untitled";
+    header.appendChild(title);
+
+    /* Carousel */
     const carousel = document.createElement("div");
     carousel.className = "m-carousel";
     const track = document.createElement("div");
@@ -193,37 +179,49 @@
       track.appendChild(item);
     });
 
-    const row = document.createElement("div");
-    row.className = "m-row";
-    const title = document.createElement("div");
-    title.className = "m-title";
-    title.textContent = p.title || "Untitled";
-    const ddots = dots(Math.max(urls.length,1));
-    row.appendChild(title); row.appendChild(ddots);
+    /* Thumbnails */
+    const thumbs = document.createElement("div");
+    thumbs.className = "m-thumbs";
+    urls.forEach((u, i)=>{
+      const t = document.createElement("img");
+      t.className = "m-thumb" + (i===0 ? " is-on" : "");
+      t.src = u; t.alt = `thumb ${i+1}`;
+      t.addEventListener("click", ()=> {
+        track.scrollTo({ left: i * track.clientWidth, behavior:'smooth' });
+        setThumb(i);
+      });
+      thumbs.appendChild(t);
+    });
+
+    const setThumb = (idx)=>{
+      Array.from(thumbs.children).forEach((el,i)=> el.classList.toggle("is-on", i===idx));
+    };
 
     const advance = (dir)=>{
       const w = track.clientWidth;
       const cur = Math.round(track.scrollLeft / w);
       const next = Math.max(0, Math.min(cur + dir, urls.length-1));
       track.scrollTo({ left: next * w, behavior: 'smooth' });
+      setThumb(next);
     };
     tapL.addEventListener("click", (e)=>{ e.stopPropagation(); advance(-1); });
     tapR.addEventListener("click", (e)=>{ e.stopPropagation(); advance(+1); });
 
     const onScroll = ()=>{
       const idx = Math.round(track.scrollLeft / track.clientWidth);
-      setDotActive(ddots, Math.max(0, Math.min(idx, urls.length-1)));
+      setThumb(Math.max(0, Math.min(idx, urls.length-1)));
     };
     track.addEventListener("scroll", onScroll, {passive:true});
 
-    // tap middle to open
+    // tap middle to open detail
     carousel.addEventListener("click", (e)=>{
       const x = e.clientX, w = carousel.clientWidth;
       if (x > w*0.33 && x < w*0.67) openPrompt(p);
     });
 
+    card.appendChild(header);
     card.appendChild(carousel);
-    card.appendChild(row);
+    card.appendChild(thumbs);
     return card;
   }
 
@@ -249,8 +247,7 @@
         const img = document.createElement("img");
         img.className = "m-g-img";
         img.alt = p.title || "image";
-        img.loading = "lazy";
-        img.decoding = "async";
+        img.loading = "lazy"; img.decoding = "async";
         img.src = u;
         img.addEventListener("click", ()=> openPrompt(p));
         container.appendChild(img);
@@ -269,8 +266,8 @@
 
     scroller.innerHTML = "";
 
-    const dom = fromDOM();            // DOM FIRST (prevents blanks)
-    const data = mergeWithState(dom); // merge with state if helpful
+    const dom = fromDOM();
+    const data = mergeWithState(dom);
 
     if (!data.length){
       scroller.innerHTML = `<div style="height:calc(100vh - 56px);display:grid;place-items:center">No items. Load Library or adjust filters.</div>`;
@@ -298,7 +295,6 @@
       const tab = btn.getAttribute("data-tab");
 
       if (tab === "library"){
-        // Prefer topbar #openRW which opens your overlay; then fall back to sheet buttons
         (document.getElementById("openRW") || document.getElementById("libRW") ||
          document.getElementById("libFolder") || document.getElementById("libZip"))?.click();
 

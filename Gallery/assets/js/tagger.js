@@ -18,10 +18,10 @@
     'slight','slightly','own','forward','both','down','cheek','long','look','link','but','support',
     'onto','only','one','through','optional','other','above','below','near','upper','edge','frame',
     'focus','scene','setting','open','off','together','between','still','clearly','completely',
-    'poking','them','tea','up','turn','tugging','tight','toned','stare','side',
+    'poking','them','tea','up','turn','tugging','tight','toned','stare','side','mood','morning','sunlight','fallen',
     // generic anatomy/objects we don't want as standalone tags
     'hand','hands','arm','arms','leg','legs','fabric','cloth','clothes','clothing','outfit',
-    'spotlight','object','thing'
+    'spotlight','object','thing','after','against','wall','turned'
   ]);
 
   const BLOCKLIST = new Set([

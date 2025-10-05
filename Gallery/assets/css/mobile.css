@@ -34,9 +34,22 @@
     height: calc(100vh - 56px);
     scroll-snap-align: start;
     display: grid;
-    grid-template-rows: 1fr auto;       /* carousel + title row */
+    grid-template-rows: auto 1fr auto;  /* header + carousel + thumbs */
     border-bottom: 1px solid rgba(255,255,255,.06);
     background:#000;
+  }
+
+  /* Title header (top, centered) */
+  .m-header{
+    display:grid; place-items:center;
+    padding:10px 14px 6px;
+    background:#000;
+  }
+  .m-title{
+    font-weight:700; font-size:17px; line-height:1.2;
+    text-align:center; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    max-width: 92vw;
   }
 
   /* Horizontal carousel */
@@ -55,13 +68,21 @@
   .m-tap-left,.m-tap-right{ position:absolute; top:0; bottom:0; width:33%; z-index:2; }
   .m-tap-left{ left:0; } .m-tap-right{ right:0; }
 
-  /* Title row */
-  .m-row{ display:grid; grid-template-columns:1fr auto; align-items:center; padding:8px 12px 10px; gap:8px; background:#000; }
-  .m-title{ font-weight:700; font-size:16px; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#eee; }
-
-  .m-dots{ display:inline-grid; grid-auto-flow:column; gap:6px; }
-  .m-dot{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.25); }
-  .m-dot.is-on{ background:#fff; }
+  /* Thumbnail strip under main image */
+  .m-thumbs{
+    display:grid; grid-auto-flow:column; grid-auto-columns:max-content;
+    gap:8px; padding:8px 10px 10px;
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    background:#000;
+    scrollbar-width:none;
+  }
+  .m-thumbs::-webkit-scrollbar{ display:none; }
+  .m-thumb{
+    height:64px; width:auto; border-radius:6px;
+    display:block; opacity:.6; transition:opacity .15s ease, transform .15s ease;
+    background:#000;
+  }
+  .m-thumb.is-on{ opacity:1; outline:2px solid #5ca8ff; outline-offset:2px; transform:translateZ(0); }
 
   /* Gallery tab: ALL images vertically */
   .m-gallery{ padding:8px 0 56px; display:grid; grid-template-columns:1fr; gap:6px; background:#000; }
