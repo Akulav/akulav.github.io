@@ -8,7 +8,7 @@
     position: fixed;
     inset: 0;
     z-index: 2147483000;             /* above everything */
-    display: grid;
+    display: grid !important;        /* force visible when present */
     grid-template-rows: 1fr auto;    /* feed + bottom nav */
     background: var(--bg, #0f1115);
     color: var(--fg, #e6e8ef);
