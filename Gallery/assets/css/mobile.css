@@ -1,100 +1,239 @@
-/* ======== Mobile UI: collections feed + gallery (pure black) ======== */
-@media (max-width: 768px){
-  html, body { height: 100%; overflow-x: hidden; background:#000; color:#e6e6e6; }
+/* Mobile UI — design-only layer. No data logic here. */
+@media (max-width: 768px) {
 
-  .mobile-feed{
-    position: fixed; inset: 0; z-index: 2147483000;
-    display: grid !important; grid-template-rows: 1fr auto;
-    background:#000; color:#e6e6e6;
+  :root {
+    --m-nav-h: 56px;
+    --m-pad: 10px;
   }
 
-  body.mobile-active { overflow:hidden; background:#000; }
-  body.mobile-active .topbar,
-  body.mobile-active #filters,
-  body.mobile-active .page,
-  body.mobile-active #detailView,
-  body.mobile-active .footer{ display:none !important; }
-  body.overlay-open .mobile-feed{ display:none !important; }
-
-  .m-feed-scroll{
-    height: calc(100vh - 56px);
-    overflow-y: auto; scroll-snap-type: y proximity;
-    background:#000; padding-bottom: env(safe-area-inset-bottom);
+  html, body {
+    background: #000;
+    color: #e8e8e8;
   }
 
-  .m-card{
-    position: relative; height: calc(100vh - 56px);
-    scroll-snap-align: start; background:#000;
-    border-bottom: 1px solid rgba(255,255,255,.06);
+  /* Turn on with body.mobile-on (set by mobile.js) */
+  body.mobile-on {
+    overflow: hidden;
+    background: #000;
   }
 
-  .m-carousel{ position:relative; width:100vw; height:100%; overflow:hidden; background:#000; }
-  .m-track{
-    width:100vw; height:100%;
-    display:grid; grid-auto-flow:column; grid-auto-columns:100vw;
-    overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch;
-    scroll-snap-type:x mandatory; scrollbar-width:none; background:#000;
-  }
-  .m-track::-webkit-scrollbar{ display:none; }
-  .m-item{ scroll-snap-align:center; height:100%; display:grid; place-items:center; background:#000; }
-  .m-item img{ width:100%; height:100%; object-fit:contain; -webkit-user-drag:none; user-select:none; background:#000; }
-
-  .m-tap-left,.m-tap-right{ position:absolute; top:0; bottom:0; width:33%; z-index:2; }
-  .m-tap-left{ left:0; } .m-tap-right{ right:0; }
-
-  /* Title — moved further DOWN (closer to image) */
-  .m-header{
-    position:absolute; left:0; right:0;
-    top: calc(env(safe-area-inset-top) + 32px); /* ↓ from 18px */
-    display:grid; place-items:center; pointer-events:none; z-index:3;
-  }
-  .m-title{
-    pointer-events:auto;
-    font-weight:700; font-size:17px; line-height:1.15; text-align:center; color:#eee;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 92vw;
-    padding:6px 10px; background:rgba(0,0,0,.55); border-radius:10px;
+  /* Hide desktop chrome on mobile for a cleaner canvas */
+  body.mobile-on .topbar,
+  body.mobile-on #filters,
+  body.mobile-on .footer {
+    display: none !important;
   }
 
-  /* Thumb strip — sits a touch above navbar */
-  .m-thumbs{
-    position:absolute; left:8px; right:8px;
-    bottom: calc(56px + env(safe-area-inset-bottom) + 2px);
-    display:grid; grid-auto-flow:column; grid-auto-columns:max-content;
-    gap:8px; padding:6px 8px; overflow-x:auto; -webkit-overflow-scrolling:touch;
-    background:rgba(0,0,0,.45); border-radius:10px; backdrop-filter: blur(6px);
-    z-index:3; scrollbar-width:none;
+  /* Results page remains; we just tighten visuals */
+  .results {
+    background: #000;
   }
-  .m-thumbs::-webkit-scrollbar{ display:none; }
-  .m-thumb{ height:64px; width:auto; border-radius:6px; display:block; opacity:.7; transition:opacity .15s, transform .15s; background:#000; }
-  .m-thumb.is-on{ opacity:1; outline:2px solid #5ca8ff; outline-offset:2px; transform:translateZ(0); }
 
-  .m-gallery{ padding:8px 0 56px; display:grid; grid-template-columns:1fr; gap:6px; background:#000; }
-  .m-g-img{ width:100vw; height:auto; display:block; background:#000; }
-
-  .m-nav{
-    position:sticky; bottom:0; height:56px;
-    background:rgba(0,0,0,.78); backdrop-filter:blur(8px);
-    border-top:1px solid rgba(255,255,255,.08);
-    display:grid; grid-template-columns:repeat(4,1fr);
-    padding-bottom: env(safe-area-inset-bottom);
+  /* Cards in the grid: larger, tighter, bolder */
+  .results .grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    padding: 10px;
+    background: #000;
   }
-  .m-nav button{
-    background:transparent; color:#e6e6e6; border:0;
-    display:grid; gap:2px; place-items:center; padding:6px 0; font:inherit;
+  .results .grid > * {
+    background: #0a0a0a;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px;
+    overflow: hidden;
   }
-  .m-nav button[aria-current="page"]{ font-weight:700; color:#fff; }
-
-  .m-toast{
-    position:fixed; left:50%; bottom:76px; transform:translateX(-50%);
-    background:rgba(20,20,24,.95); color:#fff; padding:8px 12px; border-radius:10px; font-size:13px;
-    opacity:0; pointer-events:none; transition:opacity .25s ease;
+  /* Cover images fit nicely */
+  .results .grid img {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #000;
   }
-  .m-toast.show{ opacity:1; }
+  /* Titles are strong and compact */
+  .results .grid [class*="title"], 
+  .results .grid h2, 
+  .results .grid h3 {
+    font-size: 16px !important;
+    line-height: 1.2 !important;
+    margin: 8px 10px 10px !important;
+    color: #fff !important;
+  }
+  /* Hide noisy chips/tags on mobile list */
+  .results .grid .chips,
+  .results .grid .meta,
+  .results .grid .tags,
+  .results .grid .labels {
+    display: none !important;
+  }
 
-  #detailTags, #detailRating { display:none !important; }
-  #detailThumbs img, #detailThumbs img.active { transform:none !important; }
-  #detailThumbs img{ box-sizing:border-box; }
-  #detailThumbs img.active{ outline:2px solid #5ca8ff !important; outline-offset:0; }
-  #detailThumbs{ gap:8px; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
-  #detailThumbsWrap{ overflow:hidden; }
+  /* ===== Detail View: TikTok-style full-screen ===== */
+  #detailView[aria-hidden="false"],
+  body.mobile-on #detailView:not([aria-hidden="true"]) {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    display: grid !important;
+    grid-template-rows: auto 1fr auto;
+    background: #000;
+    padding-bottom: var(--m-nav-h);
+  }
+
+  #detailView .detail-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+    background: linear-gradient(to bottom, rgba(0,0,0,.7), rgba(0,0,0,0));
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  #detailView #detailBack {
+    background: rgba(255,255,255,.08);
+    border: 0;
+    border-radius: 10px;
+    color: #fff;
+    padding: 6px 10px;
+  }
+
+  #detailView .detail-title-area {
+    min-width: 0;
+  }
+  #detailView #detailTitle {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+  }
+  #detailView #detailTags { display: none !important; }
+
+  #detailView .detail-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Main media area */
+  #detailView .detail-gallery {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+  }
+  #detailView #detailHero {
+    height: calc(100vh - 200px); /* space for header & thumbs */
+    display: grid;
+    place-items: center;
+    background: #000;
+  }
+  #detailView #detailImg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  /* Horizontal preview strip (thumbs) */
+  #detailView #detailThumbsWrap {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));
+    padding: 10px 6px 6px;
+    z-index: 3;
+  }
+  #detailView #detailThumbs {
+    display: grid !important;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #detailView #detailThumbs::-webkit-scrollbar { display: none; }
+  #detailView #detailThumbs img {
+    height: 66px !important;
+    width: auto !important;
+    border-radius: 8px;
+    opacity: .8;
+    transition: opacity .15s ease, transform .15s ease;
+    background: #000;
+  }
+  #detailView #detailThumbs img.active,
+  #detailView #detailThumbs img[aria-current="true"] {
+    opacity: 1;
+    outline: 2px solid #5ca8ff;
+    outline-offset: 2px;
+  }
+
+  /* Prompt text panel collapses by default on mobile */
+  #detailView .detail-prompt {
+    max-height: 40vh;
+    overflow: auto;
+    background: #0a0a0a;
+    border-top: 1px solid rgba(255,255,255,.08);
+    padding: 10px 12px;
+  }
+
+  /* ===== Bottom mobile bar ===== */
+  .mbar {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 0;
+    height: var(--m-nav-h);
+    background: rgba(0,0,0,.84);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255,255,255,.08);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    z-index: 10000;
+  }
+  .mbar button {
+    background: transparent;
+    border: 0;
+    color: #e8e8e8;
+    font: inherit;
+    display: grid;
+    place-items: center;
+    gap: 2px;
+  }
+  .mbar button[aria-current="true"] { color: #fff; font-weight: 700; }
+
+  /* ===== Hide non-mobile-safe controls ===== */
+
+  /* Detail header actions: hide download/add/rating controls */
+  #detailDownloadImg,
+  #detailAddImages,
+  #detailRating {
+    display: none !important;
+  }
+
+  /* Hide NSFW/SFW/AUTO toggles anywhere */
+  .nsfw-toggle,
+  .content-rating,
+  [data-rating-toggle] {
+    display: none !important;
+  }
+
+  /* Hide any destructive / write actions */
+  #newPromptBtn,
+  [data-action="delete"],
+  [data-action="remove"],
+  [data-action="set-cover"],
+  [title*="Delete"],
+  [title*="Change main"],
+  [title*="Set as cover"] {
+    display: none !important;
+  }
+
+  /* Hide download/change image buttons if they exist in other views */
+  [data-action="download-image"],
+  [data-action="add-images"] {
+    display: none !important;
+  }
+
+  /* Library overlay & new-prompt modal keep their own styling; no changes needed */
 }
