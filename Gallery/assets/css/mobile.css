@@ -3,11 +3,8 @@
   html, body { height: 100%; overflow-x: hidden; background:#000; color:#e6e6e6; }
 
   .mobile-feed{
-    position: fixed;
-    inset: 0;
-    z-index: 2147483000;
-    display: grid !important;
-    grid-template-rows: 1fr auto;       /* content + bottom nav */
+    position: fixed; inset: 0; z-index: 2147483000;
+    display: grid !important; grid-template-rows: 1fr auto;
     background:#000; color:#e6e6e6;
   }
 
@@ -21,17 +18,13 @@
 
   .m-feed-scroll{
     height: calc(100vh - 56px);
-    overflow-y: auto;
-    scroll-snap-type: y proximity;
-    background:#000;
-    padding-bottom: env(safe-area-inset-bottom);
+    overflow-y: auto; scroll-snap-type: y proximity;
+    background:#000; padding-bottom: env(safe-area-inset-bottom);
   }
 
   .m-card{
-    position: relative;
-    height: calc(100vh - 56px);
-    scroll-snap-align: start;
-    background:#000;
+    position: relative; height: calc(100vh - 56px);
+    scroll-snap-align: start; background:#000;
     border-bottom: 1px solid rgba(255,255,255,.06);
   }
 
@@ -49,40 +42,30 @@
   .m-tap-left,.m-tap-right{ position:absolute; top:0; bottom:0; width:33%; z-index:2; }
   .m-tap-left{ left:0; } .m-tap-right{ right:0; }
 
-  /* Title overlay – moved further down */
+  /* Title — moved further DOWN (closer to image) */
   .m-header{
     position:absolute; left:0; right:0;
-    top: calc(env(safe-area-inset-top) + 18px); /* was +4px */
+    top: calc(env(safe-area-inset-top) + 32px); /* ↓ from 18px */
     display:grid; place-items:center; pointer-events:none; z-index:3;
   }
   .m-title{
     pointer-events:auto;
-    font-weight:700; font-size:17px; line-height:1.15;
-    text-align:center; color:#eee;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    max-width: 92vw;
-    padding:6px 10px;
-    background:rgba(0,0,0,.55);
-    border-radius:10px;
+    font-weight:700; font-size:17px; line-height:1.15; text-align:center; color:#eee;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 92vw;
+    padding:6px 10px; background:rgba(0,0,0,.55); border-radius:10px;
   }
 
-  /* Thumb strip – nudged slightly DOWN (closer to navbar) */
+  /* Thumb strip — sits a touch above navbar */
   .m-thumbs{
     position:absolute; left:8px; right:8px;
-    bottom: calc(56px + env(safe-area-inset-bottom) + 2px); /* was +6px */
+    bottom: calc(56px + env(safe-area-inset-bottom) + 2px);
     display:grid; grid-auto-flow:column; grid-auto-columns:max-content;
-    gap:8px; padding:6px 8px;
-    overflow-x:auto; -webkit-overflow-scrolling:touch;
-    background:rgba(0,0,0,.45);
-    border-radius:10px; backdrop-filter: blur(6px);
+    gap:8px; padding:6px 8px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    background:rgba(0,0,0,.45); border-radius:10px; backdrop-filter: blur(6px);
     z-index:3; scrollbar-width:none;
   }
   .m-thumbs::-webkit-scrollbar{ display:none; }
-  .m-thumb{
-    height:64px; width:auto; border-radius:6px;
-    display:block; opacity:.7; transition:opacity .15s ease, transform .15s ease;
-    background:#000;
-  }
+  .m-thumb{ height:64px; width:auto; border-radius:6px; display:block; opacity:.7; transition:opacity .15s, transform .15s; background:#000; }
   .m-thumb.is-on{ opacity:1; outline:2px solid #5ca8ff; outline-offset:2px; transform:translateZ(0); }
 
   .m-gallery{ padding:8px 0 56px; display:grid; grid-template-columns:1fr; gap:6px; background:#000; }
