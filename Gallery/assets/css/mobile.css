@@ -1,36 +1,18 @@
 /* =========================================================================
-   Prompt Vault — Mobile UI (CSS-only)
-   - Pure black theme
-   - Detail: move title+actions *under* hero (no DOM/JS changes)
-   - Thumbs fill tiles; larger & uniform
-   - Gallery 2 per row
-   - Unsafe/write actions hidden on mobile
+   Prompt Vault — Mobile UI (CSS-only, clean build: SAFE)
    ========================================================================= */
 @media (max-width: 768px){
 
-  :root{
-    --m-nav-h: 56px;
-  }
+  /* ------------------ Shell / base ------------------ */
+  :root { --m-nav-h: 56px; }
 
-  html, body{
-    background:#000;
-    color:#e8e8e8;
-  }
+  html, body { background:#000; color:#e8e8e8; }
 
-  /* Your mobile layer toggles this (no new JS required) */
-  body.mobile-on{
-    overflow:hidden;                 /* lock body; inner views scroll */
-    background:#000;
-  }
-
-  /* Hide desktop chrome for a clean mobile canvas */
+  body.mobile-on { overflow:hidden; background:#000; }
   body.mobile-on .topbar,
   body.mobile-on #filters,
-  body.mobile-on .footer{
-    display:none !important;
-  }
+  body.mobile-on .footer { display:none !important; }
 
-  /* Keep app content scrollable while body is locked */
   body.mobile-on .page{
     height: calc(100vh - var(--m-nav-h));
     overflow-y: auto;
@@ -38,8 +20,9 @@
     background:#000;
   }
 
-  /* ===================== RESULTS (list style) ===================== */
-  .results{ background:#000; }
+  /* ===================== RESULTS (cards list) ===================== */
+  .results { background:#000; }
+
   .results .grid{
     grid-template-columns: 1fr !important;
     gap:10px !important;
@@ -47,191 +30,165 @@
     background:#000;
     -webkit-overflow-scrolling: touch;
   }
-  .results .grid > *{
-    background:#0a0a0a;
-    border:1px solid rgba(255,255,255,.07);
-    border-radius:14px;
-    overflow:hidden;
-  }
+
+  /* Covers: keep them visible */
   .results .grid img{
-    width:100%; height:auto; display:block; background:#000;
-  }
-  .results .grid [class*="title"], .results .grid h2, .results .grid h3{
-    font-size:16px !important;
-    line-height:1.2 !important;
-    margin:8px 10px 10px !important;
-    color:#fff !important;
-  }
-  /* Less noise on mobile cards */
-  .results .grid .chips,
-  .results .grid .meta,
-  .results .grid .tags,
-  .results .grid .labels{ display:none !important; }
-
-  /* ===================== DETAIL VIEW (fullscreen) ===================== */
-  /* The view already renders header -> gallery -> prompt on desktop.
-     Here we *swap* header & gallery rows so the header becomes a caption
-     band directly *under* the hero image — CSS-only. */
-  #detailView[aria-hidden="false"],
-  body.mobile-on #detailView:not([aria-hidden="true"]){
-    position:fixed !important;
-    inset:0 !important;
-    z-index:9999 !important;
-    display:grid !important;
-    grid-template-rows:auto 1fr auto;   /* three rows; we reassign below */
+    width:100%;
+    height:auto;
+    display:block;
+    object-fit:cover;
     background:#000;
-    padding-bottom:var(--m-nav-h);
-    overflow-y:auto;
-    -webkit-overflow-scrolling:touch;
-    touch-action:pan-y;
   }
 
-  /* Swap order: gallery first, then header as caption bar */
-  #detailView .detail-gallery{ grid-row: 1; }
-  #detailView .detail-header { grid-row: 2; }
+  /* ---------- ONLY remove the counter strip (thumb-wrap without an IMG) ---------- */
+  .results .grid > * > .thumb-wrap:not(:has(img)){
+    margin:0 !important;
+    padding:0 !important;
+    border:0 !important;
+    height:0 !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+    background:transparent !important;
+  }
+  .results .grid > * > .thumb-wrap:not(:has(img)) *{
+    display:none !important;
+  }
 
-  /* Caption strip styling (using your existing .detail-header) */
+  /* With the strip gone, pull the actions up a bit */
+  .results .grid > * > .thumb-wrap:not(:has(img)) + .card-actions,
+  .results .grid > * > .thumb-wrap:not(:has(img)) + .actions,
+  .results .grid > * > .thumb-wrap:not(:has(img)) + .buttons{
+    margin-top:8px !important;
+  }
 
-  /* hide "Back" inside the caption on mobile; you still have system/back gestures */
+  /* Title under the cover, centered & compact */
+  .results .grid [class*="title"], .results .grid h2, .results .grid h3{
+    margin:8px 12px 6px !important;
+    padding:0 !important;
+    text-align:center !important;
+    font-weight:700 !important;
+    font-size:16px !important;
+    color:#fff !important;
+    display:block !important;
+  }
 
+  /* Action buttons tight under title */
+  .results .grid .actions,
+  .results .grid [class*="actions"],
+  .results .grid .buttons{
+    margin:8px 12px 12px !important;
+    gap:10px;
+  }
+  .results .grid .actions .btn,
+  .results .grid [class*="actions"] .btn,
+  .results .grid .buttons .btn{
+    min-height:44px; border-radius:12px;
+  }
 
-  #detailView #detailTags{ display:none !important; }
+  /* Hide chips/tags/labels/counters anywhere else on cards (safe, specific) */
+  .results .grid .chips,
+  .results .grid .tags,
+  .results .grid .tag-list,
+  .results .grid [class*="tag" i],
+  .results .grid .image-count,
+  .results .grid .counts,
+  .results .grid .count,
+  .results .grid .labels,
+  .results .grid .meta-tags { display:none !important; }
 
+  /* ===================== DETAIL VIEW ===================== */
 
-/* --- Caption strip: Title truly centered; Back & Actions centered on their sides --- */
+  #detailView[aria-hidden="false"],
+  body.mobile-on #detailView:not([aria-hidden="true"]) {
+    position:fixed !important; inset:0 !important; z-index:9999 !important;
+    display:grid !important; grid-template-rows:auto 1fr auto;
+    background:#000; padding-bottom:var(--m-nav-h);
+    overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+  }
 
+  /* Order: hero first, then caption strip */
+  #detailView .detail-gallery{ grid-row:1; position:relative; overflow:hidden; background:#000; }
+  #detailView .detail-header { grid-row:2; }
 
-/* --- Caption strip: equal gutters; title never overlaps; buttons stay side-by-side --- */
-#detailView .detail-header{
-  grid-row: 2;                                     /* under hero */
-  position: relative;
-  z-index: 2;
-  display: grid;
-  /* equal left/right gutters that expand; center column holds the title */
-  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
-  align-items: center;
-  padding: 10px 12px;
-  background: rgba(0,0,0,.65);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(255,255,255,.06);
-  border-bottom: 1px solid rgba(255,255,255,.06);
-}
-
-/* Back button — clean, same height as other buttons, no wrapping */
-#detailView .detail-header #detailBack{
-  grid-column: 1;
-  justify-self: center;                 /* centered in left gutter */
-  display: inline-flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  min-height: 36px;
-  white-space: nowrap;
-  border: 0;
-  border-radius: 10px;
-  color: #fff;
-  font-size: 15px;
-  line-height: 1.2;
-  background: rgba(255,255,255,.10);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-}
-#detailView .detail-header #detailBack::before{
-  content: "";
-  display: inline-block;
-  line-height: 1;
-  font-size: 16px;
-}
-
-/* Title lives in the middle column and is truly centered */
-#detailView .detail-title-area{
-  grid-column: 2;                       /* the center column */
-  min-width: 0;
-}
-#detailView #detailTitle{
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  color: #fff;
-  text-align: center;
-  max-width: 100%;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-}
-
-/* Actions centered in the right gutter; same height */
-#detailView .detail-actions{
-  grid-column: 3;
-  justify-self: center;                 /* centered in right gutter */
-  display: inline-grid;
-  grid-auto-flow: column;
-  gap: 8px;
-  align-items: center;
-  white-space: nowrap;
-}
-#detailView .detail-actions .btn{
-  background: rgba(255,255,255,.08);
-  color: #fff;
-  border: 0;
-  border-radius: 10px;
-  padding: 6px 10px;
-  min-height: 36px;
-}
-
-
-
-  /* Hero area */
-  #detailView .detail-gallery{ position:relative; overflow:hidden; background:#000; }
   #detailView #detailHero{
-    height: calc(100vh - 200px);     /* trims wasted gap to make room for caption & thumbs */
+    height: calc(100vh - 150px);
     display:grid; place-items:center; background:#000;
   }
-  #detailView #detailImg{
-    width:100%; height:100%; object-fit:contain; background:#000;
+  #detailView #detailImg{ width:100%; height:100%; object-fit:contain; background:#000; }
+
+  /* Caption strip (Back | Actions) — title hidden per spec */
+  #detailView .detail-header{
+    position:relative; z-index:2; display:grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items:center; padding:8px 12px;
+    background:rgba(0,0,0,.70); backdrop-filter:blur(8px);
+    border-top:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  #detailView #detailBack{
+    grid-column:1; justify-self:center;
+    display:inline-flex !important; align-items:center; gap:8px;
+    padding:6px 12px; min-height:36px; white-space:nowrap;
+    border:0; border-radius:10px; color:#fff; font-size:15px; line-height:1.2;
+    background:rgba(255,255,255,.10);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  #detailView #detailBack::before{ content:none !important; } /* use "← Back" in label */
+
+  #detailView .detail-title-area,
+  #detailView #detailTitle{ display:none !important; }
+
+  #detailView .detail-actions{
+    grid-column:2; justify-self:center;
+    display:inline-grid; grid-auto-flow:column; gap:8px; align-items:center;
+  }
+  #detailView .detail-actions .btn{
+    background:rgba(255,255,255,.10); color:#fff; border:0; border-radius:10px;
+    padding:6px 12px; min-height:36px;
   }
 
-  /* ===================== THUMB STRIP ===================== */
+  /* Hide tags/chips in detail */
+  #detailView #detailTags,
+  #detailView .chips,
+  #detailView .tags,
+  #detailView [class*="tag" i]{ display:none !important; }
+
+  /* Thumbs strip */
   #detailView #detailThumbsWrap{
     position:sticky; bottom:0;
     background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));
-    padding:10px 6px 6px; z-index:3;
+    padding:8px 6px 4px; z-index:3;
   }
   #detailView #detailThumbs{
-    display:grid !important;
-    grid-auto-flow:column; grid-auto-columns:max-content;
-    align-items:center; gap:10px;
-    overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
-    touch-action:pan-x;
+    display:grid !important; grid-auto-flow:column; grid-auto-columns:max-content;
+    align-items:center; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; touch-action:pan-x;
   }
   #detailView #detailThumbs::-webkit-scrollbar{ display:none; }
-
-  /* Fix the "inset image" bug: tile has no inner padding; image fills it */
   #detailView #detailThumbs .m-item,
   #detailView #detailThumbs .thumb,
   #detailView #detailThumbs .m-thumb-wrap{
-    padding:0 !important; margin:0 !important;
-    width:96px !important; height:96px !important;
-    border-radius:12px !important; overflow:hidden !important;
-    background:#0b0b0b !important;
+    padding:0 !important; margin:0 !important; width:96px !important; height:96px !important;
+    border-radius:12px !important; overflow:hidden !important; background:#0b0b0b !important;
   }
   #detailView #detailThumbs img,
   #detailView #detailThumbs .m-thumb{
-    width:100% !important; height:100% !important;
-    object-fit:cover !important; display:block !important;
-    border-radius:12px !important; transform:none !important; background:#000 !important;
+    width:100% !important; height:100% !important; display:block !important;
+    object-fit:cover !important; border-radius:12px !important; transform:none !important;
+    background:#000 !important;
   }
   #detailView #detailThumbs img.active,
   #detailView #detailThumbs .m-thumb.active{
     outline:2px solid #5ca8ff !important; outline-offset:2px !important;
   }
 
-  /* ===================== PROMPT TEXT ===================== */
+  /* Prompt text area */
   #detailView .detail-prompt{
     max-height:40vh; overflow:auto; background:#0a0a0a;
     border-top:1px solid rgba(255,255,255,.08); padding:10px 12px;
   }
 
-  /* ===================== GALLERY VIEW (2 per row) ===================== */
+  /* ===================== GALLERY (2-per-row) ===================== */
   #galleryView[aria-hidden="false"]{
     position:fixed !important; inset:0 !important; z-index:9999 !important;
     display:grid !important; grid-template-rows:auto 1fr;
@@ -252,14 +209,12 @@
   }
   #gallerySentinel{ pointer-events:none; opacity:.6; }
 
-  /* ===================== BOTTOM MOBILE BAR ===================== */
+  /* ===================== Mobile bottom bar ===================== */
   .mbar{
-    position:fixed; left:0; right:0; bottom:0;
-    height:var(--m-nav-h);
+    position:fixed; left:0; right:0; bottom:0; height:var(--m-nav-h);
     background:rgba(0,0,0,.84); backdrop-filter:blur(10px);
     border-top:1px solid rgba(255,255,255,.08);
-    display:grid; grid-template-columns:repeat(4,1fr);
-    z-index:10000;
+    display:grid; grid-template-columns:repeat(4,1fr); z-index:10000;
     padding-bottom: env(safe-area-inset-bottom);
   }
   .mbar button{
@@ -268,26 +223,175 @@
   }
   .mbar button[aria-current="true"]{ color:#fff; font-weight:700; }
 
-  /* ===================== HIDE UNSAFE / WRITE ACTIONS ===================== */
+  /* ===================== Hide unsafe / write actions ===================== */
   #detailDownloadImg, #detailAddImages, #detailRating,
   .nsfw-toggle, .content-rating, [data-rating-toggle],
-  #newPromptBtn,
-  [data-action="delete"], [data-action="remove"], [data-action="set-cover"],
+  #newPromptBtn, [data-action="delete"], [data-action="remove"], [data-action="set-cover"],
   [title*="Delete"], [title*="Change main"], [title*="Set as cover"],
   [data-action="download-image"], [data-action="add-images"]{
     display:none !important;
   }
 
-  /* Safe-area padding (iOS) */
+  /* Safe area padding + landscape tweak */
   #detailView, #galleryView, body.mobile-on .page{
     padding-bottom: calc(var(--m-nav-h) + env(safe-area-inset-bottom));
   }
-
-  /* Landscape tweak */
   @media (orientation: landscape){
     #detailView #detailHero{ height: calc(100vh - 170px); }
     #detailView #detailThumbs .m-item,
     #detailView #detailThumbs .m-thumb-wrap{ width:84px !important; height:84px !important; }
     #detailView #detailThumbs img, #detailView #detailThumbs .m-thumb{ border-radius:10px !important; }
   }
+/* Preferred: remove the wrapper box entirely */
+  @supports (display: contents) {
+    .results .grid .thumb-wrap{
+      display: contents !important;   /* wrapper no longer adds height */
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      height: auto !important;
+      min-height: 0 !important;
+      line-height: 0 !important;
+    }
+  }
+
+  /* Fallback for older engines: make the wrapper auto-size to the media */
+  @supports not (display: contents) {
+    .results .grid .thumb-wrap{
+      display: grid !important;
+      grid-auto-rows: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
+      line-height: 0 !important;
+      overflow: hidden !important;
+      background: transparent !important;
+    }
+    .results .grid .thumb-wrap > img,
+    .results .grid .thumb-wrap > picture,
+    .results .grid .thumb-wrap > video,
+    .results .grid .thumb-wrap > canvas,
+    .results .grid .thumb-wrap > .thumb,
+    .results .grid .thumb-wrap > .m-thumb{
+      grid-row: 1;
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      margin: 0 !important;
+      object-fit: cover !important;
+      border-radius: 0 !important;
+    }
+  }
+
+  /* Regardless of support: hide any non-media content inside thumb-wrap */
+  .results .grid .thumb-wrap > :not(img):not(picture):not(video):not(canvas):not(.thumb):not(.m-thumb){
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    border: 0 !important;
+  }
+
+  /* Kill pseudo-elements that often provide the ratio spacer */
+  .results .grid .thumb-wrap::before,
+  .results .grid .thumb-wrap::after{
+    content: none !important;
+    display: none !important;
+  }
+  
+  /* ===================== DETAIL HEADER: 2 centered buttons ===================== */
+#detailView .detail-header{
+  /* two equal columns: Back | Copy */
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px !important;      /* tighter */
+  min-height: 56px;                   /* comfortable touch area */
+  background: rgba(0,0,0,.70);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* Hide title row completely (keeps DOM intact) */
+#detailView .detail-title-area,
+#detailView #detailTitle{ display:none !important; }
+
+/* Place Back in col 1, Copy in col 2; center both */
+#detailView #detailBack{
+  grid-column: 1 !important;
+  justify-self: center !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;                 /* a bit longer */
+  width: min(44vw, 260px);            /* symmetric width */
+  border: 0; border-radius: 12px;
+  color:#fff; font-size:15px; line-height:1.2;
+  background: rgba(255,255,255,.10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+/* Make the actions container layout-less, then style the button */
+#detailView .detail-actions{
+  grid-column: 2 !important;
+  justify-self: center !important;
+  display: contents !important;       /* let the button take the grid cell */
+}
+
+/* Copy Prompt button: same look/size as Back */
+#detailView .detail-actions .btn{
+  padding: 10px 16px !important;
+  width: min(44vw, 260px) !important; /* symmetric width */
+  min-height: 40px !important;
+  border: 0 !important; border-radius: 12px !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
+}
+
+/* Reduce any leftover margins around the header to kill wasted space */
+#detailView .detail-header > *{
+  margin: 0 !important;
+}
+
+/* ===================== THUMBS: slightly larger with saved space ===================== */
+#detailView #detailThumbsWrap{
+  padding: 6px 6px 4px !important;     /* a touch tighter */
+}
+
+#detailView #detailThumbs .m-item,
+#detailView #detailThumbs .thumb,
+#detailView #detailThumbs .m-thumb-wrap{
+  width: 112px !important;             /* was 96 */
+  height: 112px !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background:#0b0b0b !important;
+}
+html, body {
+  margin: 0;
+  background: #000;             /* no white peeking through */
+  color: #e8e8e8;
+  height: 100%;
+}
+#detailView #detailThumbs img,
+#detailView #detailThumbs .m-thumb{
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+  transform: none !important;
+}
+
+/* Optional: with header now tighter, let hero enjoy a tad more height */
+#detailView #detailHero{ height: calc(100vh - 138px); }  /* was 150px */
+
+
+
 }
