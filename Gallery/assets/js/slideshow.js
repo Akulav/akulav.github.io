@@ -2,8 +2,8 @@
 (function () {
   const { $, $$, state } = PV;
   let timer = null;
-  let pool = [];     // {id, handle}
-  let urls = [];     // cached blob urls in same order as pool
+  let pool = [];
+  let urls = [];
   let idx = 0;
 
   function enterFullscreen(el){
@@ -66,6 +66,8 @@
   }
 
   function initControls(){
+    if (initControls._did) return; initControls._did = true;
+
     const interval = loadPref('slideshowSec', 5);
     const inp = $('#slideshowInterval');
     if (inp) inp.value = interval;
@@ -75,41 +77,48 @@
     $('#slideshowPlay')?.addEventListener('click', () => { startTimer(); enterFullscreen($('#slideshowView')); });
     $('#slideshowPause')?.addEventListener('click', stopTimer);
 
-    // Keyboard: ESC to close
+    // Keyboard helpers
     document.addEventListener('keydown', (e)=>{
-      if ($('#slideshowView')?.getAttribute('aria-hidden') === 'false' && e.key === 'Escape') { e.preventDefault(); closeSlideshow(); }
-      if ($('#slideshowView')?.getAttribute('aria-hidden') === 'false' && e.key === ' ') { e.preventDefault(); if (timer) stopTimer(); else startTimer(); }
+      const open = $('#slideshowView')?.getAttribute('aria-hidden') === 'false';
+      if (!open) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeSlideshow(); }
+      if (e.key === ' ') { e.preventDefault(); if (timer) stopTimer(); else startTimer(); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); show(pickNextRandom()); }
     });
 
-    // Wire gallery button (uses current rendered thumbnails)
+    // Gallery button → slideshow from current rendered items
     $('#startSlideshow')?.addEventListener('click', ()=>{
       if (!state._lastRenderedItems?.length) return;
       const list = [];
       for (const p of state._lastRenderedItems) {
         if (p.files?.previews?.length) for (const h of p.files.previews) list.push({ handle: h, id: p.id });
       }
-      if (list.length) openSlideshow(list);
+      if (list.length) { openSlideshow(list); }
     });
 
-    // Wire detail buttons
+    // Detail buttons
     $('#detailFullscreen')?.addEventListener('click', ()=> enterFullscreen($('#detailView')));
     $('#detailSlideshow')?.addEventListener('click', ()=>{
-      // Build pool from current detail previews if any
       const dv = window.__pv_detail;
       if (!dv?.previews?.length) return;
       const list = dv.previews.map(h=>({handle:h, id: dv.p?.id }));
       openSlideshow(list);
-      // Use seconds from the small input beside the button
       const small = $('#slideshowSecs');
-      if (small && small.value){
-        $('#slideshowInterval').value = small.value;
-      }
+      if (small && small.value) $('#slideshowInterval').value = small.value;
       startTimer();
       enterFullscreen($('#slideshowView'));
     });
+
+    // Quickbar (mobile) wiring
+    const qp = document.getElementById('ssQuickPlay');
+    const qq = document.getElementById('ssQuickPause');
+    const qc = document.getElementById('ssQuickClose');
+    if (qp) qp.addEventListener('click', ()=>{ startTimer(); });
+    if (qq) qq.addEventListener('click', ()=>{ stopTimer(); });
+    if (qc) qc.addEventListener('click', ()=>{ closeSlideshow(); });
   }
 
-  // simple localStorage helpers shared elsewhere
+  // localStorage helpers
   function savePref(k,v){ try{ localStorage.setItem('pv:'+k, JSON.stringify(v)); }catch{} }
   function loadPref(k,f){ try{ const v = localStorage.getItem('pv:'+k); return v?JSON.parse(v):f; }catch{ return f; } }
 
