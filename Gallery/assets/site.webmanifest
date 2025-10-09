@@ -1,7 +1,7 @@
 {
   "name": "Prompt Vault",
   "short_name": "PVault",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0e13",
   "theme_color": "#0b0e13",

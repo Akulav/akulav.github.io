@@ -50,6 +50,7 @@
   }
 
   function openSlideshow(list){
+    fitControls();
     pool = list || [];
     urls.forEach(u => URL.revokeObjectURL(u));
     urls = new Array(pool.length);
@@ -65,7 +66,27 @@
     exitFullscreen();
   }
 
-  function initControls(){
+  
+  function fitControls(){
+    try{
+      const hdr = document.querySelector('#slideshowView .slideshow-header');
+      const ctr = document.querySelector('#slideshowView .slideshow-controls');
+      if (!hdr || !ctr) return;
+      // available width for controls = header width minus close button width and gaps
+      const closeBtn = document.getElementById('slideshowClose');
+      const hdrW = hdr.clientWidth;
+      const closeW = closeBtn ? (closeBtn.getBoundingClientRect().width + 12) : 0;
+      const avail = Math.max(120, hdrW - closeW - 12);
+      // reset transform to measure natural scrollWidth
+      ctr.style.transform = 'none';
+      const need = ctr.scrollWidth;
+      let scale = 1;
+      if (need > avail) scale = Math.max(0.7, Math.min(1, avail / need));
+      ctr.style.transform = (scale < 0.999) ? `scale(${scale})` : 'none';
+    }catch(e){}
+  }
+
+function initControls(){
     if (initControls._did) return; initControls._did = true;
 
     const interval = loadPref('slideshowSec', 5);
@@ -122,6 +143,14 @@
   function savePref(k,v){ try{ localStorage.setItem('pv:'+k, JSON.stringify(v)); }catch{} }
   function loadPref(k,f){ try{ const v = localStorage.getItem('pv:'+k); return v?JSON.parse(v):f; }catch{ return f; } }
 
-  window.addEventListener('pv:data', initControls);
-  document.addEventListener('DOMContentLoaded', initControls);
+  window.addEventListener('pv:data', function(){ initControls(); fitControls(); });
+  document.addEventListener('DOMContentLoaded', function(){ initControls(); fitControls(); });
 })();
+
+window.addEventListener('resize', fitControls);
+window.addEventListener('orientationchange', fitControls);
+
+  document.getElementById('slideshowInterval')?.addEventListener('input', fitControls);
+  document.getElementById('slideshowShuffle')?.addEventListener('click', fitControls);
+  document.getElementById('slideshowPlay')?.addEventListener('click', fitControls);
+  document.getElementById('slideshowPause')?.addEventListener('click', fitControls);

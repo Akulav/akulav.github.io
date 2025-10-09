@@ -200,20 +200,19 @@
 <script defer="" src="assets/js/newprompt-event-guard.js"></script>
 <script defer="True" src="assets/js/slideshow.js"></script><section aria-hidden="true" id="slideshowView">
 <div class="slideshow-header">
-<button class="btn" id="slideshowClose" title="Close">✕ Close</button>
-<div class="slideshow-controls">
-<label>Every <input class="num" id="slideshowInterval" max="120" min="2" step="1" type="number" value="5"/> sec</label>
-<button class="btn" id="slideshowShuffle">Shuffle</button>
-<button class="btn btn-primary" id="slideshowPlay">Play</button>
-<button class="btn" disabled="" id="slideshowPause">Pause</button>
+  <div class="slideshow-controls">
+    <button class="btn" disabled>Every</button>
+    <input class="num" id="slideshowInterval" max="120" min="2" step="1" type="number" value="5"/>
+    <button class="btn" disabled>sec</button>
+    <button class="btn" id="slideshowShuffle">Shuffle</button>
+    <button class="btn btn-primary" id="slideshowPlay">Play</button>
+    <button class="btn" disabled="" id="slideshowPause">Pause</button>
+    
+    <button class="btn" id="slideshowClose" title="Close">✕ Close</button>
+  </div>
 </div>
-</div>
+
 <div class="slideshow-stage">
-<img alt="slideshow image" id="slideshowImg"/>
+  <img alt="slideshow image" id="slideshowImg"/>
 </div>
-<div class="slideshow-quickbar" id="slideshowQuickbar">
-<button class="btn" id="ssQuickClose" title="Close">✕</button>
-<button class="btn" id="ssQuickPlay" title="Play">▶</button>
-<button class="btn" id="ssQuickPause" title="Pause">⏸</button>
-</div></section></body>
 </html>

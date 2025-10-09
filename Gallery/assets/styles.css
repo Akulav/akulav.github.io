@@ -788,19 +788,138 @@ body.ios-standalone{ padding-top: var(--safe-top); padding-bottom: var(--safe-bo
 
 
 /* ===== Slideshow overlay + mobile fixes ===== */
-#slideshowView{ position:fixed; inset:0; z-index:9999; background:#000; display:flex; flex-direction:column; }
-#slideshowView[aria-hidden="true"]{ display:none; }
-.slideshow-header{ position:sticky; top:0; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:#0b0e13; border-bottom:1px solid var(--line); }
-.slideshow-controls{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.slideshow-controls .btn{ min-height:44px; }
-.slideshow-controls .num{ width:72px; padding:8px 10px; background:#0b0e13; border:1px solid var(--line); color:var(--fg); border-radius:8px; }
-.slideshow-stage{ position:relative; flex:1; overflow:hidden; display:flex; align-items:center; justify-content:center; padding: max(8px, var(--safe-bottom)); }
-#slideshowImg{ max-width:100%; max-height:100%; object-fit:contain; display:block; pointer-events:none; }
-.slideshow-quickbar{ position:fixed; left:0; right:0; bottom:0; z-index:4; display:none; gap:12px; justify-content:center; padding:10px 12px calc(10px + var(--safe-bottom)); background:rgba(11,14,19,0.92); border-top:1px solid var(--line); }
-.slideshow-quickbar .btn{ min-width:44px; min-height:44px; border:1px solid var(--line); background:#0b0e13; color:var(--fg); border-radius:12px; font-weight:700; }
-@media (max-width: 768px){
-  .slideshow-controls label{ display:flex; align-items:center; gap:6px; }
-  .slideshow-controls .num{ width:60px; }
-  .slideshow-quickbar{ display:flex; }
-  .slideshow-header{ padding-top: max(8px, var(--safe-top)); padding-bottom:8px; }
+/* =================================================================== */
+/* Slideshow Component Styles                     */
+/* =================================================================== */
+
+/* --- Main Slideshow Container --- */
+#slideshowView {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+}
+
+#slideshowView[aria-hidden="true"] {
+    display: none;
+}
+
+/* --- Header & Controls (Desktop & Base) --- */
+.slideshow-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #0b0e13;
+    border-bottom: 1px solid var(--line);
+}
+
+.slideshow-controls {
+    flex: 1 1 auto; /* Allow grow/shrink and take available space */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Center controls on all screen sizes */
+    gap: 12px;
+    white-space: nowrap; /* Keep elements on one line */
+    flex-wrap: nowrap;
+    overflow: hidden; /* Hide overflow for JS scaling */
+}
+
+.slideshow-controls .btn {
+    min-height: 44px;
+}
+
+.slideshow-controls .num {
+    width: 72px;
+    padding: 8px 10px;
+    background: #0b0e13;
+    border: 1px solid var(--line);
+    color: var(--fg);
+    border-radius: 8px;
+}
+
+/* --- Image Stage --- */
+.slideshow-stage {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: max(8px, var(--safe-bottom));
+}
+
+#slideshowImg {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+}
+
+/* --- Quickbar --- */
+.slideshow-quickbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 4;
+    display: none; /* Hidden by default, shown on mobile */
+    gap: 12px;
+    justify-content: center;
+    padding: 10px 12px calc(10px + var(--safe-bottom));
+    background: rgba(11, 14, 19, 0.92);
+    border-top: 1px solid var(--line);
+}
+
+.slideshow-quickbar .btn {
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    background: #0b0e13;
+    color: var(--fg);
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+/* =================================================================== */
+/* Mobile Overrides (768px and smaller)                 */
+/* =================================================================== */
+@media (max-width: 768px) {
+    .slideshow-header {
+        padding: max(8px, var(--safe-top)) 12px 8px 12px;
+        gap: 8px;
+    }
+
+    .slideshow-controls {
+        gap: 8px;
+        transform-origin: center; /* Critical for JS scaling from the center */
+    }
+    
+    .slideshow-controls label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .slideshow-controls .btn {
+        padding: 6px 8px;
+        min-height: 34px;
+        line-height: 1;
+        border-radius: 10px;
+    }
+
+    .slideshow-controls .num {
+        width: 56px;
+        padding: 6px;
+    }
+
+    .slideshow-quickbar {
+        display: flex; /* Show the quickbar on mobile */
+    }
 }
