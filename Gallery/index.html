@@ -4,13 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <title>Prompt Vault</title>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
 <!-- Styles -->
 <link href="assets/styles.css" rel="stylesheet"/>
 <!-- JSZip (needed for zip import/export) -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <link href="assets/css/mobile.css" rel="stylesheet"/>
-<link href="assets/css/newprompt.css" rel="stylesheet"/></head>
+<link href="assets/css/newprompt.css" rel="stylesheet"/><meta content="#0b0e13" name="theme-color"/><meta content="yes" name="apple-mobile-web-app-capable"/><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/><meta content="yes" name="mobile-web-app-capable"/><link href="assets/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/><link href="assets/icons/icon-192.png" rel="icon" sizes="192x192" type="image/png"/><link href="assets/icons/icon-512.png" rel="icon" sizes="512x512" type="image/png"/><link href="assets/site.webmanifest" rel="manifest"/></head>
 <body class="boot-gate">
 <!-- ========================== TOPBAR ========================== -->
 <header class="topbar">
@@ -117,7 +117,7 @@
 <button class="btn" id="detailAddImages">Add Images</button>
 <!-- Manual content rating control mounts here -->
 <div id="detailRating"></div>
-</div>
+<button class="btn" id="detailFullscreen">Fullscreen</button><input class="num" id="slideshowSecs" max="120" min="2" step="1" type="number" value="5"/><button class="btn" id="detailSlideshow">Shuffle ▶</button></div>
 </div>
 <div class="detail-gallery">
 <div id="detailHero">
@@ -166,7 +166,7 @@
 </div>
 <div class="gallery-actions">
 <button class="btn btn-primary" id="exportZip">Export Current View (.zip)</button>
-</div>
+<button class="btn" id="startSlideshow">Start Slideshow</button></div>
 </div>
 <div id="galleryGrid"></div>
 <div class="gallery-sentinel" id="gallerySentinel">Loading…</div>
@@ -188,16 +188,28 @@
 <script defer="" src="assets/js/library.js"></script>
 <script defer="" src="assets/js/lazyload.js"></script>
 <script defer="" src="assets/js/lazy-patch.js"></script>
-<script defer src="assets/js/mobile-boot.js"></script>
-
+<script defer="" src="assets/js/mobile-boot.js"></script>
 <!-- App entry last -->
 <script defer="" src="assets/app.js"></script>
 <script defer="" src="assets/js/mobile.js"></script>
 <script>window.dispatchEvent(new Event("pv:data"));</script>
 <script defer="" src="assets/js/newprompt-modal-fix.js"></script>
-  <script defer src="assets/js/newprompt-view.js"></script>
-  <script defer src="assets/js/favorites-disk.js"></script>
-  <script defer src="assets/js/newprompt-save-hotfix.js"></script>
-  <script defer src="assets/js/newprompt-event-guard.js"></script>
-</body>
+<script defer="" src="assets/js/newprompt-view.js"></script>
+<script defer="" src="assets/js/favorites-disk.js"></script>
+<script defer="" src="assets/js/newprompt-save-hotfix.js"></script>
+<script defer="" src="assets/js/newprompt-event-guard.js"></script>
+<script defer="True" src="assets/js/slideshow.js"></script><section aria-hidden="true" id="slideshowView">
+<div class="slideshow-header">
+<button class="btn" id="slideshowClose" title="Close">✕ Close</button>
+<div class="slideshow-controls">
+<label>Every <input class="num" id="slideshowInterval" max="120" min="2" step="1" type="number" value="5"/> sec</label>
+<button class="btn" id="slideshowShuffle">Shuffle</button>
+<button class="btn btn-primary" id="slideshowPlay">Play</button>
+<button class="btn" disabled="" id="slideshowPause">Pause</button>
+</div>
+</div>
+<div class="slideshow-stage">
+<img alt="slideshow image" id="slideshowImg"/>
+</div>
+</section></body>
 </html>

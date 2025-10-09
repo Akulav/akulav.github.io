@@ -146,3 +146,11 @@
     $('#openGallery')?.addEventListener('click', PV.openGallery);
   });
 })();
+
+
+  // === iOS standalone safe-area toggle ===
+  try{
+    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isStandalone && isiOS) document.body.classList.add('ios-standalone');
+  }catch{}
