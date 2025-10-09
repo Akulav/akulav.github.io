@@ -304,94 +304,112 @@
   }
   
   /* ===================== DETAIL HEADER: 2 centered buttons ===================== */
-#detailView .detail-header{
-  /* two equal columns: Back | Copy */
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 10px !important;      /* tighter */
-  min-height: 56px;                   /* comfortable touch area */
-  background: rgba(0,0,0,.70);
-  backdrop-filter: blur(8px);
-  border-top: 1px solid rgba(255,255,255,.06);
-  border-bottom: 1px solid rgba(255,255,255,.06);
+/* ============================
+   Mobile detail header layout
+   Back | Shuffle | Copy on one line
+   ============================ */
+@media (max-width: 640px) {
+
+  /* Header grid: three cells */
+  #detailView .detail-header{
+    display:grid !important;
+    grid-template-columns: auto 1fr auto;   /* back | center | copy  */
+    grid-template-areas: "back shuffle copy";
+    align-items:center;
+    gap:8px;
+    padding:6px 10px !important;
+    min-height:56px;
+    background: rgba(0,0,0,.70);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,.06);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+
+  /* Hide title area to save space */
+  #detailView .detail-title-area,
+  #detailView #detailTitle{
+    display:none !important;
+  }
+
+  /* Let action buttons become direct grid items */
+  #detailView .detail-actions{
+    display: contents !important;
+  }
+
+  /* Place each control into the grid area */
+  #detailView #detailBack{
+    grid-area: back;
+    justify-self: start;
+  }
+  #detailView #detailSlideshow{
+    grid-area: shuffle;
+    justify-self: center;
+  }
+  #detailView #detailCopyPrompt{
+    grid-area: copy;
+    justify-self: end;
+  }
+
+  /* Hide extra actions on mobile */
+  #detailView #detailDownloadImg,
+  #detailView #detailAddImages,
+  #detailView #detailRating{
+    display:none !important;
+  }
+
+  /* Uniform compact button style */
+  #detailView .detail-header .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 16px !important;
+    min-height:40px !important;
+    line-height:1.2;
+    border:0 !important;
+    border-radius:12px !important;
+    background: rgba(255,255,255,.10) !important;
+    color:#fff !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
+  }
+
+  /* Kill leftover margins around header content */
+  #detailView .detail-header > *{
+    margin:0 !important;
+  }
+
+  /* Thumbs a bit larger with tighter padding */
+  #detailView #detailThumbsWrap{
+    padding:6px 6px 4px !important;
+  }
+  #detailView #detailThumbs .m-item,
+  #detailView #detailThumbs .thumb,
+  #detailView #detailThumbs .m-thumb-wrap{
+    width:112px !important;
+    height:112px !important;
+    border-radius:12px !important;
+    overflow:hidden !important;
+    background:#0b0b0b !important;
+  }
+  #detailView #detailThumbs img,
+  #detailView #detailThumbs .m-thumb{
+    width:100% !important;
+    height:100% !important;
+    object-fit:cover !important;
+    border-radius:12px !important;
+    transform:none !important;
+  }
+
+  /* Give the hero a touch more room with the tighter header */
+  #detailView #detailHero{
+    height: calc(100vh - 138px);
+  }
+
+  /* Ensure page background is solid (no white seams) */
+  html, body{
+    margin:0;
+    background:#000;
+    color:#e8e8e8;
+    height:100%;
+  }
 }
-
-/* Hide title row completely (keeps DOM intact) */
-#detailView .detail-title-area,
-#detailView #detailTitle{ display:none !important; }
-
-/* Place Back in col 1, Copy in col 2; center both */
-#detailView #detailBack{
-  grid-column: 1 !important;
-  justify-self: center !important;
-  display: inline-flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;                 /* a bit longer */
-  width: min(44vw, 260px);            /* symmetric width */
-  border: 0; border-radius: 12px;
-  color:#fff; font-size:15px; line-height:1.2;
-  background: rgba(255,255,255,.10);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
-}
-
-/* Make the actions container layout-less, then style the button */
-#detailView .detail-actions{
-  grid-column: 2 !important;
-  justify-self: center !important;
-  display: contents !important;       /* let the button take the grid cell */
-}
-
-/* Copy Prompt button: same look/size as Back */
-#detailView .detail-actions .btn{
-  padding: 10px 16px !important;
-  width: min(44vw, 260px) !important; /* symmetric width */
-  min-height: 40px !important;
-  border: 0 !important; border-radius: 12px !important;
-  background: rgba(255,255,255,.10) !important;
-  color: #fff !important;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
-}
-
-/* Reduce any leftover margins around the header to kill wasted space */
-#detailView .detail-header > *{
-  margin: 0 !important;
-}
-
-/* ===================== THUMBS: slightly larger with saved space ===================== */
-#detailView #detailThumbsWrap{
-  padding: 6px 6px 4px !important;     /* a touch tighter */
-}
-
-#detailView #detailThumbs .m-item,
-#detailView #detailThumbs .thumb,
-#detailView #detailThumbs .m-thumb-wrap{
-  width: 112px !important;             /* was 96 */
-  height: 112px !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-  background:#0b0b0b !important;
-}
-html, body {
-  margin: 0;
-  background: #000;             /* no white peeking through */
-  color: #e8e8e8;
-  height: 100%;
-}
-#detailView #detailThumbs img,
-#detailView #detailThumbs .m-thumb{
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 12px !important;
-  transform: none !important;
-}
-
-/* Optional: with header now tighter, let hero enjoy a tad more height */
-#detailView #detailHero{ height: calc(100vh - 138px); }  /* was 150px */
-
-
-
 }
