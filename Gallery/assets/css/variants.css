@@ -1,0 +1,51 @@
+
+/* ===== Unified badge look (NSFW/SFW + Normal/Phone) ===== */
+.thumb-wrap{ position: relative; }
+.badges-wrap{
+  position:absolute; top:8px; left:8px;
+  display:inline-flex; gap:8px; align-items:center;
+  z-index:2;
+}
+.badge, .variant-badge{
+  display:inline-block;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: saturate(140%) blur(4px);
+  background: rgba(20,20,20,.65);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.18);
+  pointer-events: none;
+}
+.badge.sfw { background: rgba(70,130,180,.65); }
+.badge.nsfw{ background: rgba(178,34,34,.65); }
+.variant-badge.phone  { background: rgba(46,139,87,.65); }
+.variant-badge.normal { background: rgba(70,130,180,.65); }
+
+/* Hide raw positioned badge to avoid duplicates */
+.thumb-wrap > .badge,
+.thumb-wrap > .variant-badge{ position: static; }
+
+/* ===== Thumb toggle (per-image) ===== */
+.thumb-container{ position: relative; }
+.kind-toggle{
+  position:absolute; bottom:6px; right:6px;
+  font-size:11px; padding:4px 8px; border-radius:999px;
+  background: rgba(20,20,20,.65); color:#fff; border:1px solid rgba(255,255,255,.18);
+  cursor:pointer;
+}
+.kind-toggle.phone  { background: rgba(46,139,87,.65); }
+.kind-toggle.normal { background: rgba(70,130,180,.65); }
+
+
+/* Strong override so SFW/NSFW adopts unified look and doesn't overlap */
+.thumb-wrap .badges-wrap .badge{
+  position: static !important;
+  left: auto !important; top: auto !important;
+  padding: 4px 8px !important;
+  border-radius: 10px !important;
+  background: rgba(20,20,20,.65) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+}
