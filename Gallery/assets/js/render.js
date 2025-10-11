@@ -64,7 +64,7 @@
       favBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(p, favBtn); };
 
       if (p.files?.previews?.length > 0) {
-        PV.loadObjectURL(p.files.previews[0]).then(url => { img.src = url; img.onload = () => tw.classList.remove('skel'); });
+        PV.loadObjectURL(p.files.previews[0]).then(url => { img.src = url; img.onload = () => { /* pv:aspect detect */ if (img.naturalHeight / img.naturalWidth > 1.25) tw.classList.add('tall'); else tw.classList.remove('tall'); tw.classList.remove('skel'); }; });
       } else { img.alt = 'No preview'; tw.classList.remove('skel'); }
 
       tw.append(img, badge, favBtn);

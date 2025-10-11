@@ -262,7 +262,7 @@ a:hover{ text-decoration:underline; }
   animation:sk 1.1s linear infinite;
 }
 @keyframes sk{ 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-.thumb{ width:100%; height:100%; object-fit:cover; display:block; transform:scale(1.03); }
+.thumb{ width:100%; height:100%; object-fit:cover; display:block; }
 
 /* NSFW/SFW badge */
 .badge{
@@ -520,7 +520,7 @@ body.detail-view-active .page { display:none; }
   display:flex; align-items:center; justify-content:center;
   overflow:hidden; position:relative;
 }
-#detailImg{ width:100%; height:100%; object-fit:contain; }
+#detailImg{ width:100%; height:100%; object-fit:contain; display:block; }
 
 /* ---- Horizontal slider for thumbs (scrollbar only) ---- */
 #detailThumbsWrap{
@@ -577,7 +577,7 @@ body.detail-view-active .page { display:none; }
   background:#0c0f18;
 }
 #detailThumbs img{
-  width:100%; height:100%; object-fit:cover; display:block;
+  width:100%; height:100%; object-fit:contain; display:block;
   border-radius:10px;
   opacity:.8; transition:opacity .15s ease, transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
   cursor:pointer;
@@ -705,13 +705,13 @@ body.gallery-view-active #detailView { display: none; }
 
 #galleryGrid{
   flex:1;
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap:12px; overflow-y:auto; border-radius:12px; padding:4px;
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-content:start; gap:14px; overflow-y:auto; border-radius:12px; padding:6px;
   background:#0b0e13; border:1px solid var(--line);
   scrollbar-color: #2a3250 #0b0e13;
 }
 #galleryGrid .gimg{
-  width:100%; aspect-ratio:1 / 1; object-fit:cover; border-radius:10px;
+  width:100%; aspect-ratio:1 / 1; object-fit:contain; border-radius:10px;
   border:1px solid var(--line); cursor:pointer; transition: transform 0.1s ease-out;
 }
 #galleryGrid .gimg:hover{ transform: scale(1.03); }
@@ -923,3 +923,11 @@ body.ios-standalone{ padding-top: var(--safe-top); padding-bottom: var(--safe-bo
         display: flex; /* Show the quickbar on mobile */
     }
 }
+
+.thumb-wrap.tall{ aspect-ratio:auto; }
+.thumb-wrap.tall .thumb{ object-fit:contain; }
+
+@media (max-width: 900px){
+  #galleryGrid{ grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:8px; padding:4px; }
+}
+.thumb-wrap.tall .thumb{ object-fit: contain; }

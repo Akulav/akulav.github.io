@@ -59,7 +59,7 @@
         _galleryURLs.push(url);
         const im = document.createElement('img');
         im.className = 'gimg';
-        im.src = url; im.loading = 'lazy'; im.decoding = 'async';
+        im.src = url; im.loading = 'lazy'; im.decoding = 'async'; im.onload = () => { /* pv:set aspect-ratio */ try{ im.style.aspectRatio = `${im.naturalWidth} / ${im.naturalHeight}`; }catch{} };
         im.onclick = () => {
           const promptToOpen = PV.state.all.find(p => p.id === id);
           if (promptToOpen) { closeGallery(); PV.openDetailView(promptToOpen); }
