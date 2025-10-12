@@ -3,6 +3,7 @@
 
   let _galleryObserver = null;
   let _galleryURLs = [];
+  let _galleryLoading = false;
 
   function openGallery(){
     state._scrollPos = window.scrollY;
@@ -49,7 +50,9 @@
     PV.lockScroll();
 
     async function galleryLoadNextPage(){
+      if (_galleryLoading) return;
       if (state._gallery.idx >= state._gallery.list.length) return;
+      _galleryLoading = true;
       const end = Math.min(state._gallery.idx + 40, state._gallery.list.length);
       const frag = document.createDocumentFragment();
 
@@ -59,7 +62,7 @@
         _galleryURLs.push(url);
         const im = document.createElement('img');
         im.className = 'gimg';
-        im.src = url; im.loading = 'lazy'; im.decoding = 'async'; im.onload = () => { /* pv:set aspect-ratio */ try{ im.style.aspectRatio = `${im.naturalWidth} / ${im.naturalHeight}`; }catch{} };
+        im.src = url; im.loading = 'lazy'; im.decoding = 'async'; im.onload = () => { try{ im.style.aspectRatio = `${im.naturalWidth} / ${im.naturalHeight}`; }catch{} };
         im.onclick = () => {
           const promptToOpen = PV.state.all.find(p => p.id === id);
           if (promptToOpen) { closeGallery(); PV.openDetailView(promptToOpen); }
@@ -68,6 +71,7 @@
       }
       grid.insertBefore(frag, sentinel);
       state._gallery.idx = end;
+      _galleryLoading = false;
     }
   }
 
@@ -86,8 +90,14 @@
 
   function collectCurrentPreviewHandles(){
     const list = [];
+    const seen = new Set();
     for (const p of state._lastRenderedItems) {
-      if (p.files?.previews?.length) for (const h of p.files.previews) list.push({ handle: h, id: p.id });
+      if (p.files?.previews?.length){
+        p.files.previews.forEach((h, idx) => {
+          const key = p.id + ':' + idx;
+          if (!seen.has(key)) { seen.add(key); list.push({ handle: h, id: p.id, idx }); }
+        });
+      }
     }
     return list;
   }

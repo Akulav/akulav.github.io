@@ -401,7 +401,7 @@
 
   /* Give the hero a touch more room with the tighter header */
   #detailView #detailHero{
-    height: calc(100dvh - 138px - var(--safe-bottom));
+    height: calc(100dvh - 138px - var(--safe-bottom))
   }
 
   /* Ensure page background is solid (no white seams) */
