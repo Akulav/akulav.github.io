@@ -6,7 +6,6 @@
     mode: 'AND',
     q: '',
     all: [],
-    tags: [],
     sel: new Set(),
     rw: false,
     rootHandle: null,

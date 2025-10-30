@@ -2,21 +2,10 @@
   const { $, $$, state, savePref } = PV;
   const { FavStore } = PV;
 
+  // No-op tag renderer (kept for compatibility)
   function renderTags(){
-    const wrap = $('#tagChips'); if (!wrap) return;
-    wrap.innerHTML = '';
-    state.tags.forEach(t => {
-      const b = document.createElement('button');
-      b.className   = 'chip';
-      b.textContent = t;
-      b.dataset.tag = t;
-      b.onclick = () => {
-        if (state.sel.has(t)) state.sel.delete(t); else state.sel.add(t);
-        b.classList.toggle('active');
-        window.__pv_applyFilters?.();
-      };
-      wrap.appendChild(b);
-    });
+    const wrap = $('#tagChips');
+    if (wrap) wrap.innerHTML = '';
   }
 
   function setOnlyFavs(v){
@@ -38,24 +27,36 @@
       const card = document.createElement('article');
       card.className = 'card';
 
-      const tw  = document.createElement('div'); tw.className = 'thumb-wrap skel';
-      const img = document.createElement('img'); img.className = 'thumb'; img.loading = 'lazy'; img.decoding = 'async';
+      const tw  = document.createElement('div');
+      tw.className = 'thumb-wrap skel';
 
-      // ---- image count badge (restored) ----
-      const n = (p.files && Array.isArray(p.files.previews)) ? p.files.previews.length : 0;
-      if (n > 0) {
-        const count = document.createElement('span');
-        count.className = 'count-badge';
-        count.setAttribute('aria-label', `${n} image${n !== 1 ? 's' : ''}`);
-        count.textContent = `📷 ${n}`;
-        tw.appendChild(count);
+      const img = document.createElement('img');
+      img.className = 'thumb';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+
+      // ---- single info badge (count + format + dimensions) ----
+      const total = (p.files && Array.isArray(p.files.previews)) ? p.files.previews.length : 0;
+
+      let firstPreview = (p.files && Array.isArray(p.files.previews) && p.files.previews[0]) ? p.files.previews[0] : null;
+      let ext = '';
+      if (firstPreview && firstPreview.name) {
+        const dot = firstPreview.name.lastIndexOf('.');
+        ext = dot >= 0 ? firstPreview.name.slice(dot + 1) : '';
       }
-      // --------------------------------------
 
-      const badge = document.createElement('span');
-      badge.className = 'badge';
-      badge.textContent = (p.tags || []).includes('nsfw') ? 'NSFW' : 'SFW';
+      const infoBadge = document.createElement('span');
+      infoBadge.className = 'count-badge';
+      if (total > 0) {
+        const upExt = ext ? ext.toUpperCase() : '';
+        // show count + format first; dimensions filled in after image loads
+        infoBadge.textContent = upExt ? `📷 ${total} · 🖼️ ${upExt}` : `📷 ${total} · 🖼️`;
+        infoBadge.setAttribute('aria-label', `Contains ${total} image${total !== 1 ? 's' : ''}${upExt ? ', first is '+upExt : ''}`);
+        tw.appendChild(infoBadge);
+      }
+      // ---------------------------------------------------------
 
+      // Favorite star
       const isFav  = p.favorite || FavStore.has(p.id);
       const favBtn = document.createElement('button');
       favBtn.className = isFav ? 'fav-btn active' : 'fav-btn';
@@ -63,14 +64,40 @@
       favBtn.title = isFav ? 'Unfavorite' : 'Favorite';
       favBtn.onclick = (e) => { e.stopPropagation(); toggleFavorite(p, favBtn); };
 
+      // First image preview & dimensions → enhance the info badge
       if (p.files?.previews?.length > 0) {
-        PV.loadObjectURL(p.files.previews[0]).then(url => { img.src = url; img.onload = () => { if (img.naturalHeight / img.naturalWidth > 1.25) tw.classList.add('tall'); else tw.classList.remove('tall'); tw.classList.remove('skel'); }; });
-      } else { img.alt = 'No preview'; tw.classList.remove('skel'); }
+        PV.loadObjectURL(p.files.previews[0]).then(url => {
+          img.src = url;
+          img.onload = () => {
+            const w = img.naturalWidth || 0;
+            const h = img.naturalHeight || 0;
+            if (h / w > 1.25) tw.classList.add('tall'); else tw.classList.remove('tall');
+            tw.classList.remove('skel');
 
-      tw.append(img, badge, favBtn);
+            if (total > 0) {
+              const upExt = ext ? ext.toUpperCase() : '';
+              const dims  = (w && h) ? ` ${w}×${h}` : '';
+              infoBadge.textContent = upExt
+                ? `📷 ${total} · 🖼️ ${upExt}${dims}`
+                : `📷 ${total} · 🖼️${dims}`;
+              infoBadge.setAttribute('aria-label',
+                `Contains ${total} image${total !== 1 ? 's' : ''}${upExt ? ', first is '+upExt : ''}${w&&h ? `, ${w} by ${h} pixels` : ''}`);
+            }
+          };
+        });
+      } else {
+        img.alt = 'No preview';
+        tw.classList.remove('skel');
+      }
 
-      const meta = document.createElement('div'); meta.className = 'meta';
-      const h3   = document.createElement('h3');
+      // Append thumb, info badge (already added above when total>0), and fav
+      tw.append(img, favBtn);
+
+      // Meta (title only; tags removed)
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const h3 = document.createElement('h3');
       h3.className   = 'title';
       h3.textContent = p.title;
       h3.setAttribute('contenteditable', state.rw ? 'true' : 'false');
@@ -87,31 +114,29 @@
         });
       }
 
-      const tags = document.createElement('div'); tags.className = 'tags';
-      (p.tags || []).forEach(t => {
-        const span = document.createElement('span');
-        span.className = 'tag';
-        span.textContent = t;
-        span.title = 'Filter by tag';
-        span.style.cursor = 'pointer';
-        span.onclick = () => {
-          if (!state.sel.has(t)) {
-            state.sel.add(t);
-            $$('#tagChips .chip').forEach(c => { if (c.textContent === t) c.classList.add('active'); });
-            window.__pv_applyFilters?.();
-          }
-        };
-        tags.appendChild(span);
-      });
+      meta.append(h3);
 
-      meta.append(h3, tags);
+      // Actions
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
 
-      const actions = document.createElement('div'); actions.className = 'card-actions';
-      const viewBtn = document.createElement('button'); viewBtn.className = 'btn'; viewBtn.textContent = 'Open'; viewBtn.onclick = () => PV.openDetailView(p);
-      const copyBtn = document.createElement('button'); copyBtn.className = 'btn btn-primary'; copyBtn.textContent = 'Copy Prompt';
-      copyBtn.onclick = async () => { const text = await PV.loadPromptText(p); navigator.clipboard.writeText(text); PV.toastCopied(copyBtn); };
+      const viewBtn = document.createElement('button');
+      viewBtn.className = 'btn';
+      viewBtn.textContent = 'Open';
+      viewBtn.onclick = () => PV.openDetailView(p);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn btn-primary';
+      copyBtn.textContent = 'Copy Prompt';
+      copyBtn.onclick = async () => {
+        const text = await PV.loadPromptText(p);
+        navigator.clipboard.writeText(text);
+        PV.toastCopied(copyBtn);
+      };
 
       actions.append(viewBtn, copyBtn);
+
+      // Build card
       card.append(tw, meta, actions);
       grid.appendChild(card);
     });
@@ -133,11 +158,10 @@
     starBtn.classList.toggle('active', !isFav);
     starBtn.textContent = !isFav ? '★' : '☆';
     if (state.onlyFavs) window.__pv_applyFilters?.();
-    // persist to disk if RW
     PV.syncFavoritesToDisk && PV.syncFavoritesToDisk();
   }
 
-  PV.renderTags = renderTags;
+  PV.renderTags = renderTags;                 // safe no-op
   PV.setOnlyFavs = setOnlyFavs;
   PV.renderGrid = renderGrid;
   PV.equalizeCardHeights = equalizeCardHeights;

@@ -4,7 +4,16 @@
 @media (max-width: 768px){
 
   /* ------------------ Shell / base ------------------ */
-  :root { --m-nav-h: 56px; }
+  :root { --m-nav-h: 56px; --mbar-cols: 3; } /* default to 3 buttons */
+
+  /* Auto-detect button count (modern browsers with :has) */
+  .mbar:has(> button:nth-child(4)) { --mbar-cols: 4; } /* 4+ buttons */
+  .mbar:has(> button:nth-child(3)):not(:has(> button:nth-child(4))) { --mbar-cols: 3; } /* exactly 3 */
+
+  /* Fallback if :has is unsupported */
+  @supports not (selector(:has(*))) {
+    .mbar { --mbar-cols: 3; }
+  }
 
   html, body { background:#000; color:#e8e8e8; }
 
@@ -164,7 +173,7 @@
     align-items:center; gap:10px; overflow-x:auto; -webkit-overflow-scrolling:touch;
     scrollbar-width:none; touch-action:pan-x;
   }
-  #detailView #detailThumbs::-webkit-scrollbar{ display:none; }
+  #detailView #detailThumbs::-webkit-scrollbar{ display:none !important; }
   #detailView #detailThumbs .m-item,
   #detailView #detailThumbs .thumb,
   #detailView #detailThumbs .m-thumb-wrap{
@@ -214,12 +223,16 @@
     position:fixed; left:0; right:0; bottom:0; height:var(--m-nav-h);
     background:rgba(0,0,0,.84); backdrop-filter:blur(10px);
     border-top:1px solid rgba(255,255,255,.08);
-    display:grid; grid-template-columns:repeat(4,1fr); z-index:10000;
+    display:grid;
+    grid-template-columns: repeat(var(--mbar-cols), 1fr); /* ← adaptive */
+    z-index:10000;
     padding-bottom: env(safe-area-inset-bottom);
   }
   .mbar button{
     background:transparent; border:0; color:#e8e8e8; font:inherit;
     display:grid; place-items:center; gap:2px;
+    min-height:44px;
+    font-size:18px;
   }
   .mbar button[aria-current="true"]{ color:#fff; font-weight:700; }
 
@@ -242,7 +255,7 @@
     #detailView #detailThumbs .m-thumb-wrap{ width:84px !important; height:84px !important; }
     #detailView #detailThumbs img, #detailView #detailThumbs .m-thumb{ border-radius:10px !important; }
   }
-/* Preferred: remove the wrapper box entirely */
+  /* Preferred: remove the wrapper box entirely */
   @supports (display: contents) {
     .results .grid .thumb-wrap{
       display: contents !important;   /* wrapper no longer adds height */
@@ -302,114 +315,114 @@
     content: none !important;
     display: none !important;
   }
-  
+
   /* ===================== DETAIL HEADER: 2 centered buttons ===================== */
-/* ============================
-   Mobile detail header layout
-   Back | Shuffle | Copy on one line
-   ============================ */
-@media (max-width: 640px) {
+  /* ============================
+     Mobile detail header layout
+     Back | Shuffle | Copy on one line
+     ============================ */
+  @media (max-width: 640px) {
 
-  /* Header grid: three cells */
-  #detailView .detail-header{
-    display:grid !important;
-    grid-template-columns: auto 1fr auto;   /* back | center | copy  */
-    grid-template-areas: "back shuffle copy";
-    align-items:center;
-    gap:8px;
-    padding:6px 10px !important;
-    min-height:56px;
-    background: rgba(0,0,0,.70);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid rgba(255,255,255,.06);
-    border-bottom: 1px solid rgba(255,255,255,.06);
-  }
+    /* Header grid: three cells */
+    #detailView .detail-header{
+      display:grid !important;
+      grid-template-columns: auto 1fr auto;   /* back | center | copy  */
+      grid-template-areas: "back shuffle copy";
+      align-items:center;
+      gap:8px;
+      padding:6px 10px !important;
+      min-height:56px;
+      background: rgba(0,0,0,.70);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
 
-  /* Hide title area to save space */
-  #detailView .detail-title-area,
-  #detailView #detailTitle{
-    display:none !important;
-  }
+    /* Hide title area to save space */
+    #detailView .detail-title-area,
+    #detailView #detailTitle{
+      display:none !important;
+    }
 
-  /* Let action buttons become direct grid items */
-  #detailView .detail-actions{
-    display: contents !important;
-  }
+    /* Let action buttons become direct grid items */
+    #detailView .detail-actions{
+      display: contents !important;
+    }
 
-  /* Place each control into the grid area */
-  #detailView #detailBack{
-    grid-area: back;
-    justify-self: start;
-  }
-  #detailView #detailSlideshow{
-    grid-area: shuffle;
-    justify-self: center;
-  }
-  #detailView #detailCopyPrompt{
-    grid-area: copy;
-    justify-self: end;
-  }
+    /* Place each control into the grid area */
+    #detailView #detailBack{
+      grid-area: back;
+      justify-self: start;
+    }
+    #detailView #detailSlideshow{
+      grid-area: shuffle;
+      justify-self: center;
+    }
+    #detailView #detailCopyPrompt{
+      grid-area: copy;
+      justify-self: end;
+    }
 
-  /* Hide extra actions on mobile */
-  #detailView #detailDownloadImg,
-  #detailView #detailAddImages,
-  #detailView #detailRating{
-    display:none !important;
-  }
+    /* Hide extra actions on mobile */
+    #detailView #detailDownloadImg,
+    #detailView #detailAddImages,
+    #detailView #detailRating{
+      display:none !important;
+    }
 
-  /* Uniform compact button style */
-  #detailView .detail-header .btn{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding:10px 16px !important;
-    min-height:40px !important;
-    line-height:1.2;
-    border:0 !important;
-    border-radius:12px !important;
-    background: rgba(255,255,255,.10) !important;
-    color:#fff !important;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
-  }
+    /* Uniform compact button style */
+    #detailView .detail-header .btn{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 16px !important;
+      min-height:40px !important;
+      line-height:1.2;
+      border:0 !important;
+      border-radius:12px !important;
+      background: rgba(255,255,255,.10) !important;
+      color:#fff !important;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08) !important;
+    }
 
-  /* Kill leftover margins around header content */
-  #detailView .detail-header > *{
-    margin:0 !important;
-  }
+    /* Kill leftover margins around header content */
+    #detailView .detail-header > *{
+      margin:0 !important;
+    }
 
-  /* Thumbs a bit larger with tighter padding */
-  #detailView #detailThumbsWrap{
-    padding:6px 6px 4px !important;
-  }
-  #detailView #detailThumbs .m-item,
-  #detailView #detailThumbs .thumb,
-  #detailView #detailThumbs .m-thumb-wrap{
-    width:112px !important;
-    height:112px !important;
-    border-radius:12px !important;
-    overflow:hidden !important;
-    background:#0b0b0b !important;
-  }
-  #detailView #detailThumbs img,
-  #detailView #detailThumbs .m-thumb{
-    width:100% !important;
-    height:100% !important;
-    object-fit:cover !important;
-    border-radius:12px !important;
-    transform:none !important;
-  }
+    /* Thumbs a bit larger with tighter padding */
+    #detailView #detailThumbsWrap{
+      padding:6px 6px 4px !important;
+    }
+    #detailView #detailThumbs .m-item,
+    #detailView #detailThumbs .thumb,
+    #detailView #detailThumbs .m-thumb-wrap{
+      width:112px !important;
+      height:112px !important;
+      border-radius:12px !important;
+      overflow:hidden !important;
+      background:#0b0b0b !important;
+    }
+    #detailView #detailThumbs img,
+    #detailView #detailThumbs .m-thumb{
+      width:100% !important;
+      height:100% !important;
+      object-fit:cover !important;
+      border-radius:12px !important;
+      transform:none !important;
+    }
 
-  /* Give the hero a touch more room with the tighter header */
-  #detailView #detailHero{
-    height: calc(100dvh - 138px - var(--safe-bottom))
-  }
+    /* Give the hero a touch more room with the tighter header */
+    #detailView #detailHero{
+      height: calc(100dvh - 138px - var(--safe-bottom))
+    }
 
-  /* Ensure page background is solid (no white seams) */
-  html, body{
-    margin:0;
-    background:#000;
-    color:#e8e8e8;
-    height:100%;
+    /* Ensure page background is solid (no white seams) */
+    html, body{
+      margin:0;
+      background:#000;
+      color:#e8e8e8;
+      height:100%;
+    }
   }
-}
 }

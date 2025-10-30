@@ -52,41 +52,48 @@
   function openSlideshow(list){
     fitControls();
     pool = list || [];
-    urls.forEach(u => URL.revokeObjectURL(u));
+    // revoke any old URLs
+    urls.forEach(u => { try { if (u) URL.revokeObjectURL(u); } catch{} });
     urls = new Array(pool.length);
     idx = 0;
     $('#slideshowView')?.setAttribute('aria-hidden','false');
     document.body.classList.add('no-scroll');
     show(0);
   }
+
   function closeSlideshow(){
     stopTimer();
+    // cleanup URLs to avoid leaks
+    urls.forEach(u => { try { if (u) URL.revokeObjectURL(u); } catch{} });
+    urls = [];
     $('#slideshowView')?.setAttribute('aria-hidden','true');
     document.body.classList.remove('no-scroll');
     exitFullscreen();
   }
 
-  
   function fitControls(){
     try{
       const hdr = document.querySelector('#slideshowView .slideshow-header');
       const ctr = document.querySelector('#slideshowView .slideshow-controls');
       if (!hdr || !ctr) return;
-      // available width for controls = header width minus close button width and gaps
       const closeBtn = document.getElementById('slideshowClose');
       const hdrW = hdr.clientWidth;
       const closeW = closeBtn ? (closeBtn.getBoundingClientRect().width + 12) : 0;
       const avail = Math.max(120, hdrW - closeW - 12);
-      // reset transform to measure natural scrollWidth
       ctr.style.transform = 'none';
       const need = ctr.scrollWidth;
-      let scale = 1;
-      if (need > avail) scale = Math.max(0.7, Math.min(1, avail / need));
+      const scale = need > avail ? Math.max(0.7, Math.min(1, avail / need)) : 1;
       ctr.style.transform = (scale < 0.999) ? `scale(${scale})` : 'none';
     }catch(e){}
   }
+  // Optional exposure (if other modules want to call it)
+  PV.fitControls = fitControls;
 
-function initControls(){
+  // debounce util local to this IIFE
+  const debounce = (fn, ms=120) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+  const fitDebounced = debounce(fitControls, 120);
+
+  function initControls(){
     if (initControls._did) return; initControls._did = true;
 
     const interval = loadPref('slideshowSec', 5);
@@ -98,26 +105,36 @@ function initControls(){
     $('#slideshowPlay')?.addEventListener('click', () => { startTimer(); enterFullscreen($('#slideshowView')); });
     $('#slideshowPause')?.addEventListener('click', stopTimer);
 
-    // Keyboard helpers
+    // Keep layout tidy
+    window.addEventListener('resize', fitDebounced);
+    window.addEventListener('orientationchange', fitDebounced);
+    $('#slideshowInterval')?.addEventListener('input', fitDebounced);
+    $('#slideshowShuffle')?.addEventListener('click', fitDebounced);
+    $('#slideshowPlay')?.addEventListener('click', fitDebounced);
+    $('#slideshowPause')?.addEventListener('click', fitDebounced);
+
+    // Keyboard helpers (when open)
     document.addEventListener('keydown', (e)=>{
       const open = $('#slideshowView')?.getAttribute('aria-hidden') === 'false';
       if (!open) return;
       if (e.key === 'Escape') { e.preventDefault(); closeSlideshow(); }
-      if (e.key === ' ') { e.preventDefault(); if (timer) stopTimer(); else startTimer(); }
+      if (e.key === ' ')      { e.preventDefault(); if (timer) stopTimer(); else startTimer(); }
       if (e.key === 'ArrowRight') { e.preventDefault(); show(pickNextRandom()); }
     });
 
-    // Gallery button → slideshow from current rendered items
+    // Start from current filter (gallery button)
     $('#startSlideshow')?.addEventListener('click', ()=>{
       if (!state._lastRenderedItems?.length) return;
       const list = [];
       for (const p of state._lastRenderedItems) {
-        if (p.files?.previews?.length) for (const h of p.files.previews) list.push({ handle: h, id: p.id });
+        if (p.files?.previews?.length) {
+          for (const h of p.files.previews) list.push({ handle: h, id: p.id });
+        }
       }
-      if (list.length) { openSlideshow(list); }
+      if (list.length) openSlideshow(list);
     });
 
-    // Detail buttons
+    // Start from current prompt (detail button)
     $('#detailFullscreen')?.addEventListener('click', ()=> enterFullscreen($('#detailView')));
     $('#detailSlideshow')?.addEventListener('click', ()=>{
       const dv = window.__pv_detail;
@@ -130,27 +147,17 @@ function initControls(){
       enterFullscreen($('#slideshowView'));
     });
 
-    // Quickbar (mobile) wiring
-    const qp = document.getElementById('ssQuickPlay');
-    const qq = document.getElementById('ssQuickPause');
-    const qc = document.getElementById('ssQuickClose');
-    if (qp) qp.addEventListener('click', ()=>{ startTimer(); });
-    if (qq) qq.addEventListener('click', ()=>{ stopTimer(); });
-    if (qc) qc.addEventListener('click', ()=>{ closeSlideshow(); });
+    // Quickbar (mobile)
+    document.getElementById('ssQuickPlay') ?.addEventListener('click', startTimer);
+    document.getElementById('ssQuickPause')?.addEventListener('click', stopTimer);
+    document.getElementById('ssQuickClose')?.addEventListener('click', closeSlideshow);
   }
 
-  // localStorage helpers
+  // localStorage helpers (scoped)
   function savePref(k,v){ try{ localStorage.setItem('pv:'+k, JSON.stringify(v)); }catch{} }
   function loadPref(k,f){ try{ const v = localStorage.getItem('pv:'+k); return v?JSON.parse(v):f; }catch{ return f; } }
 
-  window.addEventListener('pv:data', function(){ initControls(); fitControls(); });
-  document.addEventListener('DOMContentLoaded', function(){ initControls(); fitControls(); });
+  window.addEventListener('pv:data', ()=>{ initControls(); fitControls(); });
+  document.addEventListener('DOMContentLoaded', ()=>{ initControls(); fitControls(); });
 })();
 
-window.addEventListener('resize', fitControls);
-window.addEventListener('orientationchange', fitControls);
-
-  document.getElementById('slideshowInterval')?.addEventListener('input', fitControls);
-  document.getElementById('slideshowShuffle')?.addEventListener('click', fitControls);
-  document.getElementById('slideshowPlay')?.addEventListener('click', fitControls);
-  document.getElementById('slideshowPause')?.addEventListener('click', fitControls);

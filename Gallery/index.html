@@ -17,7 +17,7 @@
 <div class="left-spacer"></div>
 <h1>Prompt Vault</h1>
 <div class="actions">
-<input id="searchBox" placeholder="Search title, tags, or prompt…" type="search"/>
+<input id="searchBox" placeholder="Search title, or prompt" type="search"/>
 <button id="toggleFavs" title="Only favorites">★ Favs</button>
 <button id="clearFilters" title="Clear filters">Clear</button>
 <button id="openGallery" title="Open gallery grid">Gallery</button>
@@ -25,19 +25,7 @@
 <button id="openRW" title="Open Library">Open</button>
 </div>
 </header>
-<!-- ========================== FILTERS ========================== -->
-<section class="filters-inline" id="filters">
-<div class="filters-row">
-<div class="chips-wrap">
-<h2>Tags</h2>
-<div class="chips" id="tagChips"></div>
-</div>
-<div class="filter-mode">
-<label><input checked="" name="mode" type="radio" value="AND"/> AND</label>
-<label><input name="mode" type="radio" value="OR"/> OR</label>
-</div>
-</div>
-</section>
+
 <!-- ========================== RESULTS PAGE ========================== -->
 <main class="page">
 <section class="results">
@@ -58,7 +46,7 @@
 <div class="dz-inner">
 <div class="dz-icon">📦</div>
 <div class="dz-title">Drop your <b>prompts</b> folder or ZIP</div>
-<div class="dz-sub">We’ll index <code>prompt.txt</code>, <code>tags.json</code>, and images.</div>
+<div class="dz-sub">We’ll index <code>prompt.txt</code>, and images.</div>
 <div class="dz-hint">Supports directory picker (desktop), ZIP import, or loose files.</div>
 </div>
 </div>
@@ -85,10 +73,6 @@
 <input id="newTitle" placeholder="e.g., Sunset Study" type="text"/>
 </div>
 <div class="form-group">
-<label for="newTags">Tags (comma-separated)</label>
-<input id="newTags" placeholder="tag1, tag2" type="text"/>
-</div>
-<div class="form-group">
 <label for="newPromptText">Prompt Text</label>
 <textarea id="newPromptText" placeholder="Paste your prompt text…" rows="6"></textarea>
 </div>
@@ -109,7 +93,6 @@
 <button class="btn" id="detailBack" title="Back">← Back</button>
 <div class="detail-title-area">
 <h2 id="detailTitle">Title</h2>
-<div class="chips small" id="detailTags"></div>
 </div>
 <div class="detail-actions">
 <button class="btn" id="detailCopyPrompt">Copy Prompt</button>
@@ -139,10 +122,6 @@
 <div class="form-group">
 <label for="newTitle">Title</label>
 <input id="newTitle" placeholder="e.g., Sunset Study" type="text"/>
-</div>
-<div class="form-group">
-<label for="newTags">Tags (comma-separated)</label>
-<input id="newTags" placeholder="tag1, tag2" type="text"/>
 </div>
 <div class="form-group">
 <label for="newPromptText">Prompt Text</label>
@@ -178,11 +157,10 @@
 <script defer="" src="assets/js/favorites.js"></script>
 <script defer="" src="assets/js/titles.js"></script>
 <script defer="" src="assets/js/transforms.js"></script>
-<script defer="" src="assets/js/nsfw.js"></script>
-<script defer="" src="assets/js/tagger.js"></script>
 <script defer="" src="assets/js/render.js"></script>
 <script defer="" src="assets/js/filters.js"></script>
 <script defer="" src="assets/js/fs-rw.js"></script>
+<script defer src="assets/js/prompt-editor.js"></script>
 <script defer="" src="assets/js/detail.js"></script>
 <script defer="" src="assets/js/gallery.js"></script>
 <script defer="" src="assets/js/library.js"></script>

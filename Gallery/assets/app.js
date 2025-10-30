@@ -13,7 +13,7 @@
       }
       state.rw = true;
       state.rootHandle = rootForManifest;
-      state.promptsHandle = promptsDir; const { items, tagSet } = await PV.scanPromptsRW(promptsDir);
+      state.promptsHandle = promptsDir; const { items } = await PV.scanPromptsRW(promptsDir);
 
       try {
         const fh = await rootForManifest.getFileHandle('_favorites.json', { create:false });
@@ -23,7 +23,7 @@
         for (const p of items) if (!p.favorite && s.has(p.id)) p.favorite = true;
       } catch {}
 
-      await PV.finalizeLibrary(items, tagSet);
+      await PV.finalizeLibrary(items);
     } catch (err) {
       console.warn("R/W Picker cancelled or failed.", err);
     }
@@ -50,7 +50,6 @@
       saveBtn.disabled = true; msgEl.textContent = 'Saving...';
       try {
         const title      = $('#newPromptTitle').value.trim();
-        const tags       = $('#newPromptTags').value.split(',').map(t => t.trim()).filter(Boolean);
         const promptText = $('#newPromptText').value;
         const images     = $('#newImages').files;
         if (!title) throw new Error('Title is required.');
@@ -59,7 +58,7 @@
         const promptsDir = state.promptsHandle || await state.rootHandle.getDirectoryHandle('prompts', { create: true });
         const newDirHandle = await promptsDir.getDirectoryHandle(folderName, { create: true });
 
-        const tagsMeta = { title, tags };
+        const tagsMeta = { title};
         const tagsFileHandle = await newDirHandle.getFileHandle('tags.json', { create: true });
         let writable = await tagsFileHandle.createWritable();
         await writable.write(JSON.stringify(tagsMeta, null, 2));
@@ -137,7 +136,6 @@
       if (searchBox) searchBox.value = '';
       // clear chips
       state.sel.clear();
-      PV.$$('#tagChips .chip').forEach(c => c.classList.remove('active'));
       // reset mode? (keep current AND/OR setting)
       PV.applyFilters();
     });

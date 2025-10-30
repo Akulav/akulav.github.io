@@ -84,11 +84,6 @@
     document.getElementById('dirInput')?.click();
   }
 
-  function setBadge(cardEl, isNsfw){
-    const badge = cardEl.querySelector('.badge');
-    if (!badge) return;
-    badge.textContent = isNsfw ? 'NSFW' : 'SFW';
-  }
 
   PV.showOverlay = showOverlay;
   PV.hideOverlay = hideOverlay;
@@ -102,5 +97,4 @@
   PV.readJSONFile = readJSONFile;
   PV.readJSONHandle = readJSONHandle;
   PV.openBestPicker = openBestPicker;
-  PV.setBadge = setBadge;
 })();

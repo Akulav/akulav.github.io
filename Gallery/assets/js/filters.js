@@ -7,14 +7,13 @@
 
     if (q) {
       list = list.filter(p => {
-        const hay = ((p.title || '') + ' ' + (p.tags || []).join(' ') + ' ' + (p._snippet || '')).toLowerCase();
+        const hay = ((p.title || '') + ' ' + (p._snippet || '')).toLowerCase();
         return hay.includes(q);
       });
     }
 
     if (state.sel.size) {
       list = list.filter(p => {
-        const has = p.tags || [];
         return state.mode === 'AND'
           ? [...state.sel].every(t => has.includes(t))
           : [...state.sel].some(t => has.includes(t));

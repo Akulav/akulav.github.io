@@ -1,9 +1,7 @@
 (function () {
   const { $, state } = PV;
-  const { Tagger } = PV;
   const { readJSONFile, readJSONHandle, hideOverlay } = PV;
   const { TitleStore } = PV;
-  const { applyNsfwOverride, readNsfwFlagFromMeta } = PV;
 
   async function scanPromptsRW(promptsDir) {
     // remember how we loaded
@@ -17,34 +15,38 @@
       const p = {
         id: folder.replace(/\s+/g, '-').toLowerCase(),
         title: entryName,
-        tags: [],
         folder,
-        files: { prompt: null, tags: null, previews: [] },
+        files: { prompt: null, previews: [] },
         dirHandle: entryHandle,
         favorite: false,
         rootHandle: state.rootHandle,
-        nsfw: 'auto'
       };
 
+      // Walk children and read title from tags.json (title only)
       for await (const [childName, child] of entryHandle.entries()) {
         const lower = childName.toLowerCase();
         if (child.kind !== 'file') continue;
-        if (lower === 'prompt.txt') p.files.prompt = child;
-        else if (lower === 'tags.json') p.files.tags = child;
-        else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(lower)) p.files.previews.push(child);
-        else if (lower === 'favorites.json') {
+
+        if (lower === 'prompt.txt') {
+          p.files.prompt = child;
+        } else if (lower === 'tags.json') {
+          // title (if present), ignore any other fields
+          try {
+            const meta = await readJSONHandle(child).catch(() => null);
+            if (meta?.title) p.title = meta.title;
+          } catch {}
+        } else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(lower)) {
+          p.files.previews.push(child);
+        } else if (lower === 'favorites.json') {
           const data = await readJSONHandle(child).catch(() => null);
           if (data?.favorite === true) p.favorite = true;
         }
       }
+
+      // Require prompt.txt
       if (!p.files.prompt) continue;
 
-      if (p.files.tags) {
-        const meta = await readJSONHandle(p.files.tags).catch(() => null);
-        if (meta?.title) p.title = meta.title;
-        p.nsfw = readNsfwFlagFromMeta(meta);
-      }
-
+      // Cover-first sort
       p.files.previews.sort((a, b) => {
         const aIsCover = a.name.startsWith('_');
         const bIsCover = b.name.startsWith('_');
@@ -56,13 +58,8 @@
       items.push(p);
     }
 
-    await Tagger.tagPrompts(items, { writeBack: false });
-    items.forEach(applyNsfwOverride);
-
-    const tagSet = new Set();
-    items.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
     items.sort((a, b) => a.title.localeCompare(b.title));
-    return { items, tagSet };
+    return { items };
   }
 
   async function handleZipFile(file){
@@ -79,6 +76,7 @@
       const zip = await JSZip.loadAsync(ab, { createFolders: false });
       const fileEntries = Object.values(zip.files).filter(zf => !zf.dir);
 
+      // Group by prompt folder
       const groups = new Map();
       for (const zf of fileEntries) {
         const rel = (zf.name || '').replace(/^[\/]+/, '');
@@ -95,11 +93,14 @@
         }
 
         let g = groups.get(folderKey);
-        if (!g) { g = { folder: folderKey, prompt: null, tagsFile: null, previews: [], favFile: null }; groups.set(folderKey, g); }
+        if (!g) {
+          g = { folder: folderKey, prompt: null, tagsFile: null, previews: [], favFile: null };
+          groups.set(folderKey, g);
+        }
 
         const base = parts[parts.length - 1].toLowerCase();
         if (base === 'prompt.txt') g.prompt = zf;
-        else if (base === 'tags.json') g.tagsFile = zf;
+        else if (base === 'tags.json') g.tagsFile = zf; // used only for title
         else if (base === 'favorites.json') g.favFile = zf;
         else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(base)) g.previews.push(zf);
       }
@@ -108,35 +109,40 @@
       for (const g of groups.values()) {
         if (!g.prompt) continue;
         let title = g.folder.split('/').at(-1);
-        let nsfwFlag = 'auto';
 
+        // Title from tags.json (ignore any other fields)
         if (g.tagsFile) {
           try {
             const meta = JSON.parse(await g.tagsFile.async('string'));
             if (meta?.title) title = meta.title;
-            nsfwFlag = readNsfwFlagFromMeta(meta);
           } catch {}
         }
 
         const id = g.folder.replace(/\s+/g, '-').toLowerCase();
+
         let favorite = false;
         if (g.favFile) {
-          try { const favObj = JSON.parse(await g.favFile.async('string')); favorite = !!favObj?.favorite; } catch {}
+          try {
+            const favObj = JSON.parse(await g.favFile.async('string'));
+            favorite = !!favObj?.favorite;
+          } catch {}
         }
 
         g.previews.sort((a, b) => a.name.localeCompare(b.name));
-        all.push({ id, title, tags: [], folder: g.folder, files: { prompt: g.prompt, tags: g.tagsFile, previews: g.previews }, favorite, nsfw: nsfwFlag });
+
+        // No p.tags, no files.tags — keep only prompt & previews
+        all.push({
+          id,
+          title,
+          folder: g.folder,
+          files: { prompt: g.prompt, previews: g.previews },
+          favorite
+        });
       }
 
       if (!all.length) { libMsg.textContent = 'No prompts detected in ZIP.'; return; }
 
-      await Tagger.tagPrompts(all, { writeBack: false });
-      all.forEach(applyNsfwOverride);
-
-      const tagSet = new Set();
-      all.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
-
-      await finalizeLibrary(all, tagSet);
+      await finalizeLibrary(all);
     } catch (err) {
       console.error('ZIP parse failed:', err);
       libMsg.textContent = 'Failed to read ZIP.';
@@ -149,6 +155,7 @@
     const libMsg = $('#libMsg');
     libMsg.textContent = 'Indexing files…';
 
+    // Group by prompt folder
     const groups = new Map();
     for (const f of files) {
       const rel = (f.webkitRelativePath || f.name).replace(/^[\/]*/, '');
@@ -156,54 +163,69 @@
 
       let folderKey;
       const pIdx = parts.indexOf('prompts');
-      if (pIdx >= 0) { if (parts.length >= pIdx + 2) folderKey = parts.slice(0, pIdx + 2).join('/'); }
-      else { if (parts.length >= 2) folderKey = `prompts/${parts[0]}`; }
+      if (pIdx >= 0) {
+        if (parts.length >= pIdx + 2) folderKey = parts.slice(0, pIdx + 2).join('/');
+      } else {
+        if (parts.length >= 2) folderKey = `prompts/${parts[0]}`;
+      }
       if (!folderKey) continue;
 
       let g = groups.get(folderKey);
-      if (!g) { g = { folder: folderKey, promptFile: null, tagsFile: null, previews: [], favFile: null }; groups.set(folderKey, g); }
+      if (!g) {
+        g = { folder: folderKey, promptFile: null, tagsFile: null, previews: [], favFile: null };
+        groups.set(folderKey, g);
+      }
 
       const base = parts[parts.length - 1].toLowerCase();
       if (base === 'prompt.txt') g.promptFile = f;
-      else if (base === 'tags.json') g.tagsFile = f;
+      else if (base === 'tags.json') g.tagsFile = f; // used only for title
       else if (base === 'favorites.json') g.favFile = f;
       else if (/\.(jpg|jpeg|png|webp|avif)$/i.test(base)) g.previews.push(f);
     }
 
+    // Build items
     const all = [];
     for (const [folder, g] of groups.entries()) {
       if (!g.promptFile) continue;
+
       let title = folder.split('/').at(-1);
-      let nsfwFlag = 'auto';
       if (g.tagsFile) {
         const meta = await readJSONFile(g.tagsFile).catch(() => null);
         if (meta?.title) title = meta.title;
-        nsfwFlag = readNsfwFlagFromMeta(meta);
       }
+
       const id = folder.replace(/\s+/g, '-').toLowerCase();
+
       let favorite = false;
       if (g.favFile) {
         const favObj = await readJSONFile(g.favFile).catch(() => null);
         favorite = !!favObj?.favorite;
       }
+
       g.previews.sort((a, b) => a.name.localeCompare(b.name));
-      all.push({ id, title, tags: [], folder, files: { prompt: g.promptFile, tags: g.tagsFile, previews: g.previews }, favorite, nsfw: nsfwFlag });
+
+      // No p.tags, no files.tags — keep only prompt & previews
+      all.push({
+        id,
+        title,
+        folder,
+        files: { prompt: g.promptFile, previews: g.previews },
+        favorite
+      });
     }
 
-    if (!all.length) { libMsg.textContent = 'No prompts detected. Select your /prompts with prompt.txt files.'; return; }
-    await Tagger.tagPrompts(all, { writeBack: false });
-    all.forEach(applyNsfwOverride);
+    if (!all.length) {
+      libMsg.textContent = 'No prompts detected. Select your /prompts with prompt.txt files.';
+      return;
+    }
 
-    const tagSet = new Set();
-    all.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
-
-    await finalizeLibrary(all, tagSet);
+    await finalizeLibrary(all);
   }
 
-  async function finalizeLibrary(all, tagSet){
+  async function finalizeLibrary(all){
+    // Apply local title overrides
     all.forEach(p => { const t = TitleStore.get(p.id); if (t) p.title = t; });
     state.all = all;
-    state.tags = Array.from(tagSet).sort((a, b) => a.localeCompare(b));
 
     const newPromptBtn     = document.getElementById('newPromptBtn');
     const reloadLibraryBtn = document.getElementById('reloadLibraryBtn');
@@ -212,10 +234,11 @@
       if (reloadLibraryBtn) reloadLibraryBtn.style.display = 'inline-block';
     } else {
       if (newPromptBtn) newPromptBtn.style.display = 'none';
-      if (reloadLibraryBtn) reloadLibraryBtn.style.display = 'inline-block'; // allow reload even in RO
+      // keep reload visible even in RO to rehydrate current view if desired
+      if (reloadLibraryBtn) reloadLibraryBtn.style.display = 'inline-block';
     }
 
-    PV.renderTags();
+    // No tags rendering, no badges
     await preloadSnippets(all);
 
     window.__pv_applyFilters?.();
@@ -237,7 +260,7 @@
     }
   }
 
-  // NEW: one click reload — uses state.source
+  // One-click reload — uses state.source
   async function reloadLibrary(){
     const src = state.source || {};
     try {
@@ -248,14 +271,14 @@
           if (state.rootHandle.name?.toLowerCase() === 'prompts') promptsDir = state.rootHandle;
           else throw new Error('Could not find "prompts" directory in the previously selected folder.');
         }
-        const { items, tagSet } = await scanPromptsRW(promptsDir);
-        await finalizeLibrary(items, tagSet);
+        const { items } = await scanPromptsRW(promptsDir);
+        await finalizeLibrary(items);
       } else if (src.type === 'zip' && src.zipFile) {
         await handleZipFile(src.zipFile);
       } else if (src.type === 'files' && Array.isArray(src.files)) {
         await buildFromLooseFiles(src.files);
       } else {
-        // fallback: do nothing but re-render current filter
+        // fallback: just re-render current filter
         window.__pv_applyFilters?.();
       }
     } catch (err) {
@@ -264,14 +287,12 @@
     }
   }
 
-  // NEW: export currently filtered items into a zip
+  // Export currently filtered items into a zip (title-only tags.json)
   async function exportZipOfCurrentFilter(){
     if (!window.JSZip) { alert('ZIP support not loaded.'); return; }
     const zip = new JSZip();
 
-    // add content for each prompt in current filter
     for (const p of (state._lastRenderedItems || [])) {
-      // folder path mirrors your library path for clarity
       const folderPath = p.folder || (`prompts/${p.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/--+/g, '-')}`);
       const zf = zip.folder(folderPath);
 
@@ -281,15 +302,10 @@
         zf.file('prompt.txt', txt || '');
       } catch {}
 
-      // tags.json — if we have a handle, copy; else synthesize
+      // tags.json — write only title
       try {
-        let tagsBlob = null;
-        if (p.files?.tags) tagsBlob = await PV.getBlobFromHandle(p.files.tags);
-        if (tagsBlob) zf.file('tags.json', tagsBlob);
-        else {
-          const meta = { title: p.title || 'Untitled', tags: Array.isArray(p.tags) ? p.tags : [] };
-          zf.file('tags.json', JSON.stringify(meta, null, 2));
-        }
+        const meta = { title: p.title || 'Untitled' };
+        zf.file('tags.json', JSON.stringify(meta, null, 2));
       } catch {}
 
       // previews
@@ -315,6 +331,6 @@
   PV.handleZipFile = handleZipFile;
   PV.buildFromLooseFiles = buildFromLooseFiles;
   PV.finalizeLibrary = finalizeLibrary;
-  PV.reloadLibrary = reloadLibrary;                 // NEW
-  PV.exportZipOfCurrentFilter = exportZipOfCurrentFilter; // NEW
+  PV.reloadLibrary = reloadLibrary;
+  PV.exportZipOfCurrentFilter = exportZipOfCurrentFilter;
 })();
