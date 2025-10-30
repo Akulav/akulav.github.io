@@ -22,8 +22,15 @@
       if (_detailState.index === i) img.src = url;
     }
 
-    // active thumb
-    $$('#detailThumbs .thumb-container img').forEach((t, idx) => t.classList.toggle('active', idx === i));
+    // Toggle active state on images
+    $$('#detailThumbs .thumb-container img')
+      .forEach((t, idx) => t.classList.toggle('active', idx === i));
+
+    // Toggle 'selected' state on containers (drives always-visible overlay)
+    const containers = document.querySelectorAll('#detailThumbs .thumb-container');
+    containers.forEach((c, idx) => c.classList.toggle('selected', idx === i));
+
+    // Keep selected thumb in view
     const active = document.querySelector(`#detailThumbs img[data-idx="${i}"]`);
     active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   }
@@ -72,7 +79,7 @@
 
     // Copy Prompt prefers live edited text, else loads latest
     document.getElementById('detailCopyPrompt').onclick = async () => {
-      const ed = document.getElementById('detailPromptText');
+      const ed = document.getElementById('promptEditor');
       const live = ed?.getAttribute('contenteditable') === 'true' ? ed.textContent : null;
       const text = live ?? await PV.loadPromptTextWithOverride(p);
       await navigator.clipboard.writeText(text || '');
@@ -126,21 +133,28 @@
       _detailState.previews.forEach((handle, i) => {
         const wrap = document.createElement('div');
         wrap.className = 'thumb-container';
+        wrap.dataset.idx = i;
+
+        // Click anywhere in the container to select (prevents 1px hover issues)
+        wrap.onclick = () => setDetailHero(i);
+
         const im = document.createElement('img');
         im.dataset.idx = i;
+        im.style.pointerEvents = 'none'; // so overlay zone never loses hover
         if (i === 0) {
           im.classList.add('active');
+          wrap.classList.add('selected');   // keep overlay visible on first thumb
           setDetailHero(i, handle);
         }
         PV.loadObjectURL(handle).then(url => {
           _detailState.urls[i] = url;
           im.src = url;
         });
-        im.onclick = () => setDetailHero(i);
 
         if (state.rw) {
           const actions = document.createElement('div');
           actions.className = 'thumb-actions';
+
           const isCover = handle.name.startsWith('_');
 
           const coverBtn = document.createElement('button');

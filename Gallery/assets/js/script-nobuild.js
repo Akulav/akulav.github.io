@@ -933,30 +933,41 @@ function openDetailView(p) {
     _detailState.previews.forEach((handle, i) => {
       const container = document.createElement('div');
       container.className = 'thumb-container';
+      container.dataset.idx = i;
+
+      // Click container to select (prevents “1px hover edge” issues)
+      container.onclick = () => setDetailHero(i);
+
       const imgThumb = document.createElement('img');
       imgThumb.dataset.idx = i;
+      imgThumb.style.pointerEvents = 'none';
+
       if (i === 0) {
         imgThumb.classList.add('active');
+        container.classList.add('selected'); // keep overlay visible initially
         setDetailHero(i, handle);
       }
+
       loadObjectURL(handle).then(url => { _detailState.urls[i] = url; imgThumb.src = url; });
-      imgThumb.onclick = () => setDetailHero(i);
       container.appendChild(imgThumb);
 
       if (state.rw) {
         const actions = document.createElement('div');
         actions.className = 'thumb-actions';
         const isCover = handle.name.startsWith('_');
+
         const coverBtn = document.createElement('button');
         coverBtn.title = 'Set as cover image';
         coverBtn.innerHTML = '★';
         if (isCover) coverBtn.classList.add('is-cover');
         coverBtn.onclick = (e) => { e.stopPropagation(); setCoverImage(p, handle); };
+
         const deleteBtn = document.createElement('button');
         deleteBtn.title = 'Delete image';
         deleteBtn.innerHTML = '✕';
         deleteBtn.className = 'delete';
         deleteBtn.onclick = (e) => { e.stopPropagation(); deleteImage(p, handle); };
+
         actions.append(coverBtn, deleteBtn);
         container.appendChild(actions);
       }
@@ -978,7 +989,7 @@ function openDetailView(p) {
   const ratingMount = document.getElementById('detailRating');
   if (ratingMount) {
     ratingMount.innerHTML = '';
-    // if you mount something later, keep here
+    // (placeholder for future)
   }
 }
 
@@ -997,7 +1008,9 @@ function setDetailHero(i, handle = null) {
   const heroImg = $('#detailImg');
   const targetHandle = handle || _detailState.previews[i];
   if (!targetHandle) return;
+
   _detailState.index = i;
+
   const existingUrl = _detailState.urls[i];
   if (existingUrl) {
     heroImg.src = existingUrl;
@@ -1009,7 +1022,15 @@ function setDetailHero(i, handle = null) {
       }
     });
   }
-  $$('#detailThumbs .thumb-container img').forEach((thumb, idx) => { thumb.classList.toggle('active', idx === i); });
+
+  // Toggle active on images
+  $$('#detailThumbs .thumb-container img')
+    .forEach((thumb, idx) => thumb.classList.toggle('active', idx === i));
+
+  // NEW: toggle 'selected' on containers so overlay stays visible
+  const containers = $$('#detailThumbs .thumb-container');
+  containers.forEach((c, idx) => c.classList.toggle('selected', idx === i));
+
   const activeThumb = $(`#detailThumbs img[data-idx="${i}"]`);
   activeThumb?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 }

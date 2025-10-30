@@ -931,3 +931,93 @@ body.ios-standalone{ padding-top: var(--safe-top); padding-bottom: var(--safe-bo
 @media (max-width: 900px){
   #galleryGrid{ grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:8px; padding:4px; }
 }
+
+/* Always show overlay on the selected thumbnail */
+#detailThumbs .thumb-container.selected .thumb-actions{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* (Recommended) keep img non-interactive so overlay never flickers */
+#detailThumbs .thumb-container img{
+  pointer-events: none;
+}
+#detailThumbs .thumb-container.selected .thumb-actions{
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Prevent flicker: clicks go to container, not the img */
+#detailThumbs .thumb-container img{
+  pointer-events: none;
+}
+
+/* ===== Detail thumbnails: visibility boost for overlay buttons ===== */
+
+/* ensure container is a proper stacking context */
+#detailThumbs .thumb-container{
+  position: relative;
+  overflow: hidden;
+}
+
+/* dark scrim at the bottom for contrast (fades in on hover/selected) */
+#detailThumbs .thumb-container::after{
+  content:'';
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:52px;
+  background:linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,0));
+  opacity:0;
+  transition:opacity .15s ease;
+  pointer-events:none;
+  z-index:4; /* under buttons, over image */
+}
+#detailThumbs .thumb-container:hover::after,
+#detailThumbs .thumb-container.selected::after{ opacity:1; }
+
+/* overlay buttons — larger, sharper, guaranteed on top */
+#detailThumbs .thumb-actions{
+  position:absolute;
+  left:8px; right:8px; bottom:8px;
+  display:flex; gap:8px; justify-content:flex-end;
+  opacity:0; pointer-events:none;
+  z-index:5; /* above image and scrim */
+  transition:opacity .12s ease, transform .12s ease;
+}
+
+/* show on hover and keep visible on the selected thumb */
+#detailThumbs .thumb-container:hover .thumb-actions,
+#detailThumbs .thumb-container.selected .thumb-actions{
+  opacity:1; pointer-events:auto;
+}
+
+#detailThumbs .thumb-actions button{
+  width:36px; height:36px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.65);
+  background:rgba(0,0,0,.78);
+  color:#fff; font-weight:800; line-height:1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow:
+    0 2px 10px rgba(0,0,0,.5),
+    0 0 0 1px rgba(0,0,0,.25) inset;
+  transform: translateZ(0);
+}
+#detailThumbs .thumb-actions button:hover,
+#detailThumbs .thumb-actions button:focus-visible{
+  transform: translateY(-1px) scale(1.03);
+  border-color:#fff;
+  box-shadow: 0 3px 14px rgba(0,0,0,.6);
+}
+
+/* state colors */
+#detailThumbs .thumb-actions .is-cover{
+  background: linear-gradient(180deg,#ffd76a,#e8b93b);
+  color:#1a1f2e;
+  border-color:#f1c24a;
+}
+#detailThumbs .thumb-actions .delete{
+  background: linear-gradient(180deg,#ff5a6b,#d83a4b);
+  border-color:#ff97a2;
+}
