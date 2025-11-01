@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prompt Folder → AVIF (Local, In-Browser)</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- JSZip (for packaging the output) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <script src="app.js" type="module" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <h1>Prompt Folder → AVIF</h1>
+    <div id="supportBadge" class="badge muted">Checking AVIF encode support…</div>
+  </header>
+
+  <main class="page">
+    <section class="panel">
+      <h2>1) Pick your <code>prompts</code> folder</h2>
+      <p class="muted">
+        Nothing uploads anywhere. All work happens locally in your browser.
+        On GitHub Pages this works because it runs over HTTPS.
+      </p>
+
+      <div class="picker-row">
+        <input id="pickFolder" type="file" webkitdirectory directory />
+        <button id="btnScan" class="btn">View contents</button>
+      </div>
+    </section>
+
+    <section id="summary" class="panel hidden">
+      <h2>2) Folder summary</h2>
+      <div class="stats-row">
+        <div><strong>Total files:</strong> <span id="statTotal">0</span></div>
+        <div><strong>Images to convert:</strong> <span id="statImages">0</span></div>
+        <div><strong>Already AVIF:</strong> <span id="statAvif">0</span></div>
+      </div>
+
+      <div id="previewGrid" class="grid"></div>
+    </section>
+
+    <section id="convert" class="panel hidden">
+      <h2>3) Convert to AVIF</h2>
+      <div class="controls">
+        <label>
+          Quality:
+          <input id="quality" type="range" min="0.4" max="0.95" step="0.01" value="0.72" />
+          <span id="qualityVal">0.72</span>
+        </label>
+        <button id="btnConvert" class="btn primary">CONVERT TO AVIF</button>
+      </div>
+
+      <div class="progress-wrap">
+        <progress id="prog" value="0" max="100"></progress>
+        <div id="progText" class="muted">Idle</div>
+      </div>
+
+      <div id="resultRow" class="result-row hidden">
+        <button id="btnDownload" class="btn">Download ZIP</button>
+        <span id="resultInfo" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="fallback" class="panel warn hidden">
+      <h2>AVIF Encode Not Fully Supported</h2>
+      <p class="muted">
+        Your browser doesn’t expose WebCodecs AVIF, but we’ll use the Canvas method.
+        If conversion fails on some files, try Chrome/Edge latest, or lower quality slightly.
+      </p>
+    </section>
+  </main>
+
+  <footer class="footer muted">
+    Local-only tool · Preserves folder structure · Copies non-images unchanged · Strips EXIF metadata
+  </footer>
+</body>
+</html>
