@@ -1,78 +1,153 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge; chrome=1" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Prompt Folder → AVIF (Local, In-Browser)</title>
+  <title>🖼️ Local Image Converter — AVIF/WebP</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- JSZip (for packaging the output) -->
-  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
-  <script src="app.js" type="module" defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <h1>Prompt Folder → AVIF</h1>
-    <div id="supportBadge" class="badge muted">Checking AVIF encode support…</div>
-  </header>
+  <main class="wrap">
+    <!-- Header -->
+    <header class="hero card glass">
+      <div class="hero-inner">
+        <h1 class="title">🖼️ Local Image Converter</h1>
+        <p class="subtitle">AVIF/WebP • 100% local • No uploads • Zips your results</p>
+      </div>
+    </header>
 
-  <main class="page">
-    <section class="panel">
-      <h2>1) Pick your <code>prompts</code> folder</h2>
-      <p class="muted">
-        Nothing uploads anywhere. All work happens locally in your browser.
-        On GitHub Pages this works because it runs over HTTPS.
-      </p>
+    <!-- STACK LAYOUT: Source above Progress -->
+    <section class="stack balanced">
+      <!-- CARD 1: Pickers + Options (merged) -->
+      <div class="card glass">
+        <h2 class="section-title">📂 Choose Your Source</h2>
 
-      <div class="picker-row">
-        <input id="pickFolder" type="file" webkitdirectory directory />
-        <button id="btnScan" class="btn">View contents</button>
+        <div class="pickers">
+          <button id="pickRW" class="btn">
+            🔐 Pick Folder (R/W)
+            <span class="hint">Chromium + https/localhost</span>
+          </button>
+
+          <label class="btn filepick">
+            📁 Pick Folder (RO)
+            <input id="pickDirRO" type="file" webkitdirectory directory multiple />
+          </label>
+
+          <label class="btn filepick">
+            🧩 Pick Files (RO)
+            <input id="pickFiles" type="file" multiple />
+          </label>
+
+          <button id="scanZip" class="btn">🗜️ Pick ZIP</button>
+          <input id="zipInput" type="file" accept=".zip" hidden />
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Total</span>
+            <span class="stat-value" id="statTotal">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Images</span>
+            <span class="stat-value" id="statImages">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Root</span>
+            <span class="stat-value monospace" id="statRoot">—</span>
+          </div>
+        </div>
+
+        <details class="filelist-wrap">
+          <summary>🗂️ Show detected entries</summary>
+          <ul id="fileList" class="filelist"></ul>
+        </details>
+
+        <!-- ⚙️ Conversion Options inside this card -->
+        <h2 class="section-title" style="margin-top:12px;">⚙️ Conversion Options</h2>
+        <div class="options">
+          <div class="opt">
+            <div class="label">Format</div>
+            <div class="box">
+              <label><input type="radio" name="fmt" value="avif" checked> AVIF</label>
+              <label><input type="radio" name="fmt" value="webp"> WebP</label>
+            </div>
+          </div>
+
+          <div class="opt">
+            <div class="label">Quality <span class="muted">(1–100)</span></div>
+            <div class="box inline">
+              <input id="quality" type="range" min="1" max="100" value="60">
+              <span id="qualityVal" class="badge">60</span>
+            </div>
+          </div>
+
+          <div class="opt">
+            <div class="label">Speed</div>
+            <div class="box inline">
+              <select id="speed">
+                <option value="1">1 (best)</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5 (fast)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="opt">
+            <div class="label">Parallel</div>
+            <div class="box inline">
+              <input id="concurrency" type="range" min="1" max="16" value="4">
+              <span id="concVal" class="badge">4</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btnConvert" class="btn btn-primary" disabled>▶️ Convert</button>
+          <a id="downloadZip" class="btn btn-ghost" href="#" download style="display:none">⬇️ Download ZIP</a>
+          <div class="cap-note" id="capabilityNote">Detecting capabilities…</div>
+        </div>
+
+        <div id="capBanner" class="banner warn" style="display:none">
+          <div id="capText">AVIF encode not available — choose WebP or try a Chromium browser with AVIF encode support.</div>
+        </div>
+      </div>
+
+      <!-- CARD 2: Progress -->
+      <div class="card glass">
+        <h2 class="section-title">📊 Progress</h2>
+
+        <div class="prog-block">
+          <div class="prog-label">🧪 Convert</div>
+          <div class="progress"><div id="convBar" class="bar"></div></div>
+          <div class="mini">
+            <span id="convPct">0%</span> • <span id="convCount">0 / 0</span>
+          </div>
+        </div>
+
+        <div class="prog-block">
+          <div class="prog-label">🗜️ Zip</div>
+          <div class="progress"><div id="zipBar" class="bar"></div></div>
+          <div class="mini"><span id="zipPct">0%</span></div>
+        </div>
+
+        <div class="prog-block">
+          <div class="prog-label">🧾 Log</div>
+          <div id="convLog" class="log" aria-live="polite"></div>
+        </div>
       </div>
     </section>
 
-    <section id="summary" class="panel hidden">
-      <h2>2) Folder summary</h2>
-      <div class="stats-row">
-        <div><strong>Total files:</strong> <span id="statTotal">0</span></div>
-        <div><strong>Images to convert:</strong> <span id="statImages">0</span></div>
-        <div><strong>Already AVIF:</strong> <span id="statAvif">0</span></div>
-      </div>
-
-      <div id="previewGrid" class="grid"></div>
-    </section>
-
-    <section id="convert" class="panel hidden">
-      <h2>3) Convert to AVIF</h2>
-      <div class="controls">
-        <label>
-          Quality:
-          <input id="quality" type="range" min="0.4" max="0.95" step="0.01" value="0.72" />
-          <span id="qualityVal">0.72</span>
-        </label>
-        <button id="btnConvert" class="btn primary">CONVERT TO AVIF</button>
-      </div>
-
-      <div class="progress-wrap">
-        <progress id="prog" value="0" max="100"></progress>
-        <div id="progText" class="muted">Idle</div>
-      </div>
-
-      <div id="resultRow" class="result-row hidden">
-        <button id="btnDownload" class="btn">Download ZIP</button>
-        <span id="resultInfo" class="muted"></span>
-      </div>
-    </section>
-
-    <section id="fallback" class="panel warn hidden">
-      <h2>AVIF Encode Not Fully Supported</h2>
-      <p class="muted">
-        Your browser doesn’t expose WebCodecs AVIF, but we’ll use the Canvas method.
-        If conversion fails on some files, try Chrome/Edge latest, or lower quality slightly.
-      </p>
-    </section>
+    <footer class="footer">
+      <div class="muted">✨ 100% local. Nothing leaves your computer.</div>
+    </footer>
   </main>
 
-  <footer class="footer muted">
-    Local-only tool · Preserves folder structure · Copies non-images unchanged · Strips EXIF metadata
-  </footer>
+  <!-- JSZip (zip + progress) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+  <!-- App logic -->
+  <script src="app.js" defer></script>
 </body>
 </html>
