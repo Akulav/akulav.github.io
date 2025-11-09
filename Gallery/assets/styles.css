@@ -203,7 +203,7 @@ a:hover{ text-decoration:underline; }
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns:repeat(auto-fill, minmax(370px, 1fr));
   gap:18px;
   justify-content:center;
   align-items:stretch;
@@ -705,7 +705,7 @@ body.gallery-view-active #detailView { display: none; }
 
 #galleryGrid{
   flex:1;
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
   align-content:start; gap:14px; overflow-y:auto; border-radius:12px; padding:6px;
   background:#0b0e13; border:1px solid var(--line);
   scrollbar-color: #2a3250 #0b0e13;
