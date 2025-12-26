@@ -22,6 +22,8 @@
         </div>
 
         <div class="nav-actions">
+            <button id="createColBtn" class="node" title="New Collection"><i class="fa-solid fa-folder-plus"></i></button>
+            <div class="node-divider"></div>
             <button id="galleryBtn" class="node" title="Mosaic View"><i class="fa-solid fa-border-all"></i></button>
             <button id="favToggleBtn" class="node" title="Favorites"><i class="fa-solid fa-star"></i></button>
             <button id="reloadBtn" class="node" title="Sync Vault"><i class="fa-solid fa-arrows-rotate"></i></button>
@@ -45,18 +47,45 @@
         <div class="modal-surface">
             <div class="modal-nav">
                 <input type="text" id="editTitle" class="fancy-title">
-                <div class="modal-controls" style="display:flex; gap:10px; align-items: center;">
-                    <button id="modalFavBtn" class="node" title="Toggle Favorite">
-                        <i class="fa-solid fa-star"></i>
-                    </button>
-                    <button id="shuffleBtn" class="node" title="Shuffle Assets"><i class="fa-solid fa-shuffle"></i></button>
-                    <button class="node close-trigger"><i class="fa-solid fa-xmark"></i></button>
-                </div>
+                <div class="modal-controls">
+    <button id="addAssetsBtn" class="node" title="Add Images to Collection">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+    <button id="modalPromptBtn" class="node" title="Prompt View"><i class="fa-solid fa-note-sticky"></i></button>
+    <button id="modalFavBtn" class="node" title="Toggle Favorite"><i class="fa-solid fa-star"></i></button>
+    <button id="shuffleBtn" class="node" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
+    <button class="node close-trigger"><i class="fa-solid fa-xmark"></i></button>
+</div>
             </div>
             
             <div class="modal-layout">
                 
                 <section id="imageGrid" class="glory-image-grid"></section>
+            </div>
+        </div>
+        <div class="modal-controls" style="display:flex; gap:10px; align-items: center;">
+    <button id="modalPromptBtn" class="node" title="View/Edit Prompt">
+        <i class="fa-solid fa-note-sticky"></i>
+    </button>
+    <button id="modalFavBtn" class="node" title="Toggle Favorite">
+        <i class="fa-solid fa-star"></i>
+    </button>
+    </div>
+    </div>
+
+
+    <div id="createModal" class="full-modal hidden" style="justify-content: center; align-items: center; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);">
+        <div class="drawer-glass" style="width: 450px;">
+            <div class="drawer-header">
+                <span><i class="fa-solid fa-folder-plus"></i> NEW COLLECTION UNIT</span>
+                <button class="node-sm close-trigger"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="padding: 10px 0 20px 0;">
+<input type="text" id="newColName" class="modal-input" placeholder="ENTER DESIGNATION...">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="node close-trigger" style="width: auto; padding: 0 20px;">CANCEL</button>
+                <button id="confirmCreateBtn" class="primary-node">INITIALIZE DIRECTORY</button>
             </div>
         </div>
     </div>
@@ -81,12 +110,27 @@
                     <button id="deleteImgBtn" class="hud-btn danger" title="Delete Permanently">
                         <i class="fa-solid fa-trash-can"></i> <span>DELETE</span>
                     </button>
+                    <div class="hud-actions">
+    <button id="lbPromptBtn" class="hud-btn"><i class="fa-solid fa-note-sticky"></i> <span>PROMPT</span></button>
+    </div>
                 </div>
             </div>
         </div>
     </div>
 
+<div id="promptDrawer" class="prompt-drawer hidden">
+    <div class="drawer-glass">
+        <div class="drawer-header">
+            <span><i class="fa-solid fa-terminal"></i> COLLECTION PROMPT</span>
+            <button id="closePrompt" class="node-sm"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <textarea id="promptTextarea" placeholder="Enter collection prompt..."></textarea>
+        <div class="drawer-footer">Auto-saving to prompt.txt...</div>
+    </div>
+</div>
+
     <script src="fs.js"></script>
     <script src="app.js"></script>
+
 </body>
 </html>

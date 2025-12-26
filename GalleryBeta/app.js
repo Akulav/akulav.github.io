@@ -45,10 +45,12 @@ function openCol(idx) {
     activeIdx = idx;
     const col = engine.collections[idx];
     
+    // Show management tools for specific collection
+    toggleManagementTools(true);
+    
     const titleEl = document.getElementById('editTitle');
     if (titleEl) titleEl.value = col.tags.title || col.name;
     
-    // Update Favorite Button State
     const favBtn = document.getElementById('modalFavBtn');
     if (favBtn) {
         if (col.fav) favBtn.classList.add('is-fav');
@@ -69,6 +71,7 @@ function openCol(idx) {
 function renderImgs(imgs) {
     const grid = document.getElementById('imageGrid');
     grid.innerHTML = '';
+    
     imgs.forEach(img => {
         const i = document.createElement('img');
         i.src = img.url;
@@ -76,6 +79,10 @@ function renderImgs(imgs) {
         i.onclick = () => openLightbox(img);
         grid.appendChild(i);
     });
+
+    // Automatically scroll the modal back to the top when content changes
+    const layout = document.querySelector('.modal-layout');
+    if (layout) layout.scrollTop = 0;
 }
 
 function openLightbox(img) {
@@ -154,14 +161,15 @@ searchInput.oninput = (e) => {
 // --- AUTO-COMMIT LOGIC ---
 
 // Save title change automatically when user stops typing/clicks away
-document.getElementById('editTitle').addEventListener('blur', async (e) => {
+document.getElementById('editTitle').onblur = async (e) => {
     if (activeIdx === null) return;
-    const col = engine.collections[activeIdx];
-    col.tags.title = e.target.value;
-    
+    engine.collections[activeIdx].tags.title = e.target.value;
     await engine.save(activeIdx);
-    render(engine.collections); // Refresh main grid
-});
+    
+    // RE-SORT after title change so it moves to the right spot
+    await engine.scan(engine.rootHandle); 
+    render(engine.collections); 
+};
 
 // Favorite Toggle Logic with Auto-Save
 document.getElementById('modalFavBtn').onclick = async function() {
@@ -191,39 +199,52 @@ document.getElementById('favToggleBtn').onclick = () => {
 };
 
 document.getElementById('galleryBtn').onclick = () => {
-    const all = engine.collections.flatMap(c => c.images);
-    
-    // Hide the sidebar (AI Prompt/Fav bar) for global view
+const all = engine.collections
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    .flatMap(c => c.images);    activeIdx = null; // No active collection in mosaic view
+
+    // HIDE the buttons for global mosaic view
+    toggleManagementTools(false);
     
     renderImgs(all);
     document.getElementById('editTitle').value = "GLOBAL MOSAIC";
     document.getElementById('detailModal').classList.remove('hidden');
-    document.querySelector('.modal-layout').scrollTop = 0; // Resets scroll to top
-    document.body.style.overflow = 'hidden'; // Ensure main page doesn't scroll
+    document.querySelector('.modal-layout').scrollTop = 0;
+    document.body.style.overflow = 'hidden';
 };
 
 function closeAll() {
-    document.getElementById('detailModal').classList.add('hidden');
-    document.getElementById('lightbox').classList.add('hidden');
+    // Hide all possible overlays
+    const elements = [
+        document.getElementById('detailModal'),
+        document.getElementById('lightbox'),
+        document.getElementById('promptDrawer'),
+        document.getElementById('createModal')
+    ];
+    
+    elements.forEach(el => {
+        if (el) el.classList.add('hidden');
+    });
+
+    // Reset scroll and show main navbar buttons again
     document.body.style.overflow = 'auto';
+    const createBtn = document.getElementById('createColBtn');
+    if (createBtn) createBtn.classList.remove('hidden');
 }
 
 document.querySelectorAll('.close-trigger').forEach(b => b.onclick = closeAll);
 document.getElementById('reloadBtn').onclick = async () => {
-    // Check if a folder has actually been opened yet
     if (engine.rootHandle) {
-        document.getElementById('statsText').innerText = "RESCANNING VAULT...";
+        document.getElementById('statsText').innerText = "RE-INDEXING DATABASE...";
         
-        // Use the saved handle to get fresh data
+        // This scan now includes the new sorting logic
         const freshData = await engine.scan(engine.rootHandle);
+        
+        // Re-render the main grid in alphabetical order
         render(freshData);
         
-        // Visual feedback that reload is done
-        setTimeout(() => {
-            document.getElementById('statsText').innerText = `VAULT: ${freshData.length} COLLECTIONS`;
-        }, 500);
+        document.getElementById('statsText').innerText = `VAULT: ${freshData.length} COLLECTIONS`;
     } else {
-        // If no folder is open, just refresh the page as a fallback
         location.reload();
     }
 };
@@ -257,3 +278,122 @@ document.querySelectorAll('.close-trigger').forEach(btn => {
         closeAll();
     };
 });
+
+
+// --- PROMPT DRAWER LOGIC ---
+
+function togglePrompt() {
+    const drawer = document.getElementById('promptDrawer');
+    const textarea = document.getElementById('promptTextarea');
+    
+    if (activeIdx === null) return;
+    const col = engine.collections[activeIdx];
+    
+    // Set text from collection
+    textarea.value = col.prompt || "";
+    
+    drawer.classList.toggle('hidden');
+}
+
+// Bind buttons
+document.getElementById('modalPromptBtn').onclick = togglePrompt;
+document.getElementById('lbPromptBtn').onclick = togglePrompt;
+document.getElementById('closePrompt').onclick = () => document.getElementById('promptDrawer').classList.add('hidden');
+
+// Auto-Save Prompt on input (typing)
+document.getElementById('promptTextarea').addEventListener('input', async (e) => {
+    if (activeIdx === null) return;
+    const col = engine.collections[activeIdx];
+    
+    // Update local data
+    col.prompt = e.target.value;
+    
+    // Auto-commit to prompt.txt on disk
+    await engine.save(activeIdx);
+});
+
+// Hide drawer when closing modals
+const originalCloseAll = closeAll;
+closeAll = function() {
+    document.getElementById('promptDrawer').classList.add('hidden');
+    originalCloseAll();
+};
+
+// --- CREATE COLLECTION LOGIC ---
+
+document.getElementById('createColBtn').onclick = () => {
+    if (!engine.rootHandle) return alert("Please OPEN VAULT first.");
+    document.getElementById('createModal').classList.remove('hidden');
+    document.getElementById('newColName').focus();
+};
+
+document.getElementById('confirmCreateBtn').onclick = async () => {
+    const nameInput = document.getElementById('newColName');
+    const name = nameInput.value.trim();
+    
+    if (!name) return alert("Name cannot be empty.");
+    
+    document.getElementById('statsText').innerText = "GENERATING DIRECTORY...";
+    
+    const updatedData = await engine.createCollection(name);
+    if (updatedData) {
+        render(updatedData);
+        nameInput.value = "";
+        closeAll();
+        document.getElementById('statsText').innerText = `VAULT: ${updatedData.length} COLLECTIONS`;
+    }
+};
+
+// Update closeAll to include the createModal
+const oldCloseAllForCreate = closeAll;
+closeAll = function() {
+    const createModal = document.getElementById('createModal');
+    if (createModal) createModal.classList.add('hidden');
+    oldCloseAllForCreate();
+};
+
+// --- ADD ASSETS LOGIC ---
+document.getElementById('addAssetsBtn').onclick = async () => {
+    if (activeIdx === null) return;
+    
+    // 1. Open Browser File Picker (Multiple Images)
+    const fileHandles = await window.showOpenFilePicker({
+        multiple: true,
+        types: [{
+            description: 'Images',
+            accept: { 'image/*': ['.png', '.gif', '.jpeg', '.jpg', '.webp'] }
+        }]
+    });
+
+    if (fileHandles.length > 0) {
+        document.getElementById('statsText').innerText = "COMMITTING ASSETS TO DISK...";
+        
+        // Convert handles to actual File objects
+        const files = await Promise.all(fileHandles.map(h => h.getFile()));
+        
+        // 2. Commit to Disk
+        await engine.addImagesToCollection(activeIdx, files);
+        
+        // 3. UI Refresh
+        renderImgs(engine.collections[activeIdx].images);
+        render(engine.collections);
+        document.getElementById('statsText').innerText = "SYNC COMPLETE";
+    }
+};
+
+function toggleManagementTools(show) {
+    const tools = [
+        document.getElementById('createColBtn'),    // New Collection
+        document.getElementById('shuffleBtn'),      // Shuffle
+        document.getElementById('addAssetsBtn'),    // Add Images
+        document.getElementById('modalPromptBtn'),  // Prompt Toggle
+        document.getElementById('modalFavBtn')      // Favorite Toggle
+    ];
+
+    tools.forEach(btn => {
+        if (btn) {
+            if (show) btn.classList.remove('hidden');
+            else btn.classList.add('hidden');
+        }
+    });
+}

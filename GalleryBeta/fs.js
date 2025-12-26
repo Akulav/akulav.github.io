@@ -1,6 +1,7 @@
 class VaultEngine {
     constructor() {
         this.collections = [];
+        this.rootHandle = null; 
         this.isMobile = /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
 
@@ -21,7 +22,6 @@ class VaultEngine {
                 return [];
             }
 
-            // Store the handle globally in the engine for reloading
             this.rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
             return await this.scan(this.rootHandle);
         } catch (err) {
@@ -30,7 +30,32 @@ class VaultEngine {
         }
     }
 
-    // Renamed to 'save' to match app.js and added to engine
+    async scan(handle) {
+        let results = [];
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+        for await (const entry of handle.values()) {
+            if (entry.kind === 'directory') {
+                const col = await this.buildCollection(entry);
+                
+                // Sort images inside collection horizontally A-Z
+                col.images.sort((a, b) => collator.compare(a.name, b.name));
+                
+                results.push(col);
+            }
+        }
+
+        // Strict Horizontal Alphabetical Sort
+        results.sort((a, b) => {
+            const titleA = a.tags.title || a.name;
+            const titleB = b.tags.title || b.name;
+            return collator.compare(titleA, titleB);
+        });
+
+        this.collections = results;
+        return results;
+    }
+
     async buildCollection(handle) {
         let col = { 
             handle, 
@@ -63,71 +88,11 @@ class VaultEngine {
             }
         }
         
-        // Priority: 1. Saved preview from JSON, 2. First image in folder
         const savedPreview = col.images.find(i => i.name === col.tags.preview);
         col.avatar = savedPreview ? savedPreview.url : (col.images[0]?.url || '');
         
         return col;
     }
-
-    async deleteImage(idx, fileName) {
-        if (this.isMobile) return;
-        const col = this.collections[idx];
-        try {
-            // Delete from physical disk
-            await col.handle.removeEntry(fileName);
-            
-            // Remove from local data array
-            col.images = col.images.filter(img => img.name !== fileName);
-            
-            // If the deleted image was the avatar, reset it
-            if (col.tags.preview === fileName) {
-                col.tags.preview = col.images[0]?.name || "";
-                const firstImg = col.images[0];
-                col.avatar = firstImg ? firstImg.url : "";
-                await this.save(idx);
-            }
-            return true;
-        } catch (e) {
-            alert("Disk error: Could not delete image. It might be in use.");
-            return false;
-        }
-    }
-
-    async save(idx) {
-        if (this.isMobile) return;
-        const col = this.collections[idx];
-        try {
-            // Update the tags object with favorite state before saving
-            col.tags.fav = col.fav;
-            
-            const t = await col.handle.getFileHandle('tags.json', { create: true });
-            const p = await col.handle.getFileHandle('prompt.txt', { create: true });
-            const tw = await t.createWritable(); 
-            await tw.write(JSON.stringify(col.tags, null, 2)); 
-            await tw.close();
-            
-            const pw = await p.createWritable(); 
-            await pw.write(col.prompt); 
-            await pw.close();
-        } catch (e) {
-            console.error("Auto-commit failed:", e);
-        }
-    }
-
-    async scan(handle) {
-        let results = [];
-        for await (const entry of handle.values()) {
-            if (entry.kind === 'directory') {
-                const col = await this.buildCollection(entry);
-                results.push(col);
-            }
-        }
-        this.collections = results;
-        return results;
-    }
-
-    
 
     async unzip(file) {
         const zip = await JSZip.loadAsync(file);
@@ -146,9 +111,92 @@ class VaultEngine {
                 map[dir].images.push({ name: parts.pop(), url: URL.createObjectURL(b), size: 'N/A', format: 'IMG' });
             }
         }
-        this.collections = Object.values(map);
-        this.collections.forEach(c => c.avatar = c.images[0]?.url || '');
+
+        let list = Object.values(map);
+
+        // --- ALPHABETICAL NATURAL SORT FOR ZIP ---
+        list.sort((a, b) => 
+            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+
+        this.collections = list;
+        this.collections.forEach(c => {
+             const savedPreview = c.images.find(i => i.name === c.tags.preview);
+             c.avatar = savedPreview ? savedPreview.url : (c.images[0]?.url || '');
+        });
         return this.collections;
     }
 
+    async deleteImage(idx, fileName) {
+        if (this.isMobile) return;
+        const col = this.collections[idx];
+        try {
+            await col.handle.removeEntry(fileName);
+            col.images = col.images.filter(img => img.name !== fileName);
+            if (col.tags.preview === fileName) {
+                col.tags.preview = col.images[0]?.name || "";
+                const firstImg = col.images[0];
+                col.avatar = firstImg ? firstImg.url : "";
+                await this.save(idx);
+            }
+            return true;
+        } catch (e) {
+            alert("Disk error: Could not delete image.");
+            return false;
+        }
+    }
+
+    async addImagesToCollection(idx, fileList) {
+        if (this.isMobile || !this.collections[idx]) return;
+        const col = this.collections[idx];
+        for (const file of fileList) {
+            try {
+                const fileHandle = await col.handle.getFileHandle(file.name, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(file);
+                await writable.close();
+                col.images.push({
+                    name: file.name,
+                    url: URL.createObjectURL(file),
+                    size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+                    format: file.name.split('.').pop().toUpperCase(),
+                    handle: fileHandle
+                });
+            } catch (e) { console.error(e); }
+        }
+        return col.images;
+    }
+
+    async createCollection(name) {
+        if (this.isMobile || !this.rootHandle) return null;
+        try {
+            const newFolder = await this.rootHandle.getDirectoryHandle(name, { create: true });
+            const tagsHandle = await newFolder.getFileHandle('tags.json', { create: true });
+            const tw = await tagsHandle.createWritable();
+            await tw.write(JSON.stringify({ title: name, fav: false, preview: "" }, null, 2));
+            await tw.close();
+            
+            // Re-scan and sort everything
+            return await this.scan(this.rootHandle);
+        } catch (e) {
+            alert("Could not create collection.");
+            return null;
+        }
+    }
+
+    async save(idx) {
+        if (this.isMobile) return;
+        const col = this.collections[idx];
+        try {
+            col.tags.fav = col.fav;
+            const t = await col.handle.getFileHandle('tags.json', { create: true });
+            const p = await col.handle.getFileHandle('prompt.txt', { create: true });
+            const tw = await t.createWritable(); 
+            await tw.write(JSON.stringify(col.tags, null, 2)); 
+            await tw.close();
+            const pw = await p.createWritable(); 
+            await pw.write(col.prompt); 
+            await pw.close();
+        } catch (e) { console.error(e); }
+    }
 }

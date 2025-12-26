@@ -42,6 +42,28 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
+/* Centered Modal Input */
+.modal-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    padding: 15px;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 1.1rem;
+    font-family: 'Outfit', sans-serif;
+    text-align: center; /* This centers the typing and placeholder */
+    letter-spacing: 2px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.modal-input:focus {
+    border-color: var(--accent);
+    background: rgba(0, 242, 255, 0.05);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+}
+
 .nav-brand {
     display: flex;
     align-items: center;
@@ -179,21 +201,23 @@ body {
 }
 
 /* --- MAIN LIBRARY GRID (MASONRY) --- */
-.nexus-grid {
-    columns: 3 450px;
-    column-gap: 30px;
+.nexus-grid { 
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
     padding: 40px;
+    justify-content: center; /* Centers the cards in the row */
 }
 
-.card {
-    break-inside: avoid;
-    margin-bottom: 30px;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    overflow: hidden;
-    cursor: pointer;
-    transition: 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+.card { 
+    width: 450px; /* Fixed width for consistent horizontal rows */
+    background: var(--surface); 
+    border-radius: 8px; 
+    border: 1px solid var(--border); 
+    overflow: hidden; 
+    transition: 0.4s; 
+    display: flex;
+    flex-direction: column;
 }
 
 .card:hover { 
@@ -230,29 +254,39 @@ body {
 }
 
 .glory-image-grid { 
-    display: block;
-    columns: 4 300px;
-    column-gap: 25px;
-    padding: 40px; 
-    height: auto; 
-    min-height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px; /* Space between images */
+    padding: 40px;
+    justify-content: center; /* Centers the whole row */
+    background: var(--bg); /* Ensure the grid background matches the vault */
 }
 
 .glory-image-grid img { 
-    width: 100%; 
-    height: auto;
-    margin-bottom: 25px;
-    border-radius: 8px; 
-    cursor: zoom-in; 
-    transition: 0.3s cubic-bezier(0.2, 1, 0.3, 1);
-    display: block;
-    border: 1px solid var(--border);
-    break-inside: avoid; 
+    /* 1. This stops the image from 'stretching' into a wide box */
+    flex: 0 0 auto; 
+    
+    /* 2. Set your desired height (Cinematic Large) */
+    height: 750px; 
+    
+    /* 3. Width must be auto to wrap the portrait image exactly */
+    width: auto; 
+    
+    /* 4. Keeps the quality high and prevents any dead space */
+    object-fit: contain; 
+    display: block; 
+    
+    border-radius: 4px; 
+    border: 1px solid var(--border); 
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
 }
 
 .glory-image-grid img:hover {
-    border-color: var(--accent);
     transform: scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+    z-index: 10;
 }
 
 .hidden { display: none !important; }
@@ -408,4 +442,95 @@ body {
     .lb-hud { width: 90%; padding: 10px 20px; gap: 10px; bottom: 20px; }
     #lbMeta { font-size: 0.6rem; letter-spacing: 1px; }
     .hud-btn { padding: 8px 12px; font-size: 0.6rem; }
+}
+
+/* --- FLOATING PROMPT DRAWER --- */
+.prompt-drawer {
+    position: fixed;
+    top: 100px;
+    right: 40px;
+    width: 400px;
+    z-index: 5000;
+    animation: drawerIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drawerIn {
+    from { transform: translateX(50px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.drawer-glass {
+    background: rgba(10, 15, 20, 0.7);
+    backdrop-filter: blur(40px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--accent);
+}
+
+#promptTextarea {
+    width: 100%;
+    height: 250px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.9);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    padding: 15px;
+    resize: none;
+    outline: none;
+    transition: 0.3s;
+}
+
+#promptTextarea:focus {
+    border-color: var(--accent);
+    background: rgba(0,0,0,0.4);
+}
+
+.drawer-footer {
+    margin-top: 10px;
+    font-size: 0.6rem;
+    opacity: 0.4;
+    text-align: right;
+    font-weight: 700;
+}
+
+.node-sm {
+    width: 30px; height: 30px;
+    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 5px; color: #fff; cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .prompt-drawer { width: 90%; right: 5%; top: 80px; }
+}
+
+@media (min-width: 1600px) {
+    .glory-image-grid img { 
+        height: 850px; /* Make them even bigger on huge screens without black bars */
+        flex: 0 0 auto !important;
+        width: auto !important;
+    }
+}
+
+/* Mobile: 1 image per row */
+@media (max-width: 768px) {
+    .glory-image-grid img { 
+        flex: 1 1 100%; 
+        max-width: 100%;
+        height: auto; 
+    }
 }
