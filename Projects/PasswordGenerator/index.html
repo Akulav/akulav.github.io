@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Akulav | Cipher Forge</title>
+    <meta name="description" content="Local-first secure password generation." />
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="wrap">
+        <main class="card" role="main">
+            <header>
+                <div class="header-main">
+                    <h1>Cipher <span>Forge</span></h1>
+                    <div class="sub">Protocol // Local Hardware Encryption</div>
+                </div>
+                <div class="hud-stats">
+                    <span id="entropy" class="primary-text">0.00</span> 
+                    <div class="status-indicator">Entropy Bits</div>
+                </div>
+            </header>
+
+            <div class="content">
+                <section class="panel">
+                    <div class="password-box">
+                        <label>Generated Output</label>
+                        <div class="pw" id="output" aria-live="polite">--------</div>
+                        
+                        <div class="btns">
+                            <button id="generate">Generate</button>
+                            <button id="copy" class="btn-ghost">Copy</button>
+                            <button id="regen" class="btn-ghost">Batch 100</button>
+                            <button id="clear" class="btn-danger">Purge</button>
+                        </div>
+
+                        <div class="strength-meter">
+                            <div class="bar"><span id="meter"></span></div>
+                            <div id="status" class="sub" style="margin-top:10px; opacity:0.6;">Ready for Input</div>
+                        </div>
+                    </div>
+                </section>
+
+                <form id="form" class="panel" autocomplete="off">
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="length">Bit Length</label>
+                            <div class="slider-wrap">
+                                <input id="length" type="range" min="8" max="256" value="16" />
+                                <input id="lengthNum" type="number" min="4" max="256" value="16" />
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label>Complexity Parameters</label>
+                            <div class="checks">
+                                <label class="check"><input id="lower" type="checkbox" checked> <span>a-z</span></label>
+                                <label class="check"><input id="upper" type="checkbox" checked> <span>A-Z</span></label>
+                                <label class="check"><input id="digits" type="checkbox" checked> <span>0-9</span></label>
+                                <label class="check"><input id="symbols" type="checkbox"> <span>#%&@</span></label>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="check"><input id="noSimilar" type="checkbox"> <span>Remove Ambiguous</span></label>
+                            <label class="check"><input id="requireEach" type="checkbox" checked> <span>Strict Inclusion</span></label>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="control-group">
+                                <label for="exclude">Blacklist</label>
+                                <textarea id="exclude" placeholder="Characters..."></textarea>
+                            </div>
+                            <div class="control-group">
+                                <label for="custom">Whitelist</label>
+                                <textarea id="custom" placeholder="Characters..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <footer class="foot">
+                <div class="help">
+                    SECURITY: <code>crypto.getRandomValues()</code> verified.
+                </div>
+                <a class="link-btn" href="#" id="downloadTxt" download>Export Log</a>
+            </footer>
+        </main>
+    </div>
+</body>
+</html>

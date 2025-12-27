@@ -1,0 +1,274 @@
+/* AKULAV OS // INDUSTRIAL MONOLITH DESIGN SYSTEM 
+   Sharp Edges | High Precision | Viewport Centric 
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+    --primary: #00ffd5;
+    --secondary: #7000ff;
+    --bg-deep: #01030c;
+    --panel-glass: rgba(10, 15, 30, 0.9);
+    --border-light: rgba(255, 255, 255, 0.1);
+    --text-main: #e2e8f0;
+    --text-muted: #94a3b8;
+    --danger: #ff4757;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+}
+
+/* --- GLOBAL RESET: STERN INDUSTRIAL SHARPNESS --- */
+* { 
+    box-sizing: border-box; 
+    transition: all 0.2s ease; 
+    border-radius: 0 !important; /* Forces sharp edges everywhere */
+}
+
+html, body { 
+    height: 100%; 
+    margin: 0; 
+    font-family: var(--sans); 
+    color: var(--text-main); 
+    background: var(--bg-deep); 
+    font-size: 14px; 
+    overflow-x: hidden; 
+}
+
+/* --- BACKGROUND ATMOSPHERE --- */
+body::before, body::after { 
+    content: ""; 
+    position: fixed; 
+    inset: 0; 
+    z-index: -1; 
+    pointer-events: none; 
+}
+
+body::before { 
+    background: 
+        radial-gradient(circle at 10% 10%, rgba(112, 0, 255, 0.1), transparent 50%), 
+        radial-gradient(circle at 90% 90%, rgba(0, 255, 213, 0.05), transparent 50%); 
+}
+
+body::after { 
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); 
+    opacity: 0.03; 
+}
+
+/* --- VIEWPORT-CENTRIC WRAPPER --- */
+.wrap { 
+    max-width: 1000px; 
+    margin: 0 auto; 
+    padding: 20px 15px; 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    position: relative;
+    z-index: 1;
+}
+
+.card { 
+    background: var(--panel-glass); 
+    backdrop-filter: blur(20px); 
+    -webkit-backdrop-filter: blur(20px); 
+    border: 1px solid var(--border-light); 
+    position: relative; 
+    margin-bottom: 15px; 
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8); 
+}
+
+/* Sharp Corner Brackets - Fixed click-through issues */
+.card::before, .card::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    pointer-events: none; /* Crucial: Fixes unclickable buttons */
+    z-index: 10;
+}
+.card::before { top: 0; left: 0; border-top: 2px solid var(--primary); border-left: 2px solid var(--primary); }
+.card::after { bottom: 0; right: 0; border-bottom: 2px solid var(--primary); border-right: 2px solid var(--primary); }
+
+/* --- HUD HEADER & STATS --- */
+.hud-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 25px 35px; 
+    background: rgba(255,255,255,0.02); 
+    border-bottom: 1px solid var(--border-light);
+}
+
+h1 { font-size: 1.6rem; margin: 0; text-transform: uppercase; font-weight: 700; letter-spacing: -1px; }
+h1 span { color: var(--primary); }
+
+.sub { 
+    color: var(--text-muted); 
+    font-size: 0.7rem; 
+    text-transform: uppercase; 
+    letter-spacing: 2px; 
+    margin-top: 5px; 
+    opacity: 0.8; 
+}
+
+.hud-stats { 
+    text-align: right; 
+    border-left: 1px solid var(--border-light); 
+    padding-left: 20px; 
+}
+
+.primary-text { 
+    color: var(--primary); 
+    font-family: var(--mono); 
+    font-weight: 700; 
+    font-size: 0.9rem; 
+    text-shadow: 0 0 10px rgba(0, 255, 213, 0.4); 
+}
+
+/* --- MONOLITHIC ALIGNED BUTTON GRID --- */
+.btns, .pickers { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; 
+    gap: 10px; 
+    margin-top: 15px;
+    align-items: stretch; /* Forces equal heights */
+}
+
+/* Normalize Buttons & Labels */
+.btn, button, .link-btn { 
+    /* The Fix for Folder R/W vs RO alignment */
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center;
+    
+    border: 1px solid var(--border-light); 
+    padding: 12px 15px; 
+    margin: 0;
+    font-weight: 700; 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    cursor: pointer; 
+    text-decoration: none;
+    position: relative;
+    z-index: 20;
+    width: 100%;
+    min-height: 48px; /* High-precision baseline height */
+    text-align: center;
+    background: var(--primary);
+    color: var(--bg-deep);
+    line-height: 1;
+}
+
+.btn-primary { background: var(--primary); color: var(--bg-deep); border: 1px solid var(--primary); }
+.btn-ghost { background: transparent; color: var(--text-main); border: 1px solid var(--border-light); }
+.btn-danger { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+.btn-secondary { background: transparent; border: 1px solid var(--secondary); color: var(--secondary); }
+
+.btn:hover:not(:disabled), button:hover:not(:disabled) {
+    background: transparent;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-danger:hover { background: var(--danger); color: #000; border-color: var(--danger); }
+.btn-secondary:hover { background: var(--secondary); color: #fff; border-color: var(--secondary); }
+
+.btn:disabled { opacity: 0.2; cursor: not-allowed; filter: grayscale(1); }
+
+.action-large { padding: 18px; font-size: 0.85rem; width: 100%; margin-top: 20px; grid-column: span 2; }
+
+/* --- CONTENT GRID & PANELS --- */
+.stack, .content { 
+    display: grid; 
+    grid-template-columns: 1.2fr 0.8fr; 
+    gap: 15px; 
+}
+
+@media (max-width: 860px) { 
+    .stack, .content { grid-template-columns: 1fr; } 
+    .wrap { justify-content: flex-start; }
+}
+
+.panel-main, .panel-side { 
+    background: rgba(255, 255, 255, 0.01); 
+    padding: 30px; 
+}
+
+.section-title { 
+    font-size: 0.75rem; 
+    text-transform: uppercase; 
+    letter-spacing: 2px; 
+    color: var(--primary); 
+    margin: 0 0 15px; 
+    border-left: 3px solid var(--primary); 
+    padding-left: 10px; 
+}
+
+/* --- FORM CONTROLS --- */
+label { 
+    font-size: 0.7rem; 
+    color: var(--text-muted); 
+    text-transform: uppercase; 
+    margin-bottom: 10px; 
+    display: block; 
+    font-weight: 700; 
+}
+
+.box { background: #000; border: 1px solid var(--border-light); padding: 10px; }
+.inline-box { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+
+input[type="range"] { appearance: none; background: rgba(255,255,255,0.1); height: 2px; flex-grow: 1; }
+input[type="range"]::-webkit-slider-thumb { 
+    appearance: none; 
+    width: 10px; height: 20px; 
+    background: var(--primary); 
+    cursor: pointer; 
+    box-shadow: 0 0 10px var(--primary);
+}
+
+.badge { background: var(--primary); color: var(--bg-deep); font-family: var(--mono); font-weight: 700; padding: 3px 8px; font-size: 0.85rem; }
+
+.box-grid { display: flex; gap: 1px; background: var(--border-light); padding: 0; }
+.radio-tab { flex: 1; cursor: pointer; }
+.radio-tab input { display: none; }
+.radio-tab span { 
+    display: block; text-align: center; padding: 10px; 
+    font-size: 0.75rem; font-weight: 700; 
+    color: var(--text-muted); background: #000; 
+}
+.radio-tab input:checked + span { background: var(--primary); color: var(--bg-deep); }
+
+.custom-select { width: 100%; background: #000; border: 1px solid var(--border-light); color: #fff; padding: 10px; font-size: 0.85rem; outline: none; }
+
+/* --- TELEMETRY --- */
+.progress-container { height: 4px; background: rgba(255,255,255,0.05); overflow: hidden; margin: 10px 0; }
+.bar { height: 100%; width: 0; background: var(--primary); box-shadow: 0 0 10px var(--primary); transition: width 0.3s ease; }
+.mini { font-size: 0.65rem; color: var(--text-muted); font-family: var(--mono); text-transform: uppercase; }
+
+.log { 
+    background: #000; border: 1px solid var(--border-light); 
+    padding: 15px; height: 220px; overflow-y: auto; 
+    font-family: var(--mono); font-size: 0.75rem; 
+    line-height: 1.5; color: #10b981; 
+}
+
+/* --- CUSTOM TERMINAL SCROLLBARS --- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+}
+
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border-light); }
+*::-webkit-scrollbar-thumb:hover { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+
+/* --- FOOTER --- */
+.footer { 
+    text-align: center; 
+    padding: 25px; 
+    border-top: 1px solid var(--border-light); 
+    font-size: 0.8rem; 
+    opacity: 0.6; 
+    margin-top: auto; 
+}

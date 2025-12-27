@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Akulav | Meta Forge Pro</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="atmosphere">
+        <div class="noise-overlay"></div>
+        <div class="nebula"></div>
+    </div>
+
+    <main class="wrap">
+        <header class="card hud-header">
+            <div class="hero-inner">
+                <h1>Meta <span>Forge</span></h1>
+                <p class="sub">Multi-Format Metadata Sanitization // Akulav OS</p>
+            </div>
+            <div class="hud-stats">
+                <div class="stat-mini">
+                    <span class="muted">FILE:</span>
+                    <span id="statFileName" class="monospace">NONE</span>
+                </div>
+                <div class="stat-mini">
+                    <span class="muted">TYPE:</span>
+                    <span id="statType" class="primary-text">NULL</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="stack">
+            <div class="card panel-main">
+                <h2 class="section-title">📂 Data Input</h2>
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-msg">DRAG IMAGE (JPG, PNG, WEBP, AVIF)</div>
+                    <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp, image/avif" hidden />
+                </div>
+
+                <div class="preview-area" id="previewArea" style="display:none;">
+                    <img id="imgPreview" src="" alt="Preview" />
+                </div>
+
+                <h2 class="section-title">📜 Metadata Manifest</h2>
+                <div class="metadata-scroll">
+                    <table id="metaTable">
+                        <thead>
+                            <tr><th>TAG</th><th>VALUE</th></tr>
+                        </thead>
+                        <tbody id="metaBody">
+                            <tr><td colspan="2" class="muted">Awaiting hardware mount...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card panel-side">
+                <h2 class="section-title">⚙️ Processing Ops</h2>
+                <div class="pickers">
+                    <button id="btnScrub" class="btn btn-ghost" disabled>🧹 Scrub Metadata</button>
+                    <button id="btnRandom" class="btn btn-ghost" disabled>🎲 Randomize (JPG)</button>
+                    <button id="btnDownload" class="btn btn-primary action-large" disabled>Export Sequence</button>
+                </div>
+
+                <div class="help">
+                    SECURITY: Scrubbing utilizes Canvas Redrawing. This destroys all metadata chunks (EXIF/XMP/GPS) by re-encoding the visual pixels into a fresh container.
+                </div>
+
+                <h2 class="section-title">📊 Telemetry</h2>
+                <div id="convLog" class="log"></div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="muted">✨ Multi-format support enabled. 100% Client-Side.</div>
+        </footer>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/piexifjs/1.0.6/piexif.min.js"></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
