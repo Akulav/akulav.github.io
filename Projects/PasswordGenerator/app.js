@@ -167,16 +167,17 @@
     const {pool} = buildPool();
     const bits = entropyBits(L, pool.length);
     $entropy.textContent = String(bits);
+    
     const label = strengthLabel(bits);
-    $entropyLabel.textContent = `• ${label}`;
     const pct = clamp(bits / 256 * 100, 0, 100);
+    
     $meter.style.width = pct + '%';
-    $status.textContent = `Alphabet: ${pool.length} chars • Length: ${L} • ${label}`;
+    $status.textContent = `Security Level: ${label} (${pool.length} possible characters)`;
+    $status.style.color = 'var(--text-muted)';
+    
     els.generate.disabled = pool.length === 0;
-    els.regen.disabled = pool.length === 0;
     els.copy.disabled = ($out.textContent || '') === '—';
-    $download.style.pointerEvents = ($out.textContent || '') === '—' ? 'none' : 'auto';
-    $download.style.opacity = ($out.textContent || '') === '—' ? .5 : 1;
+    $download.style.opacity = ($out.textContent || '') === '—' ? .3 : 1;
   }
 
   function copyOut(){
@@ -196,8 +197,10 @@
 
   function toast(msg, warn){
     $status.textContent = msg;
-    $status.style.color = warn ? 'var(--danger)' : 'var(--muted)';
-    setTimeout(updateEntropyUI, 1400);
+    $status.style.color = warn ? 'var(--danger)' : 'var(--primary)';
+    $status.style.opacity = "1";
+    // Smooth reset to default status after message
+    setTimeout(updateEntropyUI, 2000);
   }
 
   ['lower','upper','digits','symbols','noSimilar','requireEach','exclude','custom'].forEach(id=>{
