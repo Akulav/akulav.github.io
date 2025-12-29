@@ -118,7 +118,6 @@ function openLightbox(img) {
         await engine.save(activeIdx);
         
         render(engine.collections); // Refresh main grid
-        alert("Preview Updated & Saved to Disk");
     };
 
     const dlBtn = document.getElementById('downloadBtn');

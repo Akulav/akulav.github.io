@@ -1,11 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Syncopate:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&family=Space+Grotesk:wght@300;500;700&family=Syncopate:wght@700&display=swap');
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
 :root {
+    /* Sophisticated Palette from Template */
     --accent: #00f2ff;
-    --bg: #020408;
+    --secondary-accent: #7d40ff;
+    --bg: #030712;
     --surface: #0a0e14;
-    --border: rgba(255, 255, 255, 0.08);
-    --glass: rgba(2, 4, 8, 0.85);
+    --border: rgba(255, 255, 255, 0.12);
+    --glass: rgba(10, 15, 25, 0.7);
+    --text-dim: #94a3b8;
 }
 
 /* --- BASE STYLES --- */
@@ -13,6 +20,9 @@ body {
     margin: 0;
     font-family: 'Outfit', sans-serif;
     background: var(--bg);
+    /* Ethereal Atmosphere Gradient */
+    background-image: radial-gradient(circle at 50% -20%, #1e1b4b, #030712);
+    background-attachment: fixed;
     color: #fff;
     overflow-x: hidden;
 }
@@ -21,7 +31,7 @@ body {
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { 
-    background: rgba(255, 255, 255, 0.1); 
+    background: var(--border); 
     border-radius: 10px; 
     border: 2px solid var(--bg);
 }
@@ -38,7 +48,8 @@ body {
     justify-content: space-between;
     padding: 0 40px;
     background: var(--glass);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     border-bottom: 1px solid var(--border);
 }
 
@@ -51,8 +62,8 @@ body {
     border-radius: 4px;
     color: #fff;
     font-size: 1.1rem;
-    font-family: 'Outfit', sans-serif;
-    text-align: center; /* This centers the typing and placeholder */
+    font-family: 'Space Grotesk', sans-serif;
+    text-align: center;
     letter-spacing: 2px;
     outline: none;
     transition: 0.3s;
@@ -109,8 +120,7 @@ body {
 .nav-search input:focus {
     outline: none;
     border-color: var(--accent);
-    background: rgba(0, 242, 255, 0.05);
-    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .nav-actions, .modal-controls { display: flex; align-items: center; gap: 10px; }
@@ -131,7 +141,7 @@ body {
     border-color: var(--accent);
     box-shadow: 0 0 15px var(--accent);
 }
-/* Centering the System Status */
+
 .system-status {
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
@@ -140,29 +150,21 @@ body {
     justify-content: center;
 }
 
-/* Glowing Star for Favorites */
-/* --- VIBRANT FAVORITE STATES --- */
-
-/* The Main Navbar Filter Button */
+/* Vibrant Favorite States */
 .node.active-fav {
     background: rgba(255, 177, 0, 0.15) !important;
     color: #ffb100 !important;
     border-color: #ffb100 !important;
-    box-shadow: 0 0 20px rgba(255, 177, 0, 0.4), 
-                inset 0 0 10px rgba(255, 177, 0, 0.2);
+    box-shadow: 0 0 20px rgba(255, 177, 0, 0.4);
     transform: scale(1.1);
 }
 
-/* The Modal Favorite Button */
 .node.is-fav {
     color: #ffb100 !important;
     border-color: #ffb100 !important;
     text-shadow: 0 0 15px #ffb100;
-    box-shadow: 0 0 20px rgba(255, 177, 0, 0.3),
-                inset 0 0 10px rgba(255, 177, 0, 0.2);
 }
 
-/* The Badge on the Main Grid Cards */
 .fav-badge {
     position: absolute;
     top: 15px;
@@ -178,7 +180,6 @@ body {
     border: 1px solid #ffb100;
     color: #ffb100;
     font-size: 1.2rem;
-    box-shadow: 0 0 15px rgba(255, 177, 0, 0.5);
     z-index: 10;
     pointer-events: none;
 }
@@ -189,7 +190,11 @@ body {
     padding: 10px 20px;
     border-radius: 4px;
     color: var(--accent);
+    font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
     display: flex; align-items: center; gap: 12px;
     cursor: pointer;
     transition: 0.3s;
@@ -206,12 +211,13 @@ body {
     flex-wrap: wrap;
     gap: 30px;
     padding: 40px;
-    justify-content: center; /* Centers the cards in the row */
+    justify-content: center; 
 }
 
 .card { 
-    width: 450px; /* Fixed width for consistent horizontal rows */
-    background: var(--surface); 
+    width: 450px; 
+    background: var(--glass);
+    backdrop-filter: blur(12px);
     border-radius: 8px; 
     border: 1px solid var(--border); 
     overflow: hidden; 
@@ -233,6 +239,8 @@ body {
 }
 
 .card-info { padding: 25px; border-top: 1px solid var(--border); }
+.card-info h2 { font-family: 'Space Grotesk', sans-serif; }
+.card-info p { color: var(--text-dim); }
 
 /* --- MODAL & GALLERY --- */
 .full-modal { 
@@ -256,26 +264,18 @@ body {
 .glory-image-grid { 
     display: flex;
     flex-wrap: wrap;
-    gap: 30px; /* Space between images */
+    gap: 30px; 
     padding: 40px;
-    justify-content: center; /* Centers the whole row */
-    background: var(--bg); /* Ensure the grid background matches the vault */
+    justify-content: center; 
+    background: var(--bg); 
 }
 
 .glory-image-grid img { 
-    /* 1. This stops the image from 'stretching' into a wide box */
     flex: 0 0 auto; 
-    
-    /* 2. Set your desired height (Cinematic Large) */
     height: 750px; 
-    
-    /* 3. Width must be auto to wrap the portrait image exactly */
     width: auto; 
-    
-    /* 4. Keeps the quality high and prevents any dead space */
     object-fit: contain; 
     display: block; 
-    
     border-radius: 4px; 
     border: 1px solid var(--border); 
     cursor: pointer;
@@ -296,22 +296,20 @@ body {
     position: fixed; 
     inset: 0; 
     z-index: 3000; 
-    background: rgba(0, 0, 0, 0.98); 
+    background: rgba(3, 7, 18, 0.98); 
     display: flex; 
     align-items: center; 
     justify-content: center; 
     backdrop-filter: blur(20px);
-    transition: opacity 0.3s ease;
 }
 
-/* Close Button - Top Right Floating */
 .lb-close {
     position: absolute;
     top: 30px;
     right: 30px;
     z-index: 4000;
     background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--border) !important;
     font-size: 1.2rem;
     color: white !important;
 }
@@ -322,7 +320,6 @@ body {
     transform: rotate(90deg);
 }
 
-/* Image Container - Maximized */
 .lb-stage { 
     position: relative; 
     width: 100vw; 
@@ -348,33 +345,21 @@ body {
     to { transform: scale(1); opacity: 1; }
 }
 
-/* ULTIMATE GLOSS HUD - Floating & Perfectly Centered */
-
-
-
-
-.hud-divider {
-    width: 1px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-/* --- IMPROVED GLOSSY HUD --- */
+/* Glossy HUD */
 .lb-hud { 
     position: absolute; 
-    bottom: 50px; 
+    top: 30px; /* Moved from bottom to top */
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(15, 20, 25, 0.5); 
-    backdrop-filter: blur(40px) saturate(180%); 
-    -webkit-backdrop-filter: blur(40px) saturate(180%); 
-    padding: 12px 25px; 
+    background: rgba(10, 15, 25, 0.8); 
+    backdrop-filter: blur(20px) saturate(180%); 
+    padding: 8px 20px; 
     border-radius: 100px; 
     display: flex; 
-    gap: 20px; 
+    gap: 15px; 
     align-items: center; 
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     z-index: 4001;
 }
 
@@ -382,7 +367,7 @@ body {
     font-size: 0.7rem;
     color: #fff;
     letter-spacing: 1px;
-    font-family: 'Outfit', sans-serif; /* Matches modern font */
+    font-family: 'Space Grotesk', sans-serif; 
     font-weight: 600;
     white-space: nowrap;
 }
@@ -391,15 +376,16 @@ body {
 
 .hud-btn {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
     color: white;
     height: 40px;
-    min-width: 110px; /* Forces identical sizes */
+    min-width: 110px; 
     border-radius: 50px;
     font-size: 0.65rem;
     font-weight: 700;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Space Grotesk', sans-serif;
     letter-spacing: 1px;
+    text-transform: uppercase;
     cursor: pointer;
     transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -425,8 +411,6 @@ body {
     border-color: #ff4757;
 }
 
-
-
 .hud-btn.primary {
     border-color: var(--accent);
     color: var(--accent);
@@ -436,12 +420,6 @@ body {
     background: var(--accent);
     color: black;
     box-shadow: 0 0 20px var(--accent);
-}
-
-@media (max-width: 768px) {
-    .lb-hud { width: 90%; padding: 10px 20px; gap: 10px; bottom: 20px; }
-    #lbMeta { font-size: 0.6rem; letter-spacing: 1px; }
-    .hud-btn { padding: 8px 12px; font-size: 0.6rem; }
 }
 
 /* --- FLOATING PROMPT DRAWER --- */
@@ -460,9 +438,9 @@ body {
 }
 
 .drawer-glass {
-    background: rgba(10, 15, 20, 0.7);
+    background: var(--glass);
     backdrop-filter: blur(40px) saturate(150%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
     border-radius: 20px;
     padding: 20px;
     box-shadow: 0 30px 60px rgba(0,0,0,0.8);
@@ -477,13 +455,15 @@ body {
     font-weight: 800;
     letter-spacing: 2px;
     color: var(--accent);
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
 }
 
 #promptTextarea {
     width: 100%;
     height: 250px;
     background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
     border-radius: 10px;
     color: rgba(255,255,255,0.9);
     font-family: 'Outfit', sans-serif;
@@ -510,27 +490,34 @@ body {
 
 .node-sm {
     width: 30px; height: 30px;
-    background: transparent; border: 1px solid rgba(255,255,255,0.1);
+    background: transparent; border: 1px solid var(--border);
     border-radius: 5px; color: #fff; cursor: pointer;
 }
 
+/* Responsiveness */
+/* --- MOBILE UI REFINEMENTS --- */
 @media (max-width: 768px) {
-    .prompt-drawer { width: 90%; right: 5%; top: 80px; }
+    /* Prevent HUD obstruction on small screens */
+    .lb-hud { 
+        top: 15px; 
+        width: 95%;
+        justify-content: center;
+    }
+
+    /* Hide Management/Write buttons on Mobile (Read-Only) */
+    #createColBtn,    /* New Collection button */
+    #setAvatarBtn,    /* Preview button in Lightbox */
+    #deleteImgBtn,    /* Delete button in Lightbox */
+    .node-divider {   /* Small visual divider in nav */
+        display: none !important;
+    }
+    
+    /* Ensure the remaining buttons (Save/Prompt) fit well */
+    .hud-btn {
+        min-width: 80px;
+    }
 }
 
 @media (min-width: 1600px) {
-    .glory-image-grid img { 
-        height: 850px; /* Make them even bigger on huge screens without black bars */
-        flex: 0 0 auto !important;
-        width: auto !important;
-    }
-}
-
-/* Mobile: 1 image per row */
-@media (max-width: 768px) {
-    .glory-image-grid img { 
-        flex: 1 1 100%; 
-        max-width: 100%;
-        height: auto; 
-    }
+    .glory-image-grid img { height: 850px; }
 }

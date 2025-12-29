@@ -96,34 +96,38 @@ class VaultEngine {
 
     async unzip(file) {
         const zip = await JSZip.loadAsync(file);
-        let map = {};
-        for (let path in zip.files) {
+        const folders = {};
+
+        for (const [path, entry] of Object.entries(zip.files)) {
+            if (entry.dir) continue;
+
             const parts = path.split('/');
-            if (parts.length < 2) continue;
-            const dir = parts[0];
-            if (!map[dir]) map[dir] = { name: dir, images: [], tags: {title: dir}, prompt: "", fav: false };
-            
-            const entry = zip.files[path];
-            if (path.endsWith('tags.json')) map[dir].tags = JSON.parse(await entry.async("string"));
-            else if (path.endsWith('prompt.txt')) map[dir].prompt = await entry.async("string");
-            else if (path.match(/\.(png|jpe?g|webp)$/i)) {
-                const b = await entry.async("blob");
-                map[dir].images.push({ name: parts.pop(), url: URL.createObjectURL(b), size: 'N/A', format: 'IMG' });
+            // Skip files in the root or hidden files
+            if (parts.length < 2 || parts[parts.length - 1].startsWith('.')) continue;
+
+            // The parent folder name is the collection name
+            const colName = parts[parts.length - 2];
+            if (!folders[colName]) folders[colName] = { name: colName, images: [], tags: { title: colName, fav: false } };
+
+            if (path.endsWith('.json')) {
+                const text = await entry.async("string");
+                try { folders[colName].tags = JSON.parse(text); } catch (e) {}
+            } else if (path.match(/\.(png|jpg|jpeg|gif|webp)$/i)) {
+                const blob = await entry.async("blob");
+                folders[colName].images.push({
+                    name: parts[parts.length - 1],
+                    url: URL.createObjectURL(blob),
+                    blob: blob
+                });
             }
         }
 
-        let list = Object.values(map);
+        this.collections = Object.values(folders).map(f => ({
+            ...f,
+            fav: f.tags.fav || false,
+            avatar: f.images.length > 0 ? f.images[0].url : ""
+        }));
 
-        // --- ALPHABETICAL NATURAL SORT FOR ZIP ---
-        list.sort((a, b) => 
-            a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
-        );
-
-        this.collections = list;
-        this.collections.forEach(c => {
-             const savedPreview = c.images.find(i => i.name === c.tags.preview);
-             c.avatar = savedPreview ? savedPreview.url : (c.images[0]?.url || '');
-        });
         return this.collections;
     }
 
