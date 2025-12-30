@@ -1,8 +1,8 @@
 const AGENT_URL = 'ws://localhost:8081';
 
 const allModpacks = [
-  { "ID": "gera", "Name": "GoldenEra - Rebooted", "Version": "1.3.1", "API": "neoforge-21.1.128", "URL": "https://www.dropbox.com/scl/fi/ep78cxpdda2mdg2vkx3hi/gera.zip?rlkey=jbhjvcj3mdf35tkaryydjgyi0&st=mf07m3zj&dl=1", "Image": "https://images.unsplash.com/photo-1627398242454-45a1465c2479?auto=format&fit=crop&q=80&w=1000", "Description": "Classic vibes, modern NeoForge engine." },
-  { "ID": "rera", "Name": "RelaxEra", "Version": "3.0.0", "API": "1.20.1-forge-47.4.6", "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1", "Image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=1000", "Description": "Chill landscapes and peaceful farming." }
+  { "ID": "gera", "Name": "GoldenEra - Rebooted", "Version": "1.3.1", "API": "neoforge-21.1.128", "URL": "https://www.dropbox.com/scl/fi/ep78cxpdda2mdg2vkx3hi/gera.zip?rlkey=jbhjvcj3mdf35tkaryydjgyi0&st=mf07m3zj&dl=1", "Image": "gera.jpg", "Description": "Classic vibes, modern NeoForge engine." },
+  { "ID": "rera", "Name": "RelaxEra", "Version": "3.0.0", "API": "1.20.1-forge-47.4.6", "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1", "Image": "rera.png", "Description": "Hardcore Industrialization, in a chill landscape." }
 ];
 
 let socket, localData = { installed: {}, settings: { Username: "Player", AllocatedRam: 4096 }, isGameRunning: false };
