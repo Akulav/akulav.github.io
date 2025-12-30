@@ -1,0 +1,20 @@
+[
+  {
+    "ID": "gera",
+    "Name": "GoldenEra - Rebooted",
+    "Version": "1.3.1",
+    "API": "neoforge-21.1.128",
+    "URL": "https://www.dropbox.com/scl/fi/ep78cxpdda2mdg2vkx3hi/gera.zip?rlkey=jbhjvcj3mdf35tkaryydjgyi0&st=mf07m3zj&dl=1",
+    "Image": "modpacks/images/gera.jpg",
+    "Description": "A nostalgic trip back to the golden days of modding, refined for NeoForge."
+  },
+  {
+    "ID": "rera",
+    "Name": "RelaxEra",
+    "Version": "3.0.0",
+    "API": "1.20.1-forge-47.4.6",
+    "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1",
+    "Image": "modpacks/images/rera.jpg",
+    "Description": "Chill vibes, farming, and light exploration for the weary traveler."
+  }
+]

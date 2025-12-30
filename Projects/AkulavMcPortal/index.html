@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akulav Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="logo-group">
+            <h1 style="margin:0">AKULAV<span style="color:var(--accent)">PORTAL</span></h1>
+            <div id="agent-status" class="status-badge">AGENT OFFLINE</div>
+        </div>
+        
+        <a href="https://github.com/Akulav/akulav.github.io/releases/download/1.0.0/AkulavMinecraftAgent.exe" download="AkulavMinecraftAgent.exe" class="agent-download-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            Download Agent
+        </a>
+    </header>
+
+    <div id="main-view">
+        <h2 style="margin-bottom: 30px;">Available Modpacks</h2>
+        <div class="grid" id="pack-grid"></div>
+    </div>
+
+    <div id="detail-view" style="display:none;"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
