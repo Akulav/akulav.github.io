@@ -14,7 +14,7 @@
     "Version": "3.0.0",
     "API": "1.20.1-forge-47.4.6",
     "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1",
-    "Image": "modpacks/images/rera.jpg",
+    "Image": "modpacks/images/rera.png",
     "Description": "Chill vibes, farming, and light exploration for the weary traveler."
   },
   {
@@ -23,7 +23,7 @@
     "Version": "1.0.0",
     "API": "neoforge-21.1.217",
     "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1",
-    "Image": "modpacks/images/eoae.jpg",
+    "Image": "modpacks/images/eoae.png",
     "Description": "Chill vibes, farming, and light exploration for the weary traveler. Updated for NeoForge 1.21.1"
   }
 ]

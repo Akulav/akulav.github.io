@@ -30,6 +30,9 @@ function connectAgent() {
             const rI = document.getElementById('ram-f'), uI = document.getElementById('user-f');
             if(rI && !rI.matches(':focus')) rI.value = localData.settings.AllocatedRam;
             if(uI && !uI.matches(':focus')) uI.value = localData.settings.Username;
+            if (data.payload.version) {
+                document.getElementById('agent-status').innerText = "Agent Connected (v" + data.payload.version + ")";
+            }
             renderGrid(); updateBtns(); 
         }
         if (data.type === "status") updateUI(data);
