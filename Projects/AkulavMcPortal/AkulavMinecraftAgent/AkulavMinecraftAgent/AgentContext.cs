@@ -13,7 +13,7 @@ namespace AkulavMinecraftAgent
     public class AgentSettings
     {
         public int AllocatedRam { get; set; } = 4096;
-        public string Username { get; set; } = "Player";
+        public string Username { get; set; } = "Steve";
     }
 
     public class ModpackInfo
@@ -33,9 +33,7 @@ namespace AkulavMinecraftAgent
 
     public class AgentContext : ApplicationContext
     {
-        // CHANGE THIS EVERY TIME YOU RELEASE A NEW VERSION
-        private readonly string _currentVersion = "2.0.1";
-
+        private readonly string _currentVersion = "2.2.2"; // Incremented
         private NotifyIcon _trayIcon;
         private WebSocketServer _server;
         private IWebSocketConnection _client;
@@ -46,35 +44,50 @@ namespace AkulavMinecraftAgent
         private readonly string _modpackUrl = "https://raw.githubusercontent.com/Akulav/akulav.github.io/refs/heads/main/Projects/AkulavMcPortal/modpacks/modpacks.json";
         private readonly string _agentVersionUrl = "https://raw.githubusercontent.com/Akulav/akulav.github.io/refs/heads/main/Projects/AkulavMcPortal/modpacks/agent_version.json";
 
+        private string _logPath => Path.Combine(_root, "agent.log");
         private string _setPath => Path.Combine(_root, "settings.json");
         private bool _isGameRunning => _gameProcess != null && !_gameProcess.HasExited;
 
         public AgentContext()
         {
-            // If launched with "cleanup" argument, wait and delete the temp file
-            HandleUpdateCleanup();
+            Directory.CreateDirectory(_root);
+            LogToFile("--- Session Started ---");
 
+            HandleUpdateCleanup();
             if (!CheckInstallation()) return;
 
             Directory.CreateDirectory(Path.Combine(_root, "instances"));
             SetupTray();
             SetStartup(true);
 
-            _server = new WebSocketServer("ws://0.0.0.0:8081");
-            _server.Start(socket =>
-            {
-                socket.OnOpen = () => { _client = socket; SendSync(); };
-                socket.OnMessage = msg => Handle(msg);
-                socket.OnClose = () => _client = null;
-            });
+            StartSocketServer();
 
             _updateTimer = new System.Timers.Timer(120000);
-            _updateTimer.Elapsed += async (s, e) =>
-            {
-                await CheckForAgentUpdates();
-                await AutoUpdateLoop();
-            };
+            _updateTimer.Elapsed += async (s, e) => await ManualUpdateCheck(false);
             _updateTimer.Start();
+        }
+
+        private void StartSocketServer()
+        {
+            try
+            {
+                _server = new WebSocketServer("ws://0.0.0.0:8081");
+                _server.Start(socket =>
+                {
+                    socket.OnOpen = () => { _client = socket; SendSync(); };
+                    socket.OnMessage = msg => Handle(msg);
+                    socket.OnClose = () => _client = null;
+                });
+            }
+            catch (Exception ex) { LogToFile("WS Error: " + ex.Message); }
+        }
+
+        public async Task ManualUpdateCheck(bool verbose)
+        {
+            LogToFile("Checking for updates...");
+            await CheckForAgentUpdates();
+            await AutoUpdateLoop();
+            if (verbose) MessageBox.Show("Update check finished.", "Akulav Agent");
         }
 
         private async Task CheckForAgentUpdates()
@@ -84,49 +97,25 @@ namespace AkulavMinecraftAgent
                 using var client = new HttpClient();
                 var json = await client.GetStringAsync(_agentVersionUrl);
                 var latest = JsonConvert.DeserializeObject<AgentVersionInfo>(json);
-
-                if (latest.version != _currentVersion)
-                {
-                    Log($"New Agent version found: {latest.version}. Updating...");
-
-                    string downloadPath = Path.Combine(_root, "AkulavAgent_new.exe");
-                    using (var wc = new WebClient())
-                    {
-                        await wc.DownloadFileTaskAsync(new Uri(latest.url), downloadPath);
-                    }
-
-                    // Create a batch file to swap the EXEs and restart
-                    string batchPath = Path.Combine(_root, "update.bat");
-                    string currentExe = Application.ExecutablePath;
-                    string targetExe = Path.Combine(_root, "AkulavAgent.exe");
-
-                    string script = $@"
-@echo off
-timeout /t 2 /nobreak > nul
-del ""{targetExe}""
-move ""{downloadPath}"" ""{targetExe}""
-start """" ""{targetExe}"" --updated
-del ""%~f0""
-";
-                    File.WriteAllText(batchPath, script);
-                    Process.Start(new ProcessStartInfo(batchPath) { CreateNoWindow = true, UseShellExecute = false });
-                    Environment.Exit(0);
-                }
+                if (latest.version != _currentVersion) UpdateAgent(latest.url);
             }
-            catch { /* Silent fail */ }
+            catch (Exception ex) { LogToFile("Update Check Error: " + ex.Message); }
         }
 
-        private void HandleUpdateCleanup()
+        private void UpdateAgent(string url)
         {
-            // If the app was just updated, we could show a notification here
-            string[] args = Environment.GetCommandLineArgs();
-            foreach (var arg in args)
+            try
             {
-                if (arg == "--updated")
-                {
-                    // Optional: Log or notify that update was successful
-                }
+                string downloadPath = Path.Combine(_root, "AkulavAgent_new.exe");
+                using (var wc = new WebClient()) wc.DownloadFile(new Uri(url), downloadPath);
+                string batchPath = Path.Combine(_root, "update.bat");
+                string targetExe = Path.Combine(_root, "AkulavAgent.exe");
+                string script = $"@echo off\ntimeout /t 2 /nobreak > nul\ndel \"{targetExe}\"\nmove \"{downloadPath}\" \"{targetExe}\"\nstart \"\" \"{targetExe}\" --updated\ndel \"%~f0\"";
+                File.WriteAllText(batchPath, script);
+                Process.Start(new ProcessStartInfo(batchPath) { CreateNoWindow = true, UseShellExecute = false });
+                Environment.Exit(0);
             }
+            catch (Exception ex) { LogToFile("Update Execution Error: " + ex.Message); }
         }
 
         private async Task AutoUpdateLoop()
@@ -137,33 +126,84 @@ del ""%~f0""
                 using var client = new HttpClient();
                 var json = await client.GetStringAsync(_modpackUrl);
                 var remotePacks = JsonConvert.DeserializeObject<List<ModpackInfo>>(json);
-
                 foreach (var pack in remotePacks)
                 {
                     string marker = Path.Combine(_root, "instances", pack.ID, ".installed");
                     if (File.Exists(marker) && File.ReadAllText(marker) != pack.Version)
                     {
-                        Log($"Update detected: {pack.Name}...");
+                        LogToFile($"Auto-Updating Modpack: {pack.Name}");
                         await Sync(pack.ID, pack.URL, pack.Version, false);
                         SendSync();
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogToFile("Loop Error: " + ex.Message); }
         }
 
-        private bool CheckInstallation()
+        private async Task Sync(string id, string url, string ver, bool force)
         {
-            string targetExe = Path.Combine(_root, "AkulavAgent.exe");
-            if (Application.ExecutablePath.Equals(targetExe, StringComparison.OrdinalIgnoreCase)) return true;
+            string path = Path.Combine(_root, "instances", id);
+            string marker = Path.Combine(path, ".installed");
+            if (File.Exists(marker) && File.ReadAllText(marker) == ver && !force) return;
+
+            LogToFile($"Syncing {id}...");
+
+            // Clean installation: Delete old folder first (Restored from old code)
+            if (Directory.Exists(path)) Directory.Delete(path, true);
+            Directory.CreateDirectory(path);
+
+            using (var wc = new WebClient())
+            {
+                wc.DownloadProgressChanged += (s, e) => Log($"Sync: {e.ProgressPercentage}%", e.ProgressPercentage);
+                await wc.DownloadFileTaskAsync(new Uri(url), Path.Combine(_root, "temp.zip"));
+            }
+
+            ZipFile.ExtractToDirectory(Path.Combine(_root, "temp.zip"), path);
+            File.Delete(Path.Combine(_root, "temp.zip"));
+            File.WriteAllText(marker, ver);
+        }
+
+        private async Task Launch(string user, string id, string api)
+        {
             try
             {
-                Directory.CreateDirectory(_root);
-                File.Copy(Application.ExecutablePath, targetExe, true);
-                Process.Start(new ProcessStartInfo(targetExe) { UseShellExecute = true });
-                Environment.Exit(0); return false;
+                LogToFile($"Launching {id}...");
+                string path = Path.Combine(_root, "instances", id);
+
+                // Restored library fallback logic from the old working code
+                var mcPath = new MinecraftPath(path)
+                {
+                    Assets = Path.Combine(_root, "assets"),
+                    Library = Directory.Exists(Path.Combine(path, "libraries")) ? Path.Combine(path, "libraries") : Path.Combine(_root, "libraries")
+                };
+
+                var launcher = new MinecraftLauncher(mcPath);
+                launcher.FileProgressChanged += (s, e) =>
+                {
+                    if (e.TotalTasks > 0) Log($"Verifying: {e.Name}", (int)((double)e.ProgressedTasks / e.TotalTasks * 100));
+                };
+
+                var option = new MLaunchOption
+                {
+                    MaximumRamMb = GetSettings().AllocatedRam,
+                    Session = MSession.CreateOfflineSession(user)
+                };
+
+                // Build process
+                _gameProcess = await launcher.InstallAndBuildProcessAsync(api, option);
+
+
+                _gameProcess.Start();
+                SendSync();
+
+                _ = Task.Run(() =>
+                {
+                    _gameProcess.WaitForExit();
+                    LogToFile($"Exit Code: {_gameProcess.ExitCode}");
+                    SendSync();
+                });
             }
-            catch { return true; }
+            catch (Exception ex) { LogToFile("LAUNCH ERROR: " + ex.ToString()); }
         }
 
         private void SetupTray()
@@ -178,12 +218,30 @@ del ""%~f0""
                 }
             }
             catch { _trayIcon.Icon = System.Drawing.SystemIcons.Shield; }
+
             _trayIcon.Visible = true;
             _trayIcon.Text = $"Akulav Agent v{_currentVersion}";
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Open Folder", null, (s, e) => Process.Start("explorer.exe", _root));
+            menu.Items.Add("Open Portal Folder", null, (s, e) => Process.Start("explorer.exe", _root));
+            menu.Items.Add("Check for Updates", null, async (s, e) => await ManualUpdateCheck(true));
+            menu.Items.Add("Clear Log", null, (s, e) => ClearLog());
+            menu.Items.Add("-");
             menu.Items.Add("Exit", null, (s, e) => { _trayIcon.Visible = false; Application.Exit(); });
             _trayIcon.ContextMenuStrip = menu;
+        }
+
+        private void LogToFile(string m)
+        {
+            try { File.AppendAllText(_logPath, $"[{DateTime.Now:HH:mm:ss}] {m}{Environment.NewLine}"); Log(m); } catch { }
+        }
+
+        private void ClearLog() { try { File.WriteAllText(_logPath, $"[{DateTime.Now}] Log Cleared.{Environment.NewLine}"); } catch { } }
+
+        private bool CheckInstallation()
+        {
+            string targetExe = Path.Combine(_root, "AkulavAgent.exe");
+            if (Application.ExecutablePath.Equals(targetExe, StringComparison.OrdinalIgnoreCase)) return true;
+            try { File.Copy(Application.ExecutablePath, targetExe, true); Process.Start(new ProcessStartInfo(targetExe) { UseShellExecute = true }); Environment.Exit(0); return false; } catch { return true; }
         }
 
         private async void Handle(string json)
@@ -201,36 +259,13 @@ del ""%~f0""
                     SendSync();
                 }
             }
-            catch (Exception ex) { Log("Error: " + ex.Message); }
+            catch (Exception ex) { LogToFile("WS Handler Error: " + ex.Message); }
         }
 
-        private async Task Sync(string id, string url, string ver, bool force)
+        private void HandleUpdateCleanup()
         {
-            string path = Path.Combine(_root, "instances", id);
-            string marker = Path.Combine(path, ".installed");
-            if (File.Exists(marker) && File.ReadAllText(marker) == ver && !force) return;
-            Log(force ? "Repairing..." : "Updating...", 0);
-            Directory.CreateDirectory(path);
-            using (var wc = new WebClient())
-            {
-                wc.DownloadProgressChanged += (s, e) => Log($"Syncing: {e.ProgressPercentage}%", e.ProgressPercentage);
-                await wc.DownloadFileTaskAsync(new Uri(url), Path.Combine(_root, "temp.zip"));
-            }
-            ZipFile.ExtractToDirectory(Path.Combine(_root, "temp.zip"), path, true);
-            File.Delete(Path.Combine(_root, "temp.zip"));
-            File.WriteAllText(marker, ver);
-        }
-
-        private async Task Launch(string user, string id, string api)
-        {
-            string path = Path.Combine(_root, "instances", id);
-            var launcher = new MinecraftLauncher(new MinecraftPath(path) { Assets = Path.Combine(_root, "assets"), Library = Path.Combine(_root, "libraries") });
-            launcher.FileProgressChanged += (s, e) => { if (e.TotalTasks > 0) Log("Preparing Assets...", (int)((double)e.ProgressedTasks / e.TotalTasks * 100)); };
-            _gameProcess = await launcher.InstallAndBuildProcessAsync(api, new MLaunchOption { MaximumRamMb = GetSettings().AllocatedRam, Session = MSession.CreateOfflineSession(user) });
-            Log("Launching Minecraft...", 100);
-            _gameProcess.Start();
-            SendSync();
-            _ = Task.Run(() => { _gameProcess.WaitForExit(); SendSync(); });
+            string[] args = Environment.GetCommandLineArgs();
+            foreach (var arg in args) if (arg == "--updated") LogToFile("Updated successfully to v" + _currentVersion);
         }
 
         private void SendSync()

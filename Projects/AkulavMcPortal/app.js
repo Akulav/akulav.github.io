@@ -1,4 +1,6 @@
 const MANIFEST_URL = 'https://raw.githubusercontent.com/Akulav/akulav.github.io/refs/heads/main/Projects/AkulavMcPortal/modpacks/modpacks.json';
+// Added the Version URL constant
+const VERSION_URL = 'https://raw.githubusercontent.com/Akulav/akulav.github.io/refs/heads/main/Projects/AkulavMcPortal/modpacks/agent_version.json';
 const AGENT_URL = 'ws://localhost:8081';
 
 let allModpacks = [];
@@ -7,12 +9,35 @@ let consoleVisible = false;
 
 async function init() {
     try {
+        // Fetch Modpack Manifest
         const response = await fetch(MANIFEST_URL);
         allModpacks = await response.json();
+
+        // Fetch Agent Version and Update the Download Link
+        await updateAgentLink();
+
         renderGrid();
         connectAgent();
     } catch (err) {
         console.error("Failed to fetch modpack manifest:", err);
+    }
+}
+
+// New function to handle dynamic download link
+async function updateAgentLink() {
+    try {
+        const resp = await fetch(VERSION_URL);
+        const data = await resp.json();
+        // Assuming your download button has the class 'agent-download-btn'
+        const linkEl = document.querySelector('.agent-download-btn');
+        
+        if (linkEl && data.url) {
+            linkEl.href = data.url;
+            // Optional: Updates the tooltip to show version info
+            linkEl.title = `Download Latest Agent v${data.version}`;
+        }
+    } catch (e) {
+        console.error("Failed to update agent download link:", e);
     }
 }
 
@@ -54,7 +79,6 @@ function updateUI(data) {
         c.appendChild(l); 
         c.scrollTop = c.scrollHeight; 
     }
-    // Progress Bar mapping: perc is provided by the C# agent
     if (b && data.perc !== -1) {
         b.style.width = data.perc + "%";
         b.style.height = "100%";
