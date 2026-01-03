@@ -10,25 +10,25 @@
   },
   {
     "ID": "rera",
-    "Name": "RelaxEra",
-    "Version": "3.0.0",
-    "API": "1.20.1-forge-47.4.6",
-    "URL": "https://www.dropbox.com/scl/fi/i2aqjwxiydjogyrhse9r8/rera.zip?rlkey=e60i2dn00iw1xpoi2repa6xze&st=8e84lxdz&dl=1",
+    "Name": "RelaxEra - Classic Edition",
+    "Version": "1.0.0",
+    "API": "neoforge-21.1.217",
+    "URL": "https://www.dropbox.com/scl/fi/zicw5kff0cd2y0wc2eaiq/mods.zip?rlkey=9cnsh5v2w91t6u9y879yvu0al&st=r9e6ktar&dl=1",
     "Image": "modpacks/images/rera.png",
-    "Description": "Chill vibes, farming, and light exploration for the weary traveler."
+    "Description": "Insane World Generation, Relaxed Progression, minimal industrialization. Updated for NeoForge 1.21.1"
   },
   {
     "ID": "eoae",
-    "Name": "EndOfAnEra - LTS",
+    "Name": "RelaxEra - LTS",
     "Version": "1.0.0",
     "API": "neoforge-21.1.217",
     "URL": "https://www.dropbox.com/scl/fi/90gan4yxcr7h5yjaxehbg/eoae.zip?rlkey=vynbbtkw35cp74ompb2kaexnn&st=9u7g0th3&dl=1",
     "Image": "modpacks/images/eoae.png",
-    "Description": "Chill vibes, farming, and light exploration for the weary traveler. Updated for NeoForge 1.21.1"
+    "Description": "Updated for NeoForge 1.21.1"
   },
   {
     "ID": "rer",
-    "Name": "RelaxEra - Reimagined",
+    "Name": "RelaxEra - Less Industry",
     "Version": "1.0.1",
     "API": "1.20.1-forge-47.4.6",
     "URL": "https://www.dropbox.com/scl/fi/x7aawjmeybomyyaamw1wg/rer.zip?rlkey=plg7osk7fj1uci70s3rahmrll&st=qryomi92&dl=1",
