@@ -10,10 +10,10 @@
   },
   {
     "ID": "rera",
-    "Name": "RelaxEra - Classic Edition",
-    "Version": "1.0.0",
+    "Name": "EndOfAnEra - Ultimate Edition",
+    "Version": "1.1.0",
     "API": "neoforge-21.1.217",
-    "URL": "https://www.dropbox.com/scl/fi/zicw5kff0cd2y0wc2eaiq/mods.zip?rlkey=9cnsh5v2w91t6u9y879yvu0al&st=r9e6ktar&dl=1",
+    "URL": "https://www.dropbox.com/scl/fi/koovh15nr1jfj3v7rqijb/ultimate.zip?rlkey=iqybfy4ule5otjfm2jjcpjhtq&st=dac8m122&dl=1",
     "Image": "modpacks/images/rera.png",
     "Description": "Insane World Generation, Relaxed Progression, minimal industrialization. Updated for NeoForge 1.21.1"
   },
