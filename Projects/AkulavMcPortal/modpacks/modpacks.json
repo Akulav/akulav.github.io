@@ -1,38 +1,11 @@
 [
   {
-    "ID": "gera",
-    "Name": "GoldenEra",
-    "Version": "1.3.1",
-    "API": "neoforge-21.1.128",
-    "URL": "https://www.dropbox.com/scl/fi/ep78cxpdda2mdg2vkx3hi/gera.zip?rlkey=jbhjvcj3mdf35tkaryydjgyi0&st=mf07m3zj&dl=1",
-    "Image": "modpacks/images/gera.jpg",
-    "Description": "A nostalgic trip back to the golden days of modding, refined for NeoForge."
-  },
-  {
     "ID": "rera",
-    "Name": "EndOfAnEra - Ultimate Edition",
+    "Name": "EndOfAnEra - Ultimate",
     "Version": "1.1.0",
     "API": "neoforge-21.1.217",
     "URL": "https://www.dropbox.com/scl/fi/koovh15nr1jfj3v7rqijb/ultimate.zip?rlkey=iqybfy4ule5otjfm2jjcpjhtq&st=dac8m122&dl=1",
     "Image": "modpacks/images/rera.png",
     "Description": "Insane World Generation, Relaxed Progression, minimal industrialization. Updated for NeoForge 1.21.1"
-  },
-  {
-    "ID": "eoae",
-    "Name": "RelaxEra - LTS",
-    "Version": "1.0.0",
-    "API": "neoforge-21.1.217",
-    "URL": "https://www.dropbox.com/scl/fi/90gan4yxcr7h5yjaxehbg/eoae.zip?rlkey=vynbbtkw35cp74ompb2kaexnn&st=9u7g0th3&dl=1",
-    "Image": "modpacks/images/eoae.png",
-    "Description": "Updated for NeoForge 1.21.1"
-  },
-  {
-    "ID": "rer",
-    "Name": "RelaxEra - Less Industry",
-    "Version": "1.0.1",
-    "API": "1.20.1-forge-47.4.6",
-    "URL": "https://www.dropbox.com/scl/fi/x7aawjmeybomyyaamw1wg/rer.zip?rlkey=plg7osk7fj1uci70s3rahmrll&st=qryomi92&dl=1",
-    "Image": "modpacks/images/rer.jpg",
-    "Description": "Chill vibes, farming, and light exploration for the weary traveler. Updated for NeoForge 1.20.1"
   }
 ]
