@@ -4,7 +4,8 @@ const projects = [
     { "folder": "Projects/AkulavMcPortal", "title": "Modpack Portal", "desc": "Real-time status monitoring for the Minecraft instance.", "icon": "🌍" },
     { "folder": "Projects/ImageConvertor", "title": "Pixel Forge", "desc": "Browser-based rapid image processing and conversion.", "icon": "📸" },
     { "folder": "Projects/GalleryBeta", "title": "Cortex Beta", "desc": "Experimental features and unstable builds access.", "icon": "🧪" },
-    { "folder": "Projects/ImageMetadataReader", "title": "Going Dark", "desc": "Image Scrubber.", "icon": "🧹" }
+    { "folder": "Projects/ImageMetadataReader", "title": "Going Dark", "desc": "Image Scrubber.", "icon": "🧹" }, 
+    { "folder": "Projects/FUDiscord", "title": "Going Dark", "desc": "Discord No More", "icon": "🎤️" }
 ];
 
 const grid = document.getElementById('projectGrid');
