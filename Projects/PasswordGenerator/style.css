@@ -1,0 +1,273 @@
+:root {
+    /* Sophisticated Palette */
+    --primary: #00f2ff;
+    --accent: #7d40ff;
+    --bg-deep: #030712;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --danger: #ff4b6b;
+    --font-fancy: 'Space Grotesk', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+body {
+    background: var(--bg-deep);
+    font-family: var(--font-fancy);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+}
+
+/* --- ETHEREAL ATMOSPHERE --- */
+body::before, body::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+body::before {
+    background: radial-gradient(circle at 10% 10%, rgba(125, 64, 255, 0.15), transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(0, 242, 255, 0.1), transparent 40%);
+}
+
+/* --- WRAPPER & CARD --- */
+.wrap {
+    width: 100%;
+    max-width: 900px;
+    padding: 24px;
+}
+
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: 32px;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+    overflow: hidden;
+}
+
+/* --- HEADER --- */
+header {
+    padding: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.02);
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+h1 span {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sub {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.hud-stats {
+    text-align: right;
+}
+
+.primary-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: var(--font-mono);
+}
+
+/* --- MAIN CONTENT --- */
+.content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--glass-border);
+}
+
+@media (max-width: 768px) { .content { grid-template-columns: 1fr; } }
+
+.panel {
+    background: var(--bg-deep);
+    padding: 40px;
+}
+
+label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: block;
+}
+
+/* --- PASSWORD OUTPUT --- */
+.pw {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    word-break: break-all;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+button {
+    border-radius: 12px !important; /* Overriding global sharp edges */
+    padding: 14px;
+    font-family: var(--font-fancy);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+#generate {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: #000;
+    grid-column: span 2;
+}
+
+#generate:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0, 242, 255, 0.2); }
+
+.btn-ghost {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--glass-border);
+    color: var(--text-main);
+}
+
+.btn-ghost:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
+
+.btn-danger {
+    background: transparent;
+    border-color: rgba(255, 75, 107, 0.3);
+    color: var(--danger);
+}
+
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+/* --- CONTROLS --- */
+.control-group { margin-bottom: 24px; }
+
+.slider-wrap {
+    display: grid;
+    grid-template-columns: 1fr 60px;
+    gap: 15px;
+}
+
+input[type="range"] {
+    appearance: none;
+    height: 4px;
+    background: var(--glass-border);
+    border-radius: 10px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+input[type="number"], textarea {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px !important;
+    color: var(--primary);
+    padding: 10px;
+    font-family: var(--font-mono);
+}
+
+.checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.check {
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.check:hover { border-color: var(--accent); background: rgba(125, 64, 255, 0.05); }
+
+/* --- FOOTER & METER --- */
+.strength-meter { margin-top: 24px; }
+.bar { height: 4px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.5s ease; }
+
+.foot {
+    padding: 24px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+}
+
+.help {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.help code { color: var(--primary); font-family: var(--font-mono); }
+
+.link-btn {
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    padding: 10px 20px;
+    border: 1px solid var(--glass-border);
+    border-radius: 100px !important;
+}

@@ -1,0 +1,626 @@
+:root {
+    --bg-dark: #0a0a0a;
+    --bg-card: #141414;
+    --text-main: #f0f0f0;
+    --accent: #e6c27a; /* Soft Gold */
+    --accent-glow: rgba(230, 194, 122, 0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+
+body { background: var(--bg-dark); color: var(--text-main); line-height: 1.6; overflow-x: hidden; }
+
+/* --- Header & Nav --- */
+header { text-align: center; padding: 40px 20px 20px; border-bottom: 1px solid #222; background: rgba(10,10,10,0.9); position: sticky; top: 0; z-index: 1000;}
+.logo { font-size: 3rem; letter-spacing: 10px; font-weight: 300; margin-bottom: 20px; color: var(--accent); }
+
+#nav-tabs { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+.tab-btn {
+    background: transparent; border: 1px solid #333; color: #888; padding: 10px 20px;
+    border-radius: 30px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+}
+.tab-btn:hover, .tab-btn.active { background: var(--accent); color: var(--bg-dark); border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+
+/* --- Main Content Area --- */
+#app-content { max-width: 1000px; margin: 50px auto; padding: 0 20px; text-align: center; }
+.section-title { font-weight: 300; letter-spacing: 3px; margin-bottom: 40px; color: var(--accent); font-size: 2rem; text-transform: uppercase; }
+
+/* --- Sassy Intro --- */
+/* --- Main Page / Hero Split --- */
+.hero-split {
+    display: flex;
+    gap: 50px;
+    align-items: center;
+    text-align: left;
+    margin-top: 20px;
+    animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Make it stack nicely on mobile phones */
+@media (max-width: 850px) {
+    .hero-split {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+.hero-image-container {
+    flex: 1;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    border: 1px solid #333;
+}
+
+.hero-portrait {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: contrast(110%);
+    transition: transform 0.7s cubic-bezier(0.25, 1, 0.5, 1), filter 0.7s;
+}
+
+.hero-image-container:hover .hero-portrait {
+    transform: scale(1.05);
+    filter: contrast(120%) brightness(1.1);
+}
+
+.hero-text-container {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.sassy-container {
+    padding: 40px;
+    background: var(--bg-card);
+    border-radius: 15px;
+    border-left: 4px solid var(--accent);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+
+.sassy-text { 
+    font-size: 1.8rem; 
+    margin-bottom: 20px; 
+    font-weight: 300; 
+    line-height: 1.4; 
+}
+
+.highlight { 
+    color: var(--accent); 
+    font-weight: bold; 
+    font-size: 2.2rem; 
+}
+
+.sassy-subtext { 
+    font-size: 1rem; 
+    color: #888; 
+    font-style: italic; 
+    margin-top: 15px;
+}
+
+/* --- Vital Statistics Dashboard --- */
+.vital-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 15px;
+}
+
+.stat-box {
+    background: transparent;
+    border: 1px solid #333;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-box:hover {
+    border-color: var(--accent);
+    background: var(--bg-card);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    color: var(--accent);
+    font-weight: bold;
+}
+/* --- Achievements --- */
+.achievements-list { list-style: none; text-align: left; max-width: 800px; margin: 0 auto; }
+.achievements-list li {
+    background: var(--bg-card); margin-bottom: 15px; padding: 25px; border-radius: 10px;
+    font-size: 1.1rem; border-right: 2px solid transparent; transition: border-color 0.3s;
+}
+.achievements-list li:hover { border-right-color: var(--accent); }
+.achievement-img { max-width: 100%; border-radius: 8px; margin-top: 15px; max-height: 400px; object-fit: cover; }
+.perfection { font-size: 3rem; font-weight: bold; color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); display: block; text-align: center; margin-top: 20px; }
+
+/* --- Interactive Map --- */
+.map-wrapper { width: 100%; display: flex; justify-content: center; margin-bottom: 80px; }
+.map-container { position: relative; width: 100%; max-width: 800px; background: var(--bg-card); border-radius: 15px; padding: 10px; border: 1px solid #333; }
+.base-map { width: 100%; height: auto; opacity: 0.3; filter: invert(1); }
+.map-dot { position: absolute; width: 10px; height: 10px; background-color: var(--accent); border-radius: 50%; transform: translate(-50%, -50%); cursor: pointer; box-shadow: 0 0 10px var(--accent); }
+.dot-pulse { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background-color: var(--accent); border-radius: 50%; animation: radarPulse 2s infinite ease-out; }
+
+/* --- Staggered Country Timeline --- */
+.staggered-timeline { display: flex; flex-direction: column; gap: 120px; padding: 20px 0 100px; overflow: hidden; }
+.country-row { display: flex; align-items: center; width: 90%; gap: 40px; margin: 0 auto; opacity: 0; transition: all 1s cubic-bezier(0.25, 1, 0.5, 1); }
+.country-row.align-left { text-align: left; transform: translateX(-100px); }
+.country-row.align-right { flex-direction: row-reverse; text-align: right; transform: translateX(100px); }
+.country-row.revealed { opacity: 1; transform: translateX(0); }
+
+.country-flag-large { font-size: 6rem; filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8)); transition: transform 0.5s ease; }
+.country-row:hover .country-flag-large { transform: scale(1.15) rotate(5deg); }
+.country-title { font-size: 2.5rem; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 5px; line-height: 1; }
+.country-line { height: 2px; width: 80px; background: var(--accent); margin: 15px 0; box-shadow: 0 0 10px var(--accent-glow); }
+.country-row.align-right .country-line { margin: 15px 0 15px auto; }
+.country-description { font-size: 1.2rem; color: #bbb; font-style: italic; max-width: 400px; }
+
+/* --- Gallery Grid --- */
+.grid { display: grid; gap: 20px; }
+.grid.gallery { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.img-wrapper { overflow: hidden; border-radius: 10px; aspect-ratio: 4/5; }
+.img-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; filter: grayscale(20%); }
+.img-wrapper:hover img { transform: scale(1.08); filter: grayscale(0%); }
+
+/* --- Peasant Detector --- */
+.detector-container { padding: 50px; }
+#scan-btn { background: var(--accent); color: var(--bg-dark); border: none; padding: 15px 40px; font-size: 1.2rem; cursor: pointer; border-radius: 50px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+#scan-btn:hover { box-shadow: 0 0 20px var(--accent-glow); }
+.hidden { display: none !important; }
+.radar { width: 100px; height: 100px; border: 2px dashed var(--accent); border-radius: 50%; margin: 0 auto 20px; animation: spin 2s linear infinite; }
+.alert-text { font-size: 1.2rem; color: #888; animation: pulse 1s infinite; }
+.final-verdict { color: #ff4444; font-size: 2rem; font-weight: bold; margin-top: 20px; text-shadow: 0 0 10px rgba(255, 68, 68, 0.5); }
+
+/* --- Animations --- */
+.fade-in { animation: fadeIn 0.4s forwards; }
+.fade-out { animation: fadeOut 0.3s forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-15px); } }
+@keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes pulse { 50% { opacity: 0.5; } }
+@keyframes radarPulse { 0% { width: 10px; height: 10px; opacity: 1; } 100% { width: 40px; height: 40px; opacity: 0; } }
+
+/* --- Quick Glance Flags --- */
+.quick-glance-flags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin: -40px auto 100px; /* Pulls it up closer to the map */
+    max-width: 800px;
+    padding: 25px;
+    background: var(--bg-card);
+    border-radius: 15px;
+    border: 1px solid #333;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    position: relative;
+    z-index: 10;
+}
+
+.glance-flag {
+    font-size: 2.2rem;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+}
+
+.glance-flag:hover {
+    transform: scale(1.5) translateY(-5px);
+}
+
+/* --- Typewriter Effects --- */
+.typing-cursor {
+    color: var(--accent);
+    animation: blink 1s step-end infinite;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+.hidden-opacity {
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.revealed-opacity {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* --- Bento Box Excellence Grid --- */
+.bento-grid {
+    display: grid;
+    /* Strict 3-column desktop layout to force a perfect symmetrical outer rectangle */
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: minmax(280px, auto); 
+    gap: 20px;
+    max-width: 1100px; /* Slightly wider to accommodate the 3 columns */
+    margin: 0 auto 100px;
+    padding: 0 20px;
+}
+
+.bento-card {
+    background: rgba(20, 20, 20, 0.7);
+    border: 1px solid #2a2a2a;
+    border-radius: 20px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    backdrop-filter: blur(10px);
+    height: 100%;
+}
+
+.bento-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent);
+    box-shadow: 0 15px 35px rgba(230, 194, 122, 0.15);
+}
+
+/* Sizing Modifiers */
+.bento-card.tall { grid-row: span 2; }
+.bento-card.full-width { grid-column: span 3; }
+
+.bento-card.highlight-card {
+    background: linear-gradient(135deg, #1f1a0e 0%, #0a0a0a 100%);
+    border: 1px solid var(--accent);
+}
+
+.bento-card.highlight-card .bento-content {
+    background: transparent; /* Removes the dark inner box */
+    align-items: center; /* Centers the text perfectly */
+    text-align: center;
+}
+
+/* Base Image Handling */
+.bento-img-wrapper {
+    width: 100%;
+    height: 220px; 
+    flex-shrink: 0; 
+    overflow: hidden;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.bento-card.tall .bento-img-wrapper {
+    height: 380px; /* Massive portrait space */
+}
+
+.bento-image {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.bento-card:hover .bento-image { transform: scale(1.1); }
+
+/* Typography and Content */
+.bento-content {
+    padding: 30px;
+    flex-grow: 1; 
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(to top, rgba(15,15,15,1), rgba(20,20,20,0.4));
+}
+
+.bento-icon { font-size: 2.5rem; margin-bottom: 15px; filter: drop-shadow(0 0 10px rgba(230,194,122,0.3)); }
+.bento-title { color: var(--accent); font-size: 1.4rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+.bento-desc { color: #bbb; font-size: 1.05rem; line-height: 1.6; }
+
+/* --- The Wide Card Magic (Desktop) --- */
+@media (min-width: 900px) {
+    .bento-card.wide {
+        grid-column: span 2;
+        flex-direction: row; /* Split left/right */
+    }
+    
+    .bento-card.wide .bento-img-wrapper {
+        width: 50%;
+        height: 100%;
+        border-bottom: none;
+        border-right: 1px solid #2a2a2a;
+    }
+    
+    .bento-card.wide .bento-content {
+        width: 50%;
+    }
+
+    /* Reverse the layout for the Gamer card to keep the zig-zag asymmetry */
+    .bento-card.wide.reverse {
+        flex-direction: row-reverse;
+    }
+    .bento-card.wide.reverse .bento-img-wrapper {
+        border-right: none;
+        border-left: 1px solid #2a2a2a;
+    }
+}
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 899px) {
+    .bento-grid {
+        grid-template-columns: 1fr; /* Stacks everything into a single column on phones */
+    }
+    .bento-card.wide, .bento-card.tall, .bento-card.full-width {
+        grid-column: span 1;
+        grid-row: span 1;
+    }
+    .bento-img-wrapper { height: 250px; }
+}
+
+/* --- Peasant Detector Terminal Updates --- */
+.terminal-box {
+    background: #050505;
+    border: 1px solid #333;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-family: 'Courier New', Courier, monospace;
+    color: var(--accent);
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 30px;
+    max-width: 600px;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+}
+
+.terminal-text {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.pop-in {
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+#scan-progress {
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* --- Masonry Gallery Grid --- */
+/* --- Editorial Lookbook Gallery --- */
+.lookbook-container {
+    display: flex;
+    flex-direction: column;
+    gap: 200px; /* Massive spacing forces them to scroll and admire each one */
+    max-width: 1000px;
+    margin: 0 auto 100px;
+    padding: 50px 20px;
+}
+
+.lookbook-row {
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    opacity: 0;
+    transition: all 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Slide in from the left and right as they scroll */
+.lookbook-row.image-left {
+    flex-direction: row;
+    transform: translateY(80px);
+}
+
+.lookbook-row.image-right {
+    flex-direction: row-reverse;
+    transform: translateY(80px);
+}
+
+.lookbook-row.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Perfectly frames standard vertical iPhone photos */
+.lookbook-photo-wrapper {
+    flex: 1;
+    max-width: 450px;
+    aspect-ratio: 3 / 4; 
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+    border: 1px solid #2a2a2a;
+    position: relative;
+    background: var(--bg-card);
+}
+
+.lookbook-photo-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the photo fills the frame without stretching */
+    transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1), filter 1s ease;
+    filter: brightness(0.9) contrast(110%);
+}
+
+.lookbook-row:hover .lookbook-photo-wrapper img {
+    transform: scale(1.05);
+    filter: brightness(1.1) contrast(115%);
+}
+
+.lookbook-text-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.lookbook-caption {
+    font-size: 2.5rem;
+    color: var(--accent);
+    line-height: 1.4;
+    font-weight: 300;
+    font-style: italic;
+    position: relative;
+    text-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+/* Elegant gold divider line above the text */
+.lookbook-caption::before {
+    content: '';
+    display: block;
+    width: 80px;
+    height: 2px;
+    background: var(--accent);
+    margin-bottom: 30px;
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+/* Align the line to the right when the text is on the left */
+.lookbook-row.image-right .lookbook-caption::before {
+    margin-left: auto; 
+}
+.lookbook-row.image-right .lookbook-text-wrapper {
+    text-align: right;
+}
+
+/* Fallback box if image is missing */
+.missing-iphone-pic {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-family: monospace;
+    font-size: 1.2rem;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 850px) {
+    .lookbook-row.image-left, .lookbook-row.image-right {
+        flex-direction: column;
+        text-align: center;
+        gap: 40px;
+    }
+    .lookbook-row.image-right .lookbook-text-wrapper {
+        text-align: center;
+    }
+    .lookbook-row.image-right .lookbook-caption::before,
+    .lookbook-caption::before {
+        margin: 0 auto 30px;
+    }
+    .lookbook-container { gap: 100px; }
+}
+
+
+/* =========================================================
+   📱 FLAWLESS MOBILE RESPONSIVENESS (PHONES & TABLETS)
+========================================================= */
+@media (max-width: 650px) {
+    /* 1. Header & Nav Adjustments */
+    .logo { 
+        font-size: 2rem; 
+        letter-spacing: 5px; 
+        margin-bottom: 10px; 
+    }
+    header { padding: 20px 10px 10px; }
+    .tab-btn { 
+        padding: 8px 12px; 
+        font-size: 0.75rem; 
+    }
+
+    /* 2. Global Typography Scaling */
+    .section-title { font-size: 1.5rem; margin-bottom: 30px; }
+    #app-content { margin: 30px auto; padding: 0 15px; }
+
+    /* 3. The Truth (Intro Page) */
+    .hero-image-container { 
+        min-height: 350px !important; /* Overrides the JS inline style for mobile */
+    }
+    .sassy-container { padding: 25px 20px; }
+    .sassy-text { font-size: 1.4rem; }
+    .highlight { font-size: 1.7rem; }
+    .vital-stats { 
+        grid-template-columns: 1fr; /* Stacks the stats vertically on small phones */
+    }
+
+    /* 4. Global Airspace (Countries Page) */
+    .quick-glance-flags { 
+        margin: -20px auto 40px; 
+        padding: 15px; 
+        gap: 10px; 
+    }
+    .glance-flag { font-size: 1.6rem; }
+    
+    .staggered-timeline { 
+        gap: 60px; /* Reduces the massive empty space between countries */
+        padding: 0 0 50px;
+    }
+    
+    /* Center all country rows and change animation from slide-in to fade-up */
+    .country-row, 
+    .country-row.align-left, 
+    .country-row.align-right {
+        flex-direction: column !important;
+        text-align: center !important;
+        gap: 15px;
+        transform: translateY(40px) !important; /* Slide up instead of side-to-side */
+    }
+    .country-row.revealed {
+        transform: translateY(0) !important;
+    }
+    .country-line { margin: 10px auto !important; }
+    .country-flag-large { font-size: 4rem; }
+    .country-title { font-size: 1.8rem; }
+    .country-description { font-size: 1rem; }
+
+    /* 5. Excellence (Bento Grid) */
+    .bento-icon { font-size: 2rem; }
+    .bento-title { font-size: 1.2rem; }
+    .bento-desc { font-size: 0.95rem; }
+
+    /* 6. Visual Proof (Lookbook Gallery) */
+    .lookbook-container { 
+        gap: 80px; /* Reduces gap so they don't think the page ended */
+        padding: 20px 0;
+    }
+    .lookbook-row.image-left, 
+    .lookbook-row.image-right {
+        transform: translateY(40px) !important;
+    }
+    .lookbook-row.revealed {
+        transform: translateY(0) !important;
+    }
+    .lookbook-caption { font-size: 1.6rem; }
+
+    /* 7. Peasant Detector */
+    .detector-container { padding: 20px; }
+    .terminal-box { 
+        padding: 10px; 
+        min-height: 80px; 
+    }
+    .terminal-text { font-size: 0.9rem; }
+    #scan-btn { 
+        padding: 12px 25px; 
+        font-size: 1rem; 
+    }
+    .final-verdict { font-size: 1.5rem; }
+}

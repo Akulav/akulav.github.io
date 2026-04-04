@@ -1,0 +1,49 @@
+
+/* ===== New Prompt Virtual Page (full overlay) ===== */
+#newPromptView[aria-hidden="true"]{ display:none; }
+
+/* When active, hide the main page content, like detail-view does */
+body.new-prompt-active .topbar,
+body.new-prompt-active #filters,
+body.new-prompt-active .page { display:none !important; }
+
+/* The virtual page container */
+#newPromptView{
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: var(--bg, #0f1115);
+  color: var(--fg, #e6e8ef);
+}
+
+/* Header */
+#newPromptView .np-header{
+  display:flex; align-items:center; gap:16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line, #1d2230);
+}
+#newPromptBack{ background:var(--card,#151925); border:1px solid var(--line,#1d2230); }
+#newPromptTitleHdr{ margin:0 auto; text-align:center; font-size:20px; font-weight:700; }
+
+/* Content */
+#newPromptView .np-content{
+  display:grid;
+  grid-template-columns: minmax(240px, 920px);
+  justify-content:center;
+  align-content:start;
+  padding: 16px;
+  overflow:auto;
+}
+
+#newPromptView .np-card{
+  background:var(--card,#151925);
+  border: 1px solid var(--line,#1d2230);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+
+#newPromptView .form-group{ margin-bottom: 12px; }
+#newPromptView .form-actions{ display:flex; justify-content:flex-end; margin-top: 16px; }

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Akulav | Image Forge</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="atmosphere">
+        <div class="noise-overlay"></div>
+        <div class="nebula"></div>
+    </div>
+
+    <main class="wrap">
+        <header class="card hud-header">
+            <div class="hero-inner">
+                <h1>Image <span>Forge</span></h1>
+                <p class="sub">Protocol // Local Hardware Media Processing</p>
+            </div>
+            <div class="hud-stats">
+                <div class="stat-mini">
+                    <span class="muted">MOUNT:</span>
+                    <span id="statRoot" class="monospace">—</span>
+                </div>
+                <div class="stat-mini">
+                    <span class="muted">STATUS:</span>
+                    <span id="capabilityNote" class="primary-text">Detecting...</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="stack">
+            <div class="card panel-main">
+                <div class="panel-header">
+                    <h2 class="section-title">📂 Source Selection</h2>
+                    <div class="stats-grid">
+                        <div class="stat">
+                            <span class="stat-label">Total</span>
+                            <span id="statTotal" class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Images</span>
+                            <span id="statImages" class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pickers">
+                    <button id="pickRW" type="button" class="btn btn-primary">
+                        🔐 Folder (R/W)
+                    </button>
+
+                    <label class="btn btn-ghost" for="pickDirRO">
+                        📁 Folder (RO)
+                        <input id="pickDirRO" type="file" webkitdirectory directory multiple hidden />
+                    </label>
+
+                    <label class="btn btn-ghost" for="pickFiles">
+                        🧩 Pick Files
+                        <input id="pickFiles" type="file" multiple hidden />
+                    </label>
+
+                    <button id="scanZip" type="button" class="btn btn-ghost">
+                        🗜️ Scan ZIP
+                    </button>
+                    <input id="zipInput" type="file" accept=".zip" hidden />
+                </div>
+
+                <details class="filelist-wrap">
+                    <summary>VIEW ENTRY MANIFEST</summary>
+                    <ul id="fileList" class="filelist"></ul>
+                </details>
+
+                <h2 class="section-title">⚙️ Process Parameters</h2>
+                <div class="options">
+                    <div class="opt">
+                        <label>Format</label>
+                        <div class="box-grid">
+                            <label class="radio-tab"><input type="radio" name="fmt" value="avif" checked> <span>AVIF</span></label>
+                            <label class="radio-tab"><input type="radio" name="fmt" value="webp"> <span>WebP</span></label>
+                        </div>
+                    </div>
+                    <div class="opt">
+                        <label>Quality</label>
+                        <div class="box inline-box">
+                            <input id="quality" type="range" min="1" max="100" value="60">
+                            <span id="qualityVal" class="badge">60</span>
+                        </div>
+                    </div>
+                    <div class="opt">
+                        <label>Speed</label>
+                        <select id="speed" class="custom-select">
+                            <option value="1">Lvl 1 (Best)</option>
+                            <option value="2" selected>Lvl 2</option>
+                            <option value="5">Lvl 5 (Fast)</option>
+                        </select>
+                    </div>
+                    <div class="opt">
+                        <label>Parallel</label>
+                        <div class="box inline-box">
+                            <input id="concurrency" type="range" min="1" max="16" value="4">
+                            <span id="concVal" class="badge">4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="btnConvert" type="button" class="btn btn-primary action-large" disabled>Initialize Processing</button>
+                    <a id="downloadZip" class="btn btn-secondary action-large" href="#" download style="display:none">Download Archive</a>
+                </div>
+
+                <div id="capBanner" class="banner" style="display:none;">
+                    <span id="capText">AVIF Encoding Unavailable</span>
+                </div>
+            </div>
+
+            <div class="card panel-side">
+                <h2 class="section-title">📊 Telemetry</h2>
+
+                <div class="prog-block">
+                    <label>Engine Progress</label>
+                    <div class="progress-container"><div id="convBar" class="bar"></div></div>
+                    <div class="mini"><span id="convPct">0%</span> • <span id="convCount">0/0 Units</span></div>
+                </div>
+
+                <div class="prog-block">
+                    <label>Zip Stream</label>
+                    <div class="progress-container"><div id="zipBar" class="bar"></div></div>
+                    <div class="mini"><span id="zipPct">0%</span> Complete</div>
+                </div>
+
+                <div class="log-container">
+                    <label>Console Output</label>
+                    <div id="convLog" class="log"></div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div class="muted">✨ Local hardware encryption verified. No data leaves this device.</div>
+        </footer>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+    <script src="app.js" defer></script>
+</body>
+</html>

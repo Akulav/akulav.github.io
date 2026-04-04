@@ -1,0 +1,171 @@
+:root {
+    /* Sophisticated Palette */
+    --primary: #00f2ff;
+    --accent: #7d40ff;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --font-fancy: 'Space Grotesk', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #030712;
+    font-family: var(--font-fancy);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* --- ETHEREAL ATMOSPHERE --- */
+.atmosphere {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    background: radial-gradient(circle at 50% -20%, #1e1b4b, #030712);
+}
+
+/* Soft Aurora Blobs instead of Monoliths */
+.aura {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    z-index: -1;
+    animation: float 20s infinite alternate;
+}
+
+.a1 { width: 400px; height: 400px; background: var(--primary); top: -10%; left: 10%; }
+.a2 { width: 500px; height: 500px; background: var(--accent); bottom: -10%; right: 10%; animation-delay: -5s; }
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(50px, 100px) scale(1.1); }
+}
+
+/* --- ELEGANT LAYOUT --- */
+.app-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 24px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+/* Sophisticated Badge */
+.badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: linear-gradient(90deg, rgba(0,242,255,0.1), rgba(125,64,255,0.1));
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+}
+
+.fancy-title {
+    font-size: clamp(2.5rem, 10vw, 4.5rem);
+    font-weight: 700;
+    background: linear-gradient(to bottom, #fff 30%, rgba(255,255,255,0.5));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -2px;
+}
+
+header p {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    font-weight: 300;
+    margin-top: 10px;
+}
+
+/* --- PREMIUM CARDS --- */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+}
+
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 32px;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+}
+
+.card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 242, 255, 0.3);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4), 
+                inset 0 0 20px rgba(0, 242, 255, 0.05);
+}
+
+.card-icon {
+    font-size: 2rem;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    color: #fff;
+}
+
+.card p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.card-link {
+    margin-top: auto;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: gap 0.3s;
+}
+
+.card:hover .card-link { gap: 12px; }
+
+/* --- FOOTER --- */
+footer {
+    margin-top: 5rem;
+    padding: 40px 0;
+    text-align: center;
+    border-top: 1px solid var(--glass-border);
+    color: var(--text-dim);
+    font-size: 0.9rem;
+}
+
+#year { color: #fff; font-weight: 500; }
