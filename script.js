@@ -5,7 +5,8 @@ const projects = [
     { "folder": "Projects/ImageConvertor", "title": "Pixel Forge", "desc": "Browser-based rapid image processing and conversion.", "icon": "📸" },
     { "folder": "Projects/GalleryBeta", "title": "Cortex Beta", "desc": "Experimental features and unstable builds access.", "icon": "🧪" },
     { "folder": "Projects/ImageMetadataReader", "title": "Going Dark", "desc": "Image Scrubber.", "icon": "🧹" }, 
-    { "folder": "Projects/FUDiscord", "title": "Going Dark", "desc": "Discord No More", "icon": "🎤️" }
+    { "folder": "Projects/FUDiscord", "title": "Going Dark", "desc": "Discord No More", "icon": "🎤️" },
+    { "folder": "Projects/FinancialTracker", "title": "Finance Tracker", "desc": "Track Financial Goals", "icon": "💲" }
 ];
 
 const grid = document.getElementById('projectGrid');

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap | Matte Pro Sort</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #a1a1aa; /* Zinc-400: Matte mid-grey */
+            color: #18181b; 
+        }
+
+        .glass-card { 
+            background-color: #e4e4e7; /* Zinc-200 */
+            border: 1px solid #71717a; /* Zinc-500 */
+            transition: all 0.2s ease;
+        }
+
+        .emph-title { font-weight: 800; letter-spacing: -0.02em; color: #09090b; }
+        .emph-money { font-weight: 700; color: #18181b; }
+
+        .bar-bg { background-color: #d1d5db; border: 1px solid #9ca3af; height: 14px; border-radius: 6px; overflow: hidden; }
+        .bar-fill { height: 100%; transition: width 0.8s cubic-bezier(0.65, 0, 0.35, 1); background-color: #18181b; }
+        .bar-complete { background-color: #15803d !important; }
+
+        .goal-met { border: 2px solid #15803d !important; background-color: #dcfce7 !important; }
+
+        * { outline: none !important; box-shadow: none !important; }
+    </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="glass-card rounded-[2rem] p-8 mb-10 border-b-4 border-zinc-600">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-8">
+                <div class="flex-1 w-full text-center lg:text-left">
+                    <h1 class="text-3xl emph-title tracking-tighter">FINANCIAL ROADMAP</h1>
+                    <p id="today-display" class="text-zinc-600 font-bold text-[10px] uppercase tracking-widest mt-1"></p>
+                    
+                    <div class="mt-6">
+                        <div class="flex justify-between items-end mb-2">
+                            <span class="text-[10px] font-bold text-zinc-500 uppercase">Overall Completion</span>
+                            <span id="total-percent" class="text-2xl font-black">0%</span>
+                        </div>
+                        <div class="bar-bg">
+                            <div id="total-progress-bar" class="bar-fill" style="width: 0%"></div>
+                        </div>
+                        <p id="total-stats" class="text-right text-[10px] font-bold text-zinc-500 mt-1">$0 / $0</p>
+                    </div>
+                </div>
+
+                <div class="hidden lg:block w-px h-24 bg-zinc-400"></div>
+
+                <div class="w-full lg:w-auto grid grid-cols-2 gap-4">
+                    <div class="bg-zinc-300/50 p-5 rounded-2xl border border-zinc-400 text-center">
+                        <p class="text-[9px] font-bold text-zinc-500 uppercase mb-1">Monthly Total</p>
+                        <p id="global-monthly" class="text-xl emph-money">$0.00</p>
+                    </div>
+                    <div class="bg-zinc-300/50 p-5 rounded-2xl border border-zinc-400 text-center">
+                        <p class="text-[9px] font-bold text-zinc-500 uppercase mb-1">Daily Total</p>
+                        <p id="global-daily" class="text-xl emph-money">$0.00</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex flex-wrap gap-3 mb-10 items-center justify-center md:justify-start">
+            <button onclick="openModal()" class="bg-zinc-950 text-white px-8 py-3 rounded-xl font-bold hover:bg-zinc-800 transition active:scale-95">
+                + NEW ASSET
+            </button>
+            <button id="sort-btn" onclick="toggleSort()" class="glass-card px-6 py-3 rounded-xl font-bold hover:bg-zinc-300 transition flex items-center gap-2">
+                <span>⇅ SORT BY GAP</span>
+            </button>
+            <button onclick="openGlobalDateModal()" class="glass-card px-6 py-3 rounded-xl font-bold hover:bg-zinc-300 transition">
+                SYNC DEADLINES
+            </button>
+            <div class="hidden md:block flex-grow"></div>
+            <div class="flex gap-2">
+                <button onclick="exportData()" class="glass-card p-3 rounded-xl hover:bg-zinc-300" title="Export">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </button>
+                <label class="glass-card p-3 rounded-xl hover:bg-zinc-300 cursor-pointer" title="Import">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    <input type="file" id="importFile" class="hidden" onchange="importData(event)">
+                </label>
+            </div>
+        </div>
+
+        <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+    </div>
+
+    <div id="modal" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-zinc-200 border-2 border-zinc-500 rounded-[2rem] p-8 w-full max-w-lg shadow-2xl">
+            <h2 id="modal-title" class="text-2xl emph-title mb-6">MODIFY ASSET</h2>
+            <input type="hidden" id="edit-id">
+            <div class="space-y-4">
+                <input type="text" id="goal-name" placeholder="Asset Label" class="w-full bg-zinc-50 border border-zinc-400 p-4 rounded-xl font-bold">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="goal-current" placeholder="Achieved ($)" class="w-full bg-zinc-50 border border-zinc-400 p-4 rounded-xl font-bold">
+                    <input type="number" id="goal-target" placeholder="Target ($)" class="w-full bg-zinc-50 border border-zinc-400 p-4 rounded-xl font-bold">
+                </div>
+                <input type="date" id="goal-date" class="w-full bg-zinc-50 border border-zinc-400 p-4 rounded-xl">
+            </div>
+            <div class="mt-8 flex gap-3">
+                <button onclick="saveGoal()" class="flex-1 bg-zinc-950 text-white py-4 rounded-xl font-bold hover:bg-zinc-800 transition">SAVE</button>
+                <button onclick="closeModal()" class="flex-1 bg-zinc-300 py-4 rounded-xl font-bold hover:bg-zinc-400 transition">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-date-modal" class="hidden fixed inset-0 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-zinc-200 border-2 border-zinc-500 rounded-[2rem] p-8 w-full max-w-sm">
+            <h2 class="text-xl emph-title mb-4">BATCH SYNC</h2>
+            <input type="date" id="global-date-input" class="w-full bg-zinc-50 border border-zinc-400 p-4 rounded-xl mb-6">
+            <div class="flex gap-3">
+                <button onclick="applyGlobalDate()" class="flex-1 bg-zinc-950 text-white py-4 rounded-xl font-bold">APPLY</button>
+                <button onclick="closeGlobalDateModal()" class="flex-1 bg-zinc-300 py-4 rounded-xl font-bold">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let goals = JSON.parse(localStorage.getItem('roadmap_matte_v2')) || [];
+        let currentSort = 'desc'; // 'desc' = biggest gap first, 'asc' = smallest gap first
+        
+        const today = new Date();
+        document.getElementById('today-display').innerText = today.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
+
+        function render() {
+            const container = document.getElementById('goals-container');
+            container.innerHTML = '';
+            let tC = 0, tT = 0, gD = 0, gM = 0;
+
+            // Apply sorting logic
+            const sortedGoals = [...goals].sort((a, b) => {
+                const gapA = (parseFloat(a.target) || 0) - (parseFloat(a.current) || 0);
+                const gapB = (parseFloat(b.target) || 0) - (parseFloat(b.current) || 0);
+                return currentSort === 'desc' ? gapB - gapA : gapA - gapB;
+            });
+
+            sortedGoals.forEach(g => {
+                const cur = parseFloat(g.current) || 0;
+                const tar = parseFloat(g.target) || 1;
+                const isMet = cur >= tar;
+                tC += cur; tT += tar;
+                const pct = Math.min((cur / tar) * 100, 100).toFixed(1);
+                const rem = Math.max(0, tar - cur);
+
+                let vHTML = '';
+                if (g.date && !isMet) {
+                    const diffDays = Math.ceil((new Date(g.date) - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays > 0) {
+                        const daily = rem / diffDays; const monthly = rem / (diffDays / 30.44);
+                        gD += daily; gM += monthly;
+                        vHTML = `<div class="mt-4 pt-4 border-t border-zinc-400/50 flex justify-between">
+                                    <div><p class="text-[8px] font-bold text-zinc-500 uppercase">Daily Gap</p><p class="text-sm emph-money">$${daily.toFixed(2)}</p></div>
+                                    <div><p class="text-[8px] font-bold text-zinc-500 uppercase">Monthly Gap</p><p class="text-sm emph-money">$${monthly.toFixed(2)}</p></div>
+                                </div>`;
+                    }
+                }
+
+                container.innerHTML += `
+                    <div class="glass-card p-6 rounded-[1.5rem] flex flex-col justify-between ${isMet ? 'goal-met' : ''}">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <h3 class="text-lg emph-title leading-tight">${g.name.toUpperCase()}</h3>
+                                <div class="flex gap-2">
+                                    <button onclick="editGoal('${g.id}')" class="text-[9px] font-bold text-zinc-400 hover:text-zinc-900 uppercase">Edit</button>
+                                    <button onclick="deleteGoal('${g.id}')" class="text-[9px] font-bold text-zinc-400 hover:text-red-700 uppercase">Del</button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-baseline mb-2">
+                                <span class="text-xl emph-money">$${cur.toLocaleString()}</span>
+                                <span class="text-[10px] font-bold text-zinc-400">/ $${tar.toLocaleString()}</span>
+                            </div>
+                            <div class="bar-bg mb-1">
+                                <div class="bar-fill ${isMet ? 'bar-complete' : ''}" style="width: ${pct}%"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] font-bold mt-1">
+                                <span class="${isMet ? 'text-green-700' : 'text-zinc-500'}">${isMet ? 'TARGET ACHIEVED' : '$' + rem.toLocaleString() + ' REMAINING'}</span>
+                                <span class="text-zinc-900">${pct}%</span>
+                            </div>
+                        </div>
+                        ${vHTML}
+                    </div>`;
+            });
+
+            const totalPct = tT > 0 ? ((tC / tT) * 100).toFixed(1) : 0;
+            document.getElementById('total-percent').innerText = `${totalPct}%`;
+            document.getElementById('total-stats').innerText = `$${tC.toLocaleString()} / $${tT.toLocaleString()}`;
+            document.getElementById('total-progress-bar').style.width = `${totalPct}%`;
+            document.getElementById('global-monthly').innerText = `$${gM.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('global-daily').innerText = `$${gD.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            localStorage.setItem('roadmap_matte_v2', JSON.stringify(goals));
+        }
+
+        function toggleSort() {
+            currentSort = currentSort === 'desc' ? 'asc' : 'desc';
+            const btn = document.getElementById('sort-btn');
+            btn.innerHTML = `<span>${currentSort === 'desc' ? '▼' : '▲'} GAP SORT</span>`;
+            render();
+        }
+
+        // Logic Functions
+        function openModal(id = null) {
+            document.getElementById('modal').classList.remove('hidden');
+            if (id) {
+                const g = goals.find(x => x.id === id);
+                document.getElementById('edit-id').value = g.id;
+                document.getElementById('goal-name').value = g.name;
+                document.getElementById('goal-current').value = g.current;
+                document.getElementById('goal-target').value = g.target;
+                document.getElementById('goal-date').value = g.date || '';
+            } else {
+                document.getElementById('edit-id').value = '';
+                document.getElementById('goal-name').value = '';
+                document.getElementById('goal-current').value = '';
+                document.getElementById('goal-target').value = '';
+                document.getElementById('goal-date').value = '';
+            }
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+        function saveGoal() {
+            const id = document.getElementById('edit-id').value, name = document.getElementById('goal-name').value;
+            const current = document.getElementById('goal-current').value || 0, target = document.getElementById('goal-target').value || 1;
+            const date = document.getElementById('goal-date').value;
+            if (!name) return;
+            if (id) {
+                const i = goals.findIndex(x => x.id === id);
+                goals[i] = { id, name, current, target, date };
+            } else {
+                goals.push({ id: Date.now().toString(), name, current, target, date });
+            }
+            closeModal(); render();
+        }
+        function deleteGoal(id) { if(confirm("Remove?")) { goals = goals.filter(x => x.id !== id); render(); } }
+        function editGoal(id) { openModal(id); }
+        function openGlobalDateModal() { document.getElementById('global-date-modal').classList.remove('hidden'); }
+        function closeGlobalDateModal() { document.getElementById('global-date-modal').classList.add('hidden'); }
+        function applyGlobalDate() {
+            const date = document.getElementById('global-date-input').value;
+            if (!date) return;
+            goals = goals.map(g => ({ ...g, date: date }));
+            closeGlobalDateModal(); render();
+        }
+        function exportData() {
+            const blob = new Blob([JSON.stringify(goals, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `roadmap_backup.json`; a.click();
+        }
+        function importData(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { goals = JSON.parse(ev.target.result); render(); };
+            reader.readAsText(e.target.files[0]);
+        }
+        render();
+    </script>
+</body>
+</html>
