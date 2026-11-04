@@ -1,5 +1,5 @@
 // ---------- project data ----------
-const GH = "https://github.com/akulav/";
+const GH = "https://github.com/Akulav/";
 
 const LANG_COLORS = {
   JavaScript: "#f7df1e",
@@ -8,50 +8,74 @@ const LANG_COLORS = {
   "C#": "#a179dc",
 };
 
+// same order as the pinned repos on github.com/Akulav
 const pinned = [
-  {
-    repo: "akulavbox",
-    title: "AkulavBox",
-    icon: "☁️",
-    lang: "JavaScript",
-    accent: "#00d4ff",
-    desc: "A self-hosted personal cloud: files, photo albums, music, videos, books and chat with voice/video calls, all from one Node.js server with a no-build frontend.",
-    features: ["AES-256 encryption at rest", "50 GB chunked uploads", "WebRTC calls", "EPUB reader", "Multi-user quotas"],
-  },
-  {
-    repo: "local-ai-ui",
-    title: "Lumen",
-    icon: "✨",
-    lang: "Rust",
-    accent: "#ff7a3d",
-    desc: "Hassle-free local AI in a single Windows exe. Rust + Tauri app that sets up llama.cpp for you and chats with local LLMs, with web search, deep research and project RAG.",
-    features: ["Deep research", "Hybrid RAG (BM25 + vectors)", "Diff cards with undo", "Model manager", "Live tokens/s & VRAM"],
-  },
   {
     repo: "ai-lawyer-moldova",
     title: "Avocat AI Moldova",
     icon: "⚖️",
     lang: "Python",
+    platforms: "Windows",
     accent: "#7c5cff",
-    desc: "A local AI legal information assistant for the laws of the Republic of Moldova. Ask in plain language and get answers with article references and source links. Everything stays on your computer.",
-    features: ["Answers with citations", "Legal-branch tree routing", "Repeal & status tracking", "Diacritic-aware search", "Fully local"],
+    desc: "Answers questions about the laws of the Republic of Moldova in plain language. Every answer cites the articles it relies on and links to the official sources. The model, legal index and chats all stay on your computer.",
+    features: ["Cited, verified answers", "Legal-branch tree routing", "Repeal & status tracking", "Diacritic-aware search", "Ollama / GGUF model manager"],
   },
   {
     repo: "ai-security-modeler",
     title: "Security Modeler",
     icon: "🛡️",
     lang: "Python",
-    accent: "#ff4fd8",
-    desc: "Map your devices, accounts, network and data as an interactive graph, then see exactly what breaks when one is lost or hacked, explained by a local AI.",
-    features: ["Blast-radius analysis", "34 node types", "Takeover paths", "2FA weakness finder", "Local LLM insights"],
+    platforms: "Windows · Linux",
+    accent: "#34d399",
+    desc: "Map your accounts, devices, network and data as one interactive graph. See exactly what breaks when one of them is lost or hacked, and fix the weak spots first, with a local AI explaining the findings.",
+    features: ["Lost vs. hacked blast radius", "34 node types", "14 ready-made questions", "PDF report & score", "Breach checks"],
+  },
+  {
+    repo: "akulavbox",
+    title: "AkulavBox",
+    icon: "☁️",
+    lang: "JavaScript",
+    platforms: "Self-hosted",
+    accent: "#00d4ff",
+    desc: "Your files, your cloud. A self-hosted personal cloud for encrypted files, photos, music, videos, books and chat with voice calls, all from one Node.js server with a no-build frontend.",
+    features: ["AES-256 encryption at rest", "50 GB chunked uploads", "Trash with undo", "WebRTC calls", "Multi-user quotas"],
+  },
+  {
+    repo: "local-ai-ui",
+    title: "Lumen",
+    icon: "✨",
+    lang: "Rust",
+    platforms: "Windows",
+    accent: "#ff7a3d",
+    desc: "Chat with local LLMs on your own GPU. One portable exe that sets up llama.cpp for you, with no Python, no Docker and no cloud. Adds web search, deep research and RAG over your own project folders.",
+    features: ["Deep research", "Hybrid RAG (BM25 + vectors)", "Diff cards with undo", "Model manager", "Live tokens/s & VRAM"],
+  },
+  {
+    repo: "akulav-mc-launcher",
+    title: "Akulav Launcher",
+    icon: "⛏️",
+    lang: "Rust",
+    platforms: "Windows · Linux",
+    accent: "#ff5a5f",
+    desc: "A fast, lightweight Minecraft modpack launcher in one native executable. Installs mod loaders and Java for you, keeps your saves across pack updates, and updates itself. No spyware, no telemetry, no bloat.",
+    features: ["NeoForge, Forge, Fabric, Quilt", "Auto Java runtimes", "Shared libraries & assets", "Works offline", "Self-update"],
+  },
+  {
+    repo: "local-anime",
+    title: "dango",
+    icon: "🍡",
+    lang: "Rust",
+    platforms: "Windows · Linux",
+    accent: "#ff8fb8",
+    desc: "A fast, native desktop anime player. It tests every source in parallel, starts the one that actually plays, fails over mid-episode and buffers the whole episode to disk. A Rust + Tauri rewrite of serifpersia's dango.",
+    features: ["Verified source picking", "Automatic failover", "Download to watch later", "Skip intro", "Keyboard-driven player"],
   },
 ];
 
 const more = [
-  { repo: "university-archive", icon: "🎓", lang: "C#", desc: "Projects, labs and coursework from university: algorithms, compilers, x86 bootloaders and game AIs." },
-  { repo: "akulav-mc-launcher", icon: "⛏️", lang: "C#", desc: "A lightweight, open-source Minecraft launcher. No telemetry, no bloat, easy memory control." },
-  { repo: "offline-password-manager", icon: "🔐", lang: "C#", desc: "An offline, encrypted password manager that never touches the network." },
-  { repo: "ip-change-logger", icon: "🌐", lang: "C#", desc: "Logs IP changes when you're using a proxy or a VPN." },
+  { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
+  { repo: "offline-password-manager", title: "SeePass", icon: "🔐", lang: "Rust", desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no telemetry." },
+  { repo: "university-archive", title: "University Archive", icon: "🎓", lang: "C#", desc: "Projects, labs and coursework from university: algorithms, compilers, x86 bootloaders and game AIs." },
 ];
 
 // ---------- render ----------
@@ -71,7 +95,7 @@ pinned.forEach((p, i) => {
     <p class="desc">${p.desc}</p>
     <ul class="features">${p.features.map((f) => `<li>${f}</li>`).join("")}</ul>
     <div class="card-foot">
-      <span class="lang"><i></i>${p.lang}</span>
+      <span class="lang"><i></i>${p.lang}<span class="plat">${p.platforms}</span></span>
       <span class="view">View repo <span class="arrow">↗</span></span>
     </div>`;
   pinnedGrid.appendChild(el);
@@ -83,8 +107,9 @@ more.forEach((p, i) => {
   el.style.setProperty("--accent", LANG_COLORS[p.lang] || "#7c5cff");
   el.style.transitionDelay = `${i * 70}ms`;
   el.innerHTML = `
-    <a class="stretched" href="${GH}${p.repo}" target="_blank" rel="noopener" aria-label="${p.repo} on GitHub"></a>
-    <h3><span class="emoji">${p.icon}</span>${p.repo}</h3>
+    <a class="stretched" href="${GH}${p.repo}" target="_blank" rel="noopener" aria-label="${p.title} on GitHub"></a>
+    <h3><span class="emoji">${p.icon}</span>${p.title}</h3>
+    <div class="repo">akulav/${p.repo}</div>
     <p>${p.desc}</p>
     <div class="card-foot">
       <span class="lang"><i></i>${p.lang}</span>
