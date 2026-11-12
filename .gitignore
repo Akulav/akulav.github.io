@@ -426,3 +426,5 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+# graphify knowledge graph (local, rebuilt with `graphify update .`)
+graphify-out/
