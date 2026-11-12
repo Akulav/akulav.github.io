@@ -1,0 +1,51 @@
+# Checks the site on every push and PR: the script parses, every project it links to exists on GitHub, and
+# every local file the page references is in the repository. GitHub Pages publishes the main branch as is.
+
+name: Check site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly: catches a renamed or deleted project
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Links and files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Script parses
+        run: node --check script.js
+      - name: Every linked project exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repos=$(grep -oE 'repo: "[^"]+"' script.js | cut -d'"' -f2 | sort -u)
+          test -n "$repos"
+          failed=0
+          for r in $repos; do
+            if gh api "repos/Akulav/$r" --silent 2>/dev/null; then
+              echo "ok      Akulav/$r"
+            else
+              echo "::error::Akulav/$r does not exist (or is private)"; failed=1
+            fi
+          done
+          exit $failed
+      - name: Every local file exists
+        run: |
+          set -euo pipefail
+          failed=0
+          for f in $(grep -oE '(href|src)="[^"#:]+"' index.html | cut -d'"' -f2 | sort -u); do
+            if [ -e "$f" ]; then echo "ok      $f"; else echo "::error::index.html references missing $f"; failed=1; fi
+          done
+          exit $failed

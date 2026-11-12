@@ -5,30 +5,78 @@ const LANG_COLORS = {
   JavaScript: "#f7df1e",
   Python: "#3b8eea",
   Rust: "#ff7a3d",
-  "C#": "#a179dc",
 };
 
-// same order as the pinned repos on github.com/Akulav
+const ALL3 = "Windows · Linux · macOS";
+
+// Desktop apps (`release: true`) ship one file per system that installs and updates itself:
+// the card links straight to the latest release.
 const pinned = [
+  {
+    repo: "t212-ai-dashboard",
+    title: "Aura Portfolio",
+    icon: "📈",
+    lang: "Rust",
+    platforms: ALL3,
+    accent: "#2dd4bf",
+    release: true,
+    desc: "Your Trading212 portfolio, analysed by an AI that never leaves your computer. Holdings, dividends and tax withheld, SEC fundamentals behind a transparent score, and a zero-config llama.cpp analyst.",
+    features: ["Holdings, dividends & tax", "Buy-opportunity screen", "Local llama.cpp analyst", "Keys in the OS keychain", "Branded PDF reports"],
+  },
+  {
+    repo: "local-ai-ui",
+    title: "Lumen",
+    icon: "✨",
+    lang: "Rust",
+    platforms: ALL3,
+    accent: "#ff7a3d",
+    release: true,
+    desc: "Chat with local AI models on your own computer. Sets up llama.cpp for you, with no Python, no Docker and no cloud, and adds web search, deep research and RAG over your own project folders.",
+    features: ["Deep research", "Hybrid RAG (BM25 + vectors)", "Diff cards with undo", "Model manager", "Live tokens/s & VRAM"],
+  },
   {
     repo: "ai-lawyer-moldova",
     title: "Avocat AI Moldova",
     icon: "⚖️",
     lang: "Python",
-    platforms: "Windows",
+    platforms: ALL3,
     accent: "#7c5cff",
+    release: true,
     desc: "Answers questions about the laws of the Republic of Moldova in plain language. Every answer cites the articles it relies on and links to the official sources. The model, legal index and chats all stay on your computer.",
-    features: ["Cited, verified answers", "Legal-branch tree routing", "Repeal & status tracking", "Diacritic-aware search", "Ollama / GGUF model manager"],
+    features: ["Cited, verified answers", "Legal-branch tree routing", "Repeal & status tracking", "Diacritic-aware search", "Romanian & English"],
   },
   {
     repo: "ai-security-modeler",
     title: "Security Modeler",
     icon: "🛡️",
     lang: "Python",
-    platforms: "Windows · Linux",
+    platforms: ALL3,
     accent: "#34d399",
+    release: true,
     desc: "Map your accounts, devices, network and data as one interactive graph. See exactly what breaks when one of them is lost or hacked, and fix the weak spots first, with a local AI explaining the findings.",
     features: ["Lost vs. hacked blast radius", "34 node types", "14 ready-made questions", "PDF report & score", "Breach checks"],
+  },
+  {
+    repo: "hytale-minecraft-server-orchestrator",
+    title: "Hyve",
+    icon: "🐝",
+    lang: "Rust",
+    platforms: ALL3,
+    accent: "#f5c451",
+    release: true,
+    desc: "Run and manage Hytale and Minecraft servers from one place: a desktop app on your PC, the same app as a web panel on your headless server.",
+    features: ["Hytale & Minecraft Java", "1-click updates with backups", "Desktop or headless", "Versions up or down", "Everything in one folder"],
+  },
+  {
+    repo: "akulav-mc-launcher",
+    title: "Akulav Launcher",
+    icon: "⛏️",
+    lang: "Rust",
+    platforms: ALL3,
+    accent: "#ff5a5f",
+    release: true,
+    desc: "A fast, lightweight Minecraft modpack launcher in one native program. Installs mod loaders and Java for you, keeps your saves across pack updates, and updates itself. No spyware, no telemetry, no bloat.",
+    features: ["NeoForge, Forge, Fabric, Quilt", "Auto Java runtimes", "Shared libraries & assets", "Works offline", "One-click updates"],
   },
   {
     repo: "akulavbox",
@@ -37,45 +85,30 @@ const pinned = [
     lang: "JavaScript",
     platforms: "Self-hosted",
     accent: "#00d4ff",
-    desc: "Your files, your cloud. A self-hosted personal cloud for encrypted files, photos, music, videos, books and chat with voice calls, all from one Node.js server with a no-build frontend.",
-    features: ["AES-256 encryption at rest", "50 GB chunked uploads", "Trash with undo", "WebRTC calls", "Multi-user quotas"],
+    desc: "Your files, your cloud. A self-hosted personal cloud for encrypted files, photos, music, videos and books, all from one Node.js server with a no-build frontend.",
+    features: ["AES-256 encryption at rest", "50 GB chunked uploads", "Trash with undo", "Download from a link", "Multi-user quotas"],
   },
   {
-    repo: "local-ai-ui",
-    title: "Lumen",
-    icon: "✨",
-    lang: "Rust",
-    platforms: "Windows",
-    accent: "#ff7a3d",
-    desc: "Chat with local LLMs on your own GPU. One portable exe that sets up llama.cpp for you, with no Python, no Docker and no cloud. Adds web search, deep research and RAG over your own project folders.",
-    features: ["Deep research", "Hybrid RAG (BM25 + vectors)", "Diff cards with undo", "Model manager", "Live tokens/s & VRAM"],
-  },
-  {
-    repo: "akulav-mc-launcher",
-    title: "Akulav Launcher",
-    icon: "⛏️",
-    lang: "Rust",
-    platforms: "Windows · Linux",
-    accent: "#ff5a5f",
-    desc: "A fast, lightweight Minecraft modpack launcher in one native executable. Installs mod loaders and Java for you, keeps your saves across pack updates, and updates itself. No spyware, no telemetry, no bloat.",
-    features: ["NeoForge, Forge, Fabric, Quilt", "Auto Java runtimes", "Shared libraries & assets", "Works offline", "Self-update"],
-  },
-  {
-    repo: "local-anime",
-    title: "dango",
-    icon: "🍡",
-    lang: "Rust",
-    platforms: "Windows · Linux",
-    accent: "#ff8fb8",
-    desc: "A fast, native desktop anime player. It tests every source in parallel, starts the one that actually plays, fails over mid-episode and buffers the whole episode to disk. A Rust + Tauri rewrite of serifpersia's dango.",
-    features: ["Verified source picking", "Automatic failover", "Download to watch later", "Skip intro", "Keyboard-driven player"],
+    repo: "auto-node",
+    title: "AutoNode",
+    icon: "🚀",
+    lang: "JavaScript",
+    platforms: "Self-hosted · Linux",
+    accent: "#a3e635",
+    desc: "Host Node.js and Rust websites on your own Linux machine from a dashboard on your home network: domains, HTTPS, GitHub deploys, files, logs and live system stats. Plain Node.js, zero dependencies.",
+    features: ["Cloudflare DNS + dynamic IP", "Built-in HTTPS proxy", "GitHub deploys & rollback", "Health checks & limits", "Cookie-free visitor stats"],
   },
 ];
 
 const more = [
-  { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
-  { repo: "offline-password-manager", title: "SeePass", icon: "🔐", lang: "Rust", desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no telemetry." },
-  { repo: "university-archive", title: "University Archive", icon: "🎓", lang: "C#", desc: "Projects, labs and coursework from university: algorithms, compilers, x86 bootloaders and game AIs." },
+  { repo: "local-anime", title: "Tsukimi", icon: "🌙", lang: "Rust", release: true, desc: "A fast, native desktop anime player. Finds a working source, starts playback right away and keeps what you download." },
+  { repo: "ai-girlfriend", title: "GirlfriendAI", icon: "💬", lang: "Python", release: true, desc: "A Telegram companion you design and run on your own computer, with a personality, a long memory and photos of her own. Nothing leaves your machine." },
+  { repo: "offline-password-manager", title: "SeePass", icon: "🔐", lang: "Rust", release: true, desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no accounts, no network." },
+  { repo: "fast-file-recovery", title: "Fast File Recovery", icon: "🧲", lang: "Rust", release: true, desc: "Get deleted files back, fast. Reads the raw disk and never writes a byte to the disk you're saving." },
+  { repo: "fast-disk-eraser", title: "Fast Disk Eraser", icon: "🧹", lang: "Rust", release: true, desc: "Securely erase files, folders and free disk space at full disk speed, from one random pass to DoD and Schneier." },
+  { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", release: true, desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
+  { repo: "github-tracker", title: "Akulav Tracker", icon: "📊", lang: "Rust", release: true, desc: "Every GitHub repository you own at a glance: commits, streaks, a contribution calendar, and which repos need you." },
+  { repo: "document-manager", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", release: true, desc: "Internal document management for a public agency: chained signing, org chart, audit log and full backups, in one self-installing server." },
 ];
 
 // ---------- render ----------
@@ -89,13 +122,14 @@ pinned.forEach((p, i) => {
   el.style.transitionDelay = `${i * 90}ms`;
   el.innerHTML = `
     <a class="stretched" href="${GH}${p.repo}" target="_blank" rel="noopener" aria-label="${p.title} on GitHub"></a>
-    <div class="top"><span class="icon">${p.icon}</span><span class="pin">📌 pinned</span></div>
+    <div class="top"><span class="icon">${p.icon}</span><span class="pin">★ featured</span></div>
     <h3>${p.title}</h3>
     <div class="repo">akulav/${p.repo}</div>
     <p class="desc">${p.desc}</p>
     <ul class="features">${p.features.map((f) => `<li>${f}</li>`).join("")}</ul>
     <div class="card-foot">
       <span class="lang"><i></i>${p.lang}<span class="plat">${p.platforms}</span></span>
+      ${p.release ? `<a class="dl" href="${GH}${p.repo}/releases/latest" target="_blank" rel="noopener">Download ↓</a>` : ""}
       <span class="view">View repo <span class="arrow">↗</span></span>
     </div>`;
   pinnedGrid.appendChild(el);
@@ -113,13 +147,14 @@ more.forEach((p, i) => {
     <p>${p.desc}</p>
     <div class="card-foot">
       <span class="lang"><i></i>${p.lang}</span>
+      ${p.release ? `<a class="dl" href="${GH}${p.repo}/releases/latest" target="_blank" rel="noopener">Download ↓</a>` : ""}
       <span class="view"><span class="arrow">↗</span></span>
     </div>`;
   moreGrid.appendChild(el);
 });
 
 // footer marquee + year
-const words = ["self-hosted", "local AI", "privacy first", "Rust", "Python", "JavaScript", "C#", "no telemetry", "open source"];
+const words = ["self-hosted", "local AI", "privacy first", "Rust", "Python", "JavaScript", "no telemetry", "one file per system", "updates itself"];
 const track = document.getElementById("marquee");
 track.innerHTML = [...words, ...words].map((w) => `<span>${w}</span><span>✦</span>`).join("");
 document.getElementById("year").textContent = new Date().getFullYear();
@@ -139,7 +174,7 @@ const io = new IntersectionObserver(
 document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
 
 // ---------- typing effect ----------
-const phrases = ["self-hosted clouds.", "local AI tools.", "privacy-first apps.", "things that just work."];
+const phrases = ["local AI tools.", "self-hosted clouds.", "privacy-first apps.", "desktop apps for every OS.", "things that just work."];
 const typedEl = document.getElementById("typed");
 let pi = 0, ci = 0, deleting = false;
 (function type() {

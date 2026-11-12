@@ -4,8 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>akulav — projects</title>
-  <meta name="description" content="Self-hosted clouds, local AI tools and things built for fun — projects by akulav.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%237c5cff'/><stop offset='1' stop-color='%2300d4ff'/></linearGradient></defs><rect width='64' height='64' rx='16' fill='url(%23g)'/><text x='50%' y='58%' text-anchor='middle' dominant-baseline='middle' font-family='Arial' font-weight='900' font-size='38' fill='white'>a</text></svg>">
+  <meta name="description" content="Local AI tools, self-hosted clouds and privacy-first desktop apps for Windows, Linux and macOS — projects by Akulav.">
+  <meta name="theme-color" content="#0b0b14">
+  <meta property="og:title" content="akulav — projects">
+  <meta property="og:description" content="Local AI tools, self-hosted clouds and privacy-first desktop apps — one file per system, no telemetry.">
+  <meta property="og:image" content="https://akulav.github.io/assets/icon.png">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/icon.png" sizes="256x256">
+  <link rel="apple-touch-icon" href="assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -23,8 +29,9 @@
   <header class="nav">
     <a class="logo" href="#top"><span class="logo-mark">a</span>akulav</a>
     <nav>
-      <a href="#pinned">Pinned</a>
+      <a href="#pinned">Featured</a>
       <a href="#more">More</a>
+      <a href="#how">How they ship</a>
       <a class="nav-gh" href="https://github.com/akulav" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
   </header>
@@ -47,7 +54,7 @@
 
     <section id="pinned" class="section">
       <div class="section-head reveal">
-        <span class="kicker">01 — pinned</span>
+        <span class="kicker">01 — featured</span>
         <h2>Featured work</h2>
       </div>
       <div class="grid pinned-grid" id="pinned-grid"></div>
@@ -55,10 +62,23 @@
 
     <section id="more" class="section">
       <div class="section-head reveal">
-        <span class="kicker">02 — archive</span>
+        <span class="kicker">02 — tools</span>
         <h2>More on GitHub</h2>
       </div>
       <div class="grid more-grid" id="more-grid"></div>
+    </section>
+
+    <section id="how" class="section">
+      <div class="section-head reveal">
+        <span class="kicker">03 — how they ship</span>
+        <h2>Same rules, every app</h2>
+      </div>
+      <div class="rules">
+        <div class="rule reveal"><span class="glyph">📦</span><b>One file per system</b><p>Windows, Linux and macOS (Apple Silicon). The same file installs the app and later updates it.</p></div>
+        <div class="rule reveal"><span class="glyph">📁</span><b>Your folder, only</b><p>You pick the install folder once. The app and everything it saves live there, nowhere else.</p></div>
+        <div class="rule reveal"><span class="glyph">🔄</span><b>Updates in one click</b><p>Straight from GitHub releases, checked against SHA-256 before anything is replaced.</p></div>
+        <div class="rule reveal"><span class="glyph">🕶️</span><b>No telemetry</b><p>No accounts, no tracking, no cloud AI. What runs on your machine stays on your machine.</p></div>
+      </div>
     </section>
   </main>
 
