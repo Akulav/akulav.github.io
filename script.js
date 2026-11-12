@@ -102,7 +102,6 @@ const pinned = [
 
 const more = [
   { repo: "local-anime", title: "Tsukimi", icon: "🌙", lang: "Rust", release: true, desc: "A fast, native desktop anime player. Finds a working source, starts playback right away and keeps what you download." },
-  { repo: "ai-girlfriend", title: "GirlfriendAI", icon: "💬", lang: "Python", release: true, desc: "A Telegram companion you design and run on your own computer, with a personality, a long memory and photos of her own. Nothing leaves your machine." },
   { repo: "offline-password-manager", title: "SeePass", icon: "🔐", lang: "Rust", release: true, desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no accounts, no network." },
   { repo: "fast-file-recovery", title: "Fast File Recovery", icon: "🧲", lang: "Rust", release: true, desc: "Get deleted files back, fast. Reads the raw disk and never writes a byte to the disk you're saving." },
   { repo: "fast-disk-eraser", title: "Fast Disk Eraser", icon: "🧹", lang: "Rust", release: true, desc: "Securely erase files, folders and free disk space at full disk speed, from one random pass to DoD and Schneier." },
