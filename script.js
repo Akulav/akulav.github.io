@@ -108,7 +108,7 @@ const more = [
   { repo: "fast-disk-eraser", title: "Fast Disk Eraser", icon: "🧹", lang: "Rust", release: true, desc: "Securely erase files, folders and free disk space at full disk speed, from one random pass to DoD and Schneier." },
   { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", release: true, desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
   { repo: "github-tracker", title: "Akulav Tracker", icon: "📊", lang: "Rust", release: true, desc: "Every GitHub repository you own at a glance: commits, streaks, a contribution calendar, and which repos need you." },
-  { repo: "document-manager", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", release: true, desc: "Internal document management for a public agency: chained signing, org chart, audit log and full backups, in one self-installing server." },
+  { repo: "document-manager", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", desc: "An internal document-management web app for a public agency: chained signing, org chart, audit log and full backups." },
 ];
 
 // ---------- render ----------
