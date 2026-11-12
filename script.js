@@ -35,17 +35,6 @@ const pinned = [
     features: ["Deep research", "Hybrid RAG (BM25 + vectors)", "Diff cards with undo", "Model manager", "Live tokens/s & VRAM"],
   },
   {
-    repo: "ai-lawyer-moldova",
-    title: "Avocat AI Moldova",
-    icon: "⚖️",
-    lang: "Python",
-    platforms: ALL3,
-    accent: "#7c5cff",
-    release: true,
-    desc: "Answers questions about the laws of the Republic of Moldova in plain language. Every answer cites the articles it relies on and links to the official sources. The model, legal index and chats all stay on your computer.",
-    features: ["Cited, verified answers", "Legal-branch tree routing", "Repeal & status tracking", "Diacritic-aware search", "Romanian & English"],
-  },
-  {
     repo: "ai-security-modeler",
     title: "Security Modeler",
     icon: "🛡️",

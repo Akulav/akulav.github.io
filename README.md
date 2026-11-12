@@ -29,7 +29,7 @@ No frameworks. No build step. No trackers. Plain HTML, CSS and JavaScript, publi
 <td width="50%" valign="top">
 
 ### ★ Featured work
-Aura Portfolio, Lumen, Avocat AI Moldova, Security Modeler, Hyve, Akulav Launcher, AkulavBox and AutoNode, each with
+Aura Portfolio, Lumen, Security Modeler, Hyve, Akulav Launcher, AkulavBox and AutoNode, each with
 its features, platforms and a **Download** button straight to the latest release.
 
 </td>

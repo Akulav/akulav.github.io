@@ -135,6 +135,8 @@ h1 .name {
 
 .grid { display: grid; gap: 19px; }
 .pinned-grid { grid-template-columns: repeat(2, 1fr); }
+/* an odd number of featured cards: the last one takes the full row instead of leaving a hole */
+.pinned-grid > .pinned:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .more-grid { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 
 /* ---------- cards ---------- */
