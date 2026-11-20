@@ -5,6 +5,7 @@ const LANG_COLORS = {
   JavaScript: "#f7df1e",
   Python: "#3b8eea",
   Rust: "#ff7a3d",
+  "C#": "#a179dc",
 };
 
 const ALL3 = "Windows · Linux · macOS";
@@ -74,8 +75,8 @@ const pinned = [
     lang: "JavaScript",
     platforms: "Self-hosted",
     accent: "#00d4ff",
-    desc: "Your files, your cloud. A self-hosted personal cloud for encrypted files, photos, music, videos and books, all from one Node.js server with a no-build frontend.",
-    features: ["AES-256 encryption at rest", "50 GB chunked uploads", "Trash with undo", "Download from a link", "Multi-user quotas"],
+    desc: "Your own cloud, your own apps. One self-hosted Node.js server with five apps on one account and one storage space: encrypted files and media, documents, webtoons, budgets and to-dos, plus an AI connector for Claude.",
+    features: ["AES-256 encryption at rest", "Trove, Florin, Tick & more", "AI connector (MCP + OAuth)", "Full backups & 1-click updates", "Multi-user storage quotas"],
   },
   {
     repo: "auto-node",
@@ -96,7 +97,11 @@ const more = [
   { repo: "fast-disk-eraser", title: "Fast Disk Eraser", icon: "🧹", lang: "Rust", release: true, desc: "Securely erase files, folders and free disk space at full disk speed, from one random pass to DoD and Schneier." },
   { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", release: true, desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
   { repo: "github-tracker", title: "Akulav Tracker", icon: "📊", lang: "Rust", release: true, desc: "Every GitHub repository you own at a glance: commits, streaks, a contribution calendar, and which repos need you." },
+  { repo: "text-to-manga", title: "Koma", icon: "🎨", lang: "Rust", release: true, desc: "Turn any book into a manga or webtoon with AI that runs on your own computer: a story bible, a consistent cast, storyboards, lettering and finished strips." },
+  { repo: "fleet-manager", title: "FleetView", icon: "🖧", lang: "Rust", release: true, desc: "Manage a fleet of Windows PCs on your LAN with no cloud and no server: live telemetry, silent installs, PowerShell as admin and visible screen views." },
   { repo: "document-manager", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", desc: "An internal document-management web app for a public agency: chained signing, org chart, audit log and full backups." },
+  { repo: "strategy-game", title: "IRONVEIL", icon: "⚙️", lang: "Rust", desc: "A top-down automation and tower-defense game: mine, build belt supply lines and keep your turrets fed while the swarm escalates. Every sprite and sound is generated in code." },
+  { repo: "university-archive", title: "University Archive", icon: "🎓", lang: "C#", desc: "28 projects, labs and coursework from university and an internship: from bootloaders and lexers to microservices, WebGL and data analysis." },
 ];
 
 // ---------- render ----------
@@ -164,8 +169,10 @@ document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
 // ---------- typing effect ----------
 const phrases = ["local AI tools.", "self-hosted clouds.", "privacy-first apps.", "desktop apps for every OS.", "things that just work."];
 const typedEl = document.getElementById("typed");
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let pi = 0, ci = 0, deleting = false;
-(function type() {
+if (reducedMotion) typedEl.textContent = phrases[0];
+else (function type() {
   const word = phrases[pi];
   typedEl.textContent = word.slice(0, ci);
   if (!deleting && ci < word.length) ci++;
@@ -195,7 +202,9 @@ document.querySelectorAll(".tilt").forEach((card) => {
 const glow = document.querySelector(".cursor-glow");
 let gx = innerWidth / 2, gy = innerHeight / 3, tx = gx, ty = gy;
 addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; });
-(function follow() {
+// The glow follows a mouse only: no endless animation on touch screens or with reduced motion.
+if (!canHover || reducedMotion) glow.style.display = "none";
+else (function follow() {
   gx += (tx - gx) * 0.08;
   gy += (ty - gy) * 0.08;
   glow.style.transform = `translate(${gx - 260}px, ${gy - 260}px)`;
@@ -205,7 +214,7 @@ addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; });
 // ---------- star constellation background ----------
 const canvas = document.getElementById("stars");
 const ctx = canvas.getContext("2d");
-const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduced = reducedMotion;
 let W, H, DPR, nodes = [];
 const mouse = { x: -9999, y: -9999 };
 

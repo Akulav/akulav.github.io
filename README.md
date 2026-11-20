@@ -36,7 +36,8 @@ its features, platforms and a **Download** button straight to the latest release
 <td width="50%" valign="top">
 
 ### 🧰 More on GitHub
-Tsukimi, SeePass, Fast File Recovery, Fast Disk Eraser, IPTrail, Akulav Tracker and e-Management ANSC.
+Tsukimi, SeePass, Fast File Recovery, Fast Disk Eraser, IPTrail, Akulav Tracker, Koma, FleetView, e-Management ANSC,
+IRONVEIL and the University Archive.
 
 </td>
 </tr>
