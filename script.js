@@ -13,17 +13,6 @@ const ALL3 = "Windows · Linux · macOS";
 // the card links straight to the latest release.
 const pinned = [
   {
-    repo: "aura-portfolio",
-    title: "Aura Portfolio",
-    icon: "📈",
-    lang: "Rust",
-    platforms: ALL3,
-    accent: "#2dd4bf",
-    release: true,
-    desc: "Your Trading212 portfolio, analysed by an AI that never leaves your computer. Holdings, dividends and tax withheld, SEC fundamentals behind a transparent score, and a zero-config llama.cpp analyst.",
-    features: ["Holdings, dividends & tax", "Buy-opportunity screen", "Local llama.cpp analyst", "Keys in the OS keychain", "Branded PDF reports"],
-  },
-  {
     repo: "lumen",
     title: "Lumen",
     icon: "✨",
