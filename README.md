@@ -66,6 +66,9 @@ npx http-server -p 5173 -c-1
 
 Then open `http://localhost:5173`. Any static file server works.
 
+Everything is served from this repository: no CDNs, no trackers, and the fonts (Space Grotesk, JetBrains Mono; SIL OFL 1.1,
+licenses in `assets/fonts`) are self-hosted.
+
 <details>
 <summary><b>🛠️ For maintainers: adding a project and publishing</b></summary>
 

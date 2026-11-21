@@ -230,7 +230,8 @@ function resize() {
 }
 addEventListener("resize", resize);
 addEventListener("pointermove", (e) => { mouse.x = e.clientX * DPR; mouse.y = e.clientY * DPR; });
-addEventListener("pointerleave", () => { mouse.x = mouse.y = -9999; });
+// window never gets pointerleave: watch the pointer leaving the document instead
+document.addEventListener("mouseout", (e) => { if (!e.relatedTarget) mouse.x = mouse.y = -9999; });
 resize();
 
 let scrollY0 = scrollY;

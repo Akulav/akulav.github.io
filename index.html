@@ -3,19 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>akulav — projects</title>
   <meta name="description" content="Local AI tools, self-hosted clouds and privacy-first desktop apps for Windows, Linux and macOS — projects by Akulav.">
-  <meta name="theme-color" content="#0b0b14">
+  <meta name="theme-color" content="#07070d">
+  <meta name="color-scheme" content="dark">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://akulav.github.io/">
   <meta property="og:title" content="akulav — projects">
   <meta property="og:description" content="Local AI tools, self-hosted clouds and privacy-first desktop apps — one file per system, no telemetry.">
   <meta property="og:image" content="https://akulav.github.io/assets/icon.png">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
   <link rel="icon" href="assets/icon.png" sizes="256x256">
   <link rel="apple-touch-icon" href="assets/icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" href="assets/fonts/space-grotesk-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
 </head>
 <body>
   <!-- background layers -->
@@ -27,8 +31,8 @@
   <div class="cursor-glow" aria-hidden="true"></div>
 
   <header class="nav">
-    <a class="logo" href="#top"><span class="logo-mark">a</span>akulav</a>
-    <nav>
+    <a class="logo" href="#top"><span class="logo-mark" aria-hidden="true">a</span>akulav</a>
+    <nav aria-label="Sections">
       <a href="#pinned">Featured</a>
       <a href="#more">More</a>
       <a href="#how">How they ship</a>
@@ -38,12 +42,15 @@
 
   <main id="top">
     <section class="hero">
-      <p class="eyebrow reveal"><span class="pulse"></span> building in public since 2018</p>
+      <p class="eyebrow reveal"><span class="pulse" aria-hidden="true"></span> building in public since 2018</p>
       <h1 class="reveal">
         <span class="hi">Hi, I'm</span>
-        <span class="name" data-text="akulav">akulav</span>
+        <span class="name">akulav</span>
       </h1>
-      <p class="tagline reveal">I build <span class="typed" id="typed"></span><span class="caret">|</span></p>
+      <p class="tagline reveal">
+        <span class="sr-only">I build local AI tools, self-hosted clouds, privacy-first apps and desktop apps for every OS.</span>
+        <span aria-hidden="true">I build <span class="typed" id="typed"></span><span class="caret">|</span></span>
+      </p>
       <p class="sub reveal">Self-hosted, private-by-default software. Things that run on your own machine and stay there.</p>
       <div class="cta reveal">
         <a class="btn primary" href="#pinned">See projects</a>
@@ -74,19 +81,17 @@
         <h2>Same rules, every app</h2>
       </div>
       <div class="rules">
-        <div class="rule reveal"><span class="glyph">📦</span><b>One file per system</b><p>Windows, Linux and macOS (Apple Silicon). The same file installs the app and later updates it.</p></div>
-        <div class="rule reveal"><span class="glyph">📁</span><b>Your folder, only</b><p>You pick the install folder once. The app and everything it saves live there, nowhere else.</p></div>
-        <div class="rule reveal"><span class="glyph">🔄</span><b>Updates in one click</b><p>Straight from GitHub releases, checked against SHA-256 before anything is replaced.</p></div>
-        <div class="rule reveal"><span class="glyph">🕶️</span><b>No telemetry</b><p>No accounts, no tracking, no cloud AI. What runs on your machine stays on your machine.</p></div>
+        <div class="rule reveal"><span class="glyph" aria-hidden="true">📦</span><b>One file per system</b><p>Windows, Linux and macOS (Apple Silicon). The same file installs the app and later updates it.</p></div>
+        <div class="rule reveal"><span class="glyph" aria-hidden="true">📁</span><b>Your folder, only</b><p>You pick the install folder once. The app and everything it saves live there, nowhere else.</p></div>
+        <div class="rule reveal"><span class="glyph" aria-hidden="true">🔄</span><b>Updates in one click</b><p>Straight from GitHub releases, checked against SHA-256 before anything is replaced.</p></div>
+        <div class="rule reveal"><span class="glyph" aria-hidden="true">🕶️</span><b>No telemetry</b><p>No accounts, no tracking, no cloud AI. What runs on your machine stays on your machine.</p></div>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee"></div></div>
-    <p>© <span id="year"></span> akulav · made with plain HTML, CSS &amp; JS</p>
+    <p>© <span id="year">2026</span> akulav · made with plain HTML, CSS &amp; JS</p>
   </footer>
-
-  <script src="script.js"></script>
 </body>
 </html>
