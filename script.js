@@ -5,7 +5,6 @@ const LANG_COLORS = {
   JavaScript: "#f7df1e",
   Python: "#3b8eea",
   Rust: "#ff7a3d",
-  "C#": "#a179dc",
 };
 
 const ALL3 = "Windows · Linux · macOS";
@@ -14,7 +13,7 @@ const ALL3 = "Windows · Linux · macOS";
 // the card links straight to the latest release.
 const pinned = [
   {
-    repo: "t212-ai-dashboard",
+    repo: "aura-portfolio",
     title: "Aura Portfolio",
     icon: "📈",
     lang: "Rust",
@@ -25,7 +24,7 @@ const pinned = [
     features: ["Holdings, dividends & tax", "Buy-opportunity screen", "Local llama.cpp analyst", "Keys in the OS keychain", "Branded PDF reports"],
   },
   {
-    repo: "local-ai-ui",
+    repo: "lumen",
     title: "Lumen",
     icon: "✨",
     lang: "Rust",
@@ -47,7 +46,7 @@ const pinned = [
     features: ["Lost vs. hacked blast radius", "34 node types", "14 ready-made questions", "PDF report & score", "Breach checks"],
   },
   {
-    repo: "hytale-minecraft-server-orchestrator",
+    repo: "hyve",
     title: "Hyve",
     icon: "🐝",
     lang: "Rust",
@@ -75,8 +74,8 @@ const pinned = [
     lang: "JavaScript",
     platforms: "Self-hosted",
     accent: "#00d4ff",
-    desc: "Your own cloud, your own apps. One self-hosted Node.js server with five apps on one account and one storage space: encrypted files and media, documents, webtoons, budgets and to-dos, plus an AI connector for Claude.",
-    features: ["AES-256 encryption at rest", "Trove, Florin, Tick & more", "AI connector (MCP + OAuth)", "Full backups & 1-click updates", "Multi-user storage quotas"],
+    desc: "Your own cloud, your own apps. One self-hosted Node.js server with five apps on one account and one storage space: encrypted files and media, documents, budgets, to-dos and the game IRONVEIL, plus an AI connector for Claude.",
+    features: ["AES-256 encryption at rest", "Trove, Florin, Tick & IRONVEIL", "AI connector (MCP + OAuth)", "Full backups & 1-click updates", "Multi-user storage quotas"],
   },
   {
     repo: "auto-node",
@@ -91,17 +90,14 @@ const pinned = [
 ];
 
 const more = [
-  { repo: "local-anime", title: "Tsukimi", icon: "🌙", lang: "Rust", release: true, desc: "A fast, native desktop anime player. Finds a working source, starts playback right away and keeps what you download." },
-  { repo: "offline-password-manager", title: "SeePass", icon: "🔐", lang: "Rust", release: true, desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no accounts, no network." },
+  { repo: "tsukimi", title: "Tsukimi", icon: "🌙", lang: "Rust", release: true, desc: "A fast, native desktop anime player. Finds a working source, starts playback right away and keeps what you download." },
+  { repo: "seepass", title: "SeePass", icon: "🔐", lang: "Rust", release: true, desc: "Your passwords in one encrypted file on your own disk. Argon2id + XChaCha20, no cloud, no accounts, no network." },
   { repo: "fast-file-recovery", title: "Fast File Recovery", icon: "🧲", lang: "Rust", release: true, desc: "Get deleted files back, fast. Reads the raw disk and never writes a byte to the disk you're saving." },
   { repo: "fast-disk-eraser", title: "Fast Disk Eraser", icon: "🧹", lang: "Rust", release: true, desc: "Securely erase files, folders and free disk space at full disk speed, from one random pass to DoD and Schneier." },
-  { repo: "ip-change-logger", title: "IPTrail", icon: "🛰️", lang: "Rust", release: true, desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
+  { repo: "iptrail", title: "IPTrail", icon: "🛰️", lang: "Rust", release: true, desc: "Watches your public IP, logs every change and flags VPN, proxy, Tor and abuse-list hits. No accounts, no API keys." },
   { repo: "github-tracker", title: "Akulav Tracker", icon: "📊", lang: "Rust", release: true, desc: "Every GitHub repository you own at a glance: commits, streaks, a contribution calendar, and which repos need you." },
-  { repo: "text-to-manga", title: "Koma", icon: "🎨", lang: "Rust", release: true, desc: "Turn any book into a manga or webtoon with AI that runs on your own computer: a story bible, a consistent cast, storyboards, lettering and finished strips." },
-  { repo: "fleet-manager", title: "FleetView", icon: "🖧", lang: "Rust", release: true, desc: "Manage a fleet of Windows PCs on your LAN with no cloud and no server: live telemetry, silent installs, PowerShell as admin and visible screen views." },
-  { repo: "document-manager", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", desc: "An internal document-management web app for a public agency: chained signing, org chart, audit log and full backups." },
-  { repo: "strategy-game", title: "IRONVEIL", icon: "⚙️", lang: "Rust", desc: "A top-down automation and tower-defense game: mine, build belt supply lines and keep your turrets fed while the swarm escalates. Every sprite and sound is generated in code." },
-  { repo: "university-archive", title: "University Archive", icon: "🎓", lang: "C#", desc: "28 projects, labs and coursework from university and an internship: from bootloaders and lexers to microservices, WebGL and data analysis." },
+  { repo: "fleetview", title: "FleetView", icon: "🖧", lang: "Rust", release: true, desc: "Manage a fleet of Windows PCs on your LAN with no cloud and no server: live telemetry, silent installs, PowerShell as admin and visible screen views." },
+  { repo: "ecancelarie", title: "e-Management ANSC", icon: "🗂️", lang: "JavaScript", desc: "An internal document-management web app for a public agency: chained signing, org chart, audit log and full backups." },
 ];
 
 // ---------- render ----------
